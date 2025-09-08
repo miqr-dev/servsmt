@@ -1,0 +1,314 @@
+/***** Tooltip customization *****/
+.tooltip-inner {
+  background-color: #681a24 !important;
+}
+
+.tooltip.bs-tooltip-right .arrow:before {
+  border-right-color: #681a24 !important;
+}
+
+.tooltip.bs-tooltip-left .arrow:before {
+  border-left-color: #681a24 !important;
+}
+
+.tooltip.bs-tooltip-bottom .arrow:before {
+  border-bottom-color: #681a24 !important;
+}
+
+.tooltip.bs-tooltip-top .arrow:before {
+  border-top-color: #681a24 !important;
+}
+
+
+/***** ticket class header color */
+.ticket_header {
+  color: #661421;
+}
+
+.ticket_header_korso {
+  color: #65A30D !important;
+}
+
+.btn-outline-green {
+    color: #65A30D !important;  /* Green text color */
+    border-color: #65A30D !important;  /* Green border */
+}
+
+.btn-outline-green:hover {
+    background-color: #65A30D !important;
+    color: white !important;
+}
+
+.btn-green {
+  color: #fff;
+  background-color: #65A30D !important;
+  border-color: #65A30D !important;
+}
+
+.btn-green:hover {
+  color: #fff;
+  background-color: #29719C !important;
+  border-color: #29719C !important;
+}
+
+
+/***** swal *****/
+.swal2-container {
+  z-index: X;
+}
+
+/* right bounce */
+@-webkit-keyframes bounceRight {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    -webkit-transform: translateX(0);
+    transform: translateX(0);
+  }
+
+  40% {
+    -webkit-transform: translateX(-30px);
+    transform: translateX(-30px);
+  }
+
+  60% {
+    -webkit-transform: translateX(-15px);
+    transform: translateX(-15px);
+  }
+}
+
+@-moz-keyframes bounceRight {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateX(0);
+  }
+
+  40% {
+    transform: translateX(-30px);
+  }
+
+  60% {
+    transform: translateX(-15px);
+  }
+}
+
+@keyframes bounceRight {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    -ms-transform: translateX(0);
+    transform: translateX(0);
+  }
+
+  40% {
+    -ms-transform: translateX(-30px);
+    transform: translateX(-30px);
+  }
+
+  60% {
+    -ms-transform: translateX(-15px);
+    transform: translateX(-15px);
+  }
+}
+
+/* assign bounce */
+.fa-arrow-right {
+  -webkit-animation: bounceRight 2s infinite;
+  animation: bounceRight 2s infinite;
+  float: right;
+}
+
+.fa-arrow-left {
+  -webkit-animation: bounceLeft 2s infinite;
+  animation: bounceLeft 2s infinite;
+}
+
+.fa-chevron-down {
+  -moz-animation: bounceDown 2s infinite;
+  -webkit-animation: bounceDown 2s infinite;
+  animation: bounceDown 2s infinite;
+  text-align: center;
+  display: block;
+}
+
+/* *********** profile image circle ************ */
+.img-circle {
+  border: 0px solid;
+  border-radius: 50%;
+  width: 200px;
+  height: 200px;
+}
+
+.img-size-small {
+  width: 33.9px !important;
+  height: 33.9px !important;
+}
+
+/***** sidebar miqr color *****/
+.main-sidebar {
+  background-color: #681A25 !important;
+}
+
+.card-primary.card-outline {
+  border-top: 3px solid #681A25 !important;
+}
+
+.card-secondary.card-outline {
+  border-top: 3px solid #004873 !important;
+}
+
+.card-thirdary {
+  border-top: 3px solid #65A30D;
+  /* Green top border */
+}
+
+/* .card-thridary.card-outline {
+    border-top: 3px solid #65A30D !important;
+  } */
+
+
+.btn-secondary {
+  color: #fff;
+  background-color: #004873 !important;
+  border-color: #004873 !important;
+}
+
+.btn-secondary:hover {
+  color: #fff;
+  background-color: #29719C !important;
+  border-color: #29719C !important;
+}
+
+
+/***** Ticket Cards Main *****/
+/*----  Main Style  ----*/
+#cards_landscape_wrap-2 {
+  text-align: center;
+  background: #F7F7F7;
+}
+
+#cards_landscape_wrap-2 .container-fluid {
+  padding-bottom: 50px;
+}
+
+#cards_landscape_wrap-2 a {
+  text-decoration: none;
+  outline: none;
+}
+
+#cards_landscape_wrap-2 .card-flyer {
+  border-radius: 50px;
+}
+
+#cards_landscape_wrap-2 .card-flyer .image-box {
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0px 2px 15px rgba(0, 0, 0, 0.50);
+  border-radius: 50px;
+}
+
+#cards_landscape_wrap-2 .card-flyer .image-box img {
+  -webkit-transition: all .9s ease;
+  -moz-transition: all .9s ease;
+  -o-transition: all .9s ease;
+  -ms-transition: all .9s ease;
+  transition: all .9s ease;
+  width: 100%;
+  height: 200px;
+}
+
+#cards_landscape_wrap-2 .card-flyer:hover .image-box img {
+  opacity: 0.7;
+  -webkit-transform: scale(1.15);
+  -moz-transform: scale(1.15);
+  -ms-transform: scale(1.15);
+  -o-transform: scale(1.15);
+  transform: scale(1.15);
+}
+
+#cards_landscape_wrap-2 .card-flyer .text-box {
+  text-align: center;
+}
+
+#cards_landscape_wrap-2 .card-flyer .text-box .text-container {
+  padding: 30px 18px;
+}
+
+#cards_landscape_wrap-2 .card-flyer {
+  background: #FFFFFF;
+  margin-top: 50px;
+  -webkit-transition: all 0.2s ease-in;
+  -moz-transition: all 0.2s ease-in;
+  -ms-transition: all 0.2s ease-in;
+  -o-transition: all 0.2s ease-in;
+  transition: all 0.2s ease-in;
+  box-shadow: 0px 3px 4px rgba(0, 0, 0, 0.40);
+}
+
+#cards_landscape_wrap-2 .card-flyer:hover {
+  background: #fff;
+  box-shadow: 0px 15px 26px rgba(0, 0, 0, 0.50);
+  -webkit-transition: all 0.2s ease-in;
+  -moz-transition: all 0.2s ease-in;
+  -ms-transition: all 0.2s ease-in;
+  -o-transition: all 0.2s ease-in;
+  transition: all 0.2s ease-in;
+  margin-top: 50px;
+}
+
+#cards_landscape_wrap-2 .card-flyer .text-box p {
+  margin-top: 10px;
+  margin-bottom: 0px;
+  padding-bottom: 0px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: #000000;
+}
+
+#cards_landscape_wrap-2 .card-flyer .text-box h6 {
+  margin-top: 0px;
+  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-family: 'Roboto Black', sans-serif;
+  letter-spacing: 1px;
+  color: #671926;
+}
+
+/* info box */
+#cards_landscape_wrap-2 .card-flyer2 .text-box2 p {
+  margin-top: 10px;
+  margin-bottom: 0px;
+  padding-bottom: 0px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: #85323E;
+}
+
+#cards_landscape_wrap-2 .card-flyer2 .text-box2 h2 {
+  margin-top: 0px;
+  margin-bottom: 12px;
+  font-size: 21px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #85323E;
+}
+
+#cards_landscape_wrap-2 .card-flyer2 .text-box2 ul {
+  letter-spacing: 1px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #85323E;
+}

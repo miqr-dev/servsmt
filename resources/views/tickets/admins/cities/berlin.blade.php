@@ -1,0 +1,1 @@
+g@extends('tickets.admins.tables.tickettable')
