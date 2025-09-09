@@ -49,7 +49,7 @@ class TerminationDeletedNotification extends Notification
   {
     return (new MailMessage)
       ->subject('Mitarbeiter gelöscht')
-      ->line($this->myData['name'] . ' aus ' . $this->myData['location'] . 'wurde gelöscht.');
+      ->line($this->myData['name'] . ' aus ' . $this->myData['location'] . ' wurde gelöscht.');
   }
 
   /**

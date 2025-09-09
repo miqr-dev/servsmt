@@ -31,7 +31,12 @@
                               <div class="custom-control custom-radio">
                                 <input type="radio" id="item{{ $item->id }}" name="onlinemarketing_item"
                                   value="{{ $item->id }}" class="custom-control-input">
-                                <label class="custom-control-label" for="item{{ $item->id }}">{{ $item->name }}</label>
+                                <label class="custom-control-label" for="item{{ $item->id }}">
+                                  {{ $item->name }}
+                                  @if($item->name === 'Fehlermeldung Chat GPT')
+                                  <small class="text-muted d-block">bitte Accountname und Screenshot mitsenden</small>
+                                  @endif
+                                </label>
                               </div>
                               @endforeach
                             </div>
