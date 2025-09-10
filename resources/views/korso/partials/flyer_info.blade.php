@@ -76,6 +76,7 @@ DE/ES', 'qty' => 50],
 'BAMF_Zweit_DE_ES' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/ES', 'qty' => 50],
 
 // BAMF – Integrationskurs für gering Literalisierte
+'BAMF_Gering_Kompakt' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte BAMF Kompakt', 'qty' => 50],
 'BAMF_Gering_DE_EN' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/EN', 'qty' => 50],
 'BAMF_Gering_DE_UA' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/UA', 'qty' => 50],
 'BAMF_Gering_DE_AR' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/AR', 'qty' => 50],
@@ -252,7 +253,7 @@ DE/ES', 'qty' => 50],
       @endforeach
 
       <h5 class="mt-4 mb-3"><strong>BAMF – Integrationskurs für gering Literalisierte</strong></h5>
-      @foreach(['DE_EN','DE_UA','DE_AR','DE_ES'] as $lang)
+      @foreach(['DE_EN','DE_UA','DE_AR','DE_ES', 'BAMF_Kompakt'] as $lang)
       @php $name = "BAMF_Gering_{$lang}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
         <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="{{ $name }}" id="{{ $name }}"

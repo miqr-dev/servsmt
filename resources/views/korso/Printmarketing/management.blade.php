@@ -81,6 +81,7 @@
   'BAMF_Gering_DE_UA',
   'BAMF_Gering_DE_AR',
   'BAMF_Gering_DE_ES',
+  'BAMF_Gering_BAMF_Kompakt',
   'MAPO_DE_EN',
   'MAPO_DE_UA',
   'MISO_DE_EN',
