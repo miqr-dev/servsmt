@@ -115,6 +115,9 @@
                     @elseif($myTicket->ticket_status_id == 5)
                     <i class="fas fa-pause fa-1x" data-toggle="tooltip" title="Zurückgestellt"
                       style="color:#e3342f"></i>
+                    @elseif($myTicket->ticket_status_id == 7)
+                    <i class="fa-solid fa-message fa-1x" data-toggle="tooltip" title="Warten auf Antwort"
+                      style="color:#c2410c"></i>
                     @else
                     <i class="far fa-copy fa-1x" data-toggle="tooltip" title="Duplikat" style="color:#285D17"></i>
                     @endif
