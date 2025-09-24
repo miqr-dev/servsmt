@@ -26,7 +26,7 @@
     <tr>
       <td>{{$teilnehmer->vorname}}</td>
       <td>{{$teilnehmer->nachname}}</td>
-      @if(auth()->user()->hasRole('Super_Admin'))
+      @if(auth()->check() && auth()->user()->hasRole('Super_Admin'))
       <td><input class="form-control password" type="text" name="username" id="{{$teilnehmer->id}}" 
                   value="{{$teilnehmer->username ? $teilnehmer->username : ''}}"></td>
       @else 

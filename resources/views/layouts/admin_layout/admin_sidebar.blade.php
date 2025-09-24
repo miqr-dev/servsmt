@@ -335,7 +335,7 @@
           </a>
         </li>
         @endif
-        @if(auth()->check() && auth()->user()->hasAnyRole('Super_Admin','Verwaltung','handwerk_admin','handwerk'))
+        @if(auth()->check() && auth()->user()->hasAnyRole(['Super_Admin','Verwaltung','handwerk_admin','handwerk']))
         <li class="nav-item has-treeview">
           <a href="{{route ('handwerk_index')}}" class="nav-link">
             <i class="nav-icon fa-solid fa-person-digging" style="color: #004873"></i>

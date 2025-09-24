@@ -1,3 +1,4 @@
+@auth
 <div class="col-lg-4">
   <div class="card card-primary card-outline">
     <div class="card-body box-profile form-group">
@@ -62,3 +63,4 @@
     </div>
   </div>
 </div>
+@endauth
