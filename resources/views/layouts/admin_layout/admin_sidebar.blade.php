@@ -9,6 +9,7 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
+    @auth
     <!-- Sidebar user panel (optional) -->
     <div class="user-panel text-center">
       <div class="info">
@@ -23,6 +24,7 @@
         </ul>
       </div>
     </div>
+    @endauth
 
 
     <!-- Sidebar Menu -->
@@ -45,7 +47,7 @@
             <p>Evaluationen</p>
           </a>
         </li>
-        @if(auth()->user()->hasRole('Super_Admin') || auth()->user()->id == 39)
+        @if(auth()->check() && (auth()->user()->hasRole('Super_Admin') || auth()->user()->id == 39))
         <li class="nav-item">
           <a href="{{ route('documents.index') }}" class="nav-link">
             <i class="fa-solid fa-feather-pointed nav-icon" style="color:#ff9999;"></i>
@@ -69,7 +71,7 @@
             </p>
           </a>
         </li>
-        @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('Super_Admin'))
+        @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Super_Admin')))
         <li class="nav-item has-treeview">
           <a href="{{ url('/contacts') }}" class="nav-link">
             <i class="nav-icon fas fa-address-book" style="color:#6969B3;"></i>
@@ -79,7 +81,7 @@
           </a>
         </li>
         @endif
-        @if(auth()->user()->hasRole('Terminal') || auth()->user()->hasRole('Super_Admin'))
+        @if(auth()->check() && (auth()->user()->hasRole('Terminal') || auth()->user()->hasRole('Super_Admin')))
         <li class="nav-item has-treeview">
           <a href="#" class="nav-link">
             <i class="nav-icon fa-solid fa-briefcase" style="color:green;"></i>
@@ -233,7 +235,7 @@
             </p>
           </a>
           <ul class="nav nav-treeview text-capitalize">
-            @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('Super_Admin'))
+            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Super_Admin')))
             <li class="nav-item has-treeview">
               <a href="#" class="nav-link">
                 <i class="fas fa-laptop-code nav-icon"></i>
@@ -285,7 +287,7 @@
             </li>
           </ul>
         </li>
-        @if(auth()->user()->hasRole('Super_Admin'))
+        @if(auth()->check() && auth()->user()->hasRole('Super_Admin'))
         <li class="nav-item has-treeview">
           <a href="{{route ('tasks.index')}}" class="nav-link">
             <i class="nav-icon fas fa-desktop" style="color:#d97706;"></i>
@@ -295,7 +297,7 @@
           </a>
         </li>
         @endif
-        @if(auth()->user()->hasRole('Super_Admin'))
+        @if(auth()->check() && auth()->user()->hasRole('Super_Admin'))
         <li class="nav-item has-treeview">
           <a href="{{route ('projects.index')}}" class="nav-link">
             <i class="nav-icon fas fa-project-diagram" style="color:#E0FF4F;"></i>
@@ -305,7 +307,7 @@
           </a>
         </li>
         @endif
-        @if(auth()->user()->hasAnyRole(['Super_Admin','Verwaltung']))
+        @if(auth()->check() && auth()->user()->hasAnyRole(['Super_Admin','Verwaltung']))
         <li class="nav-item has-treeview">
           <a href="{{route ('participants.index')}}" class="nav-link">
             <i class="nav-icon fa-solid fa-users" style="color:#55917F;"></i>
@@ -323,7 +325,7 @@
             </p>
           </a>
         </li>
-        @if(auth()->user()->hasAnyRole(['Super_Admin','HR']))
+        @if(auth()->check() && auth()->user()->hasAnyRole(['Super_Admin','HR']))
         <li class="nav-item has-treeview">
           <a href="{{route ('employees.index')}}" class="nav-link">
             <i class="nav-icon fa-solid fa-user-group" style="color: #3f6212"></i>
@@ -332,8 +334,8 @@
             </p>
           </a>
         </li>
-        @endcan
-        @if(auth()->user()->hasAnyRole('Super_Admin','Verwaltung','handwerk_admin','handwerk'))
+        @endif
+        @if(auth()->check() && auth()->user()->hasAnyRole('Super_Admin','Verwaltung','handwerk_admin','handwerk'))
         <li class="nav-item has-treeview">
           <a href="{{route ('handwerk_index')}}" class="nav-link">
             <i class="nav-icon fa-solid fa-person-digging" style="color: #004873"></i>
@@ -342,7 +344,7 @@
             </p>
           </a>
         </li>
-        @endcan
+        @endif
         <li class="nav-item has-treeview">
           <a href="{{route('video')}}" class="nav-link">
             <img src="/images/admin_images/help3.gif" class="nav-icon"
