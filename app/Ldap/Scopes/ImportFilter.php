@@ -19,7 +19,7 @@ class ImportFilter implements Scope
      */
     public function apply(Builder $query, Model $model)
     {
-      $group = Group::findOrFail('CN=Verwaltung,OU=Verwaltung,OU=Standort Erfurt,OU=M-I-Q-R,DC=miqr,DC=local');
+      $group = Group::findOrFail('CN=Verwaltung,OU=Verwaltung,OU=Verteiler,OU=Standort Erfurt,OU=M-I-Q-R,DC=miqr,DC=local');
       $query->whereMemberOf($group);
     }
 }
