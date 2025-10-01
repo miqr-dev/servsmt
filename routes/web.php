@@ -425,6 +425,7 @@ Route::post('projects/{project}/jobs', 'JobController@store')->name('job.store')
 
 
 //******************************************  Termination  ******************************************************/
+Route::POST('terminations/toggle-status/{id}', 'TerminationController@toggleStatus')->name('terminations.toggleStatus');
 Route::POST('terminations.delete/{id}', 'TerminationController@destroyed')->name('termination_delete');
 Route::POST('terminations/upload', 'TerminationController@storeUpload')->name('termination_upload');
 Route::GET('terminations/upload_terminations', 'TerminationController@createUpload')->name('terminationCreate_upload');

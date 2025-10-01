@@ -140,6 +140,7 @@
                                           <th>Austritt zum</th>
                                           <th>Standort</th>
                                           <th>Beschäftigung</th>
+                                          <th>Status</th>
                                           <th>Ändern</th>
                                         </tr>
                                       </thead>
@@ -147,22 +148,37 @@
                                         @foreach($terminations as $termination)
                                         <tr>
                                           <td>{{$termination->name}}</td>
-                                          @if(is_null($termination->exit))
-                                          <td></td>
-                                          @elseif($termination->exit->lte($week))
-                                          <td class="text-bold" style="color: red;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
-                                          @elseif($termination->exit->lte($month))
-                                          <td class="text-bold" style="color: orange;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
+
+                                          @if($termination->is_inactive)
+                                            <td class="text-bold" style="color: dimgray;">{{$termination->exit ? $termination->exit->format('d.m.Y') : ''}}</td>
                                           @else
-                                          <td class="text-bold" style="color: green;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
+                                            @if(is_null($termination->exit))
+                                            <td></td>
+                                            @elseif($termination->exit->lte($week))
+                                            <td class="text-bold" style="color: red;">
+                                              {{$termination->exit->format('d.m.Y')}}</td>
+                                            @elseif($termination->exit->lte($month))
+                                            <td class="text-bold" style="color: orange;">
+                                              {{$termination->exit->format('d.m.Y')}}</td>
+                                            @else
+                                            <td class="text-bold" style="color: green;">
+                                              {{$termination->exit->format('d.m.Y')}}</td>
+                                            @endif
                                           @endif
+
                                           <td>{{$termination->location}}</td>
                                           <td>{{$termination->occupation}}</td>
 
                                           <td>
+                                            @if($termination->is_inactive)
+                                              <i class="fa-solid fa-circle-down" style="color: dimgray;"></i>
+                                            @endif
+                                          </td>
+
+                                          <td>
+                                            <button class="btn btn-sm btn-secondary toggle-status-btn" data-id="{{ $termination->id }}">
+                                                <i class="fa-solid fa-power-off"></i>
+                                            </button>
                                             <a class="btn btn-outline-dark btn-sm"
                                               href="{{ route('terminations.edit',$termination->id) }}"><i
                                                 class="fa-solid fa-pencil"></i></a>
@@ -246,12 +262,7 @@
 
 
 <script>
-
-
-
   $(document).ready(function () {
-
-
     $('#termination_table').DataTable({
       searching: false,
       paging: false,
@@ -270,8 +281,6 @@
       }
     });
 
-
-
     $('#reminder_table').DataTable({
       searching: false,
       paging: false,
@@ -279,8 +288,22 @@
       order: [],
       responsive: true
     });
-  });
 
+    $('.toggle-status-btn').on('click', function() {
+        var id = $(this).data('id');
+        var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
+        $.ajax({
+            url: "{{ url('terminations/toggle-status') }}/" + id,
+            type: 'POST',
+            data: {_token: CSRF_TOKEN},
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                }
+            }
+        });
+    });
+  });
 
   function deleteConfirmation2(id) {
     Swal.fire({

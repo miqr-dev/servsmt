@@ -140,4 +140,13 @@ class TerminationController extends Controller
     Termination::withTrashed()->find($id)->restore();
     return back();
   }
+
+  public function toggleStatus($id)
+  {
+    $termination = Termination::findOrFail($id);
+    $termination->is_inactive = !$termination->is_inactive;
+    $termination->save();
+
+    return response()->json(['success' => true]);
+  }
 }
