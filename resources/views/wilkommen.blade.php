@@ -289,7 +289,7 @@
       responsive: true
     });
 
-    $('.toggle-status-btn').on('click', function() {
+    $('#termination_table').on('click', '.toggle-status-btn', function() {
         var id = $(this).data('id');
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
         $.ajax({
@@ -300,6 +300,11 @@
                 if (response.success) {
                     location.reload();
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", status, error);
+                console.error("Response:", xhr.responseText);
+                alert('An error occurred while updating the status. Please check the console for details.');
             }
         });
     });
