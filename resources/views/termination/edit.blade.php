@@ -51,6 +51,13 @@
                                       <input type="text" name="occupation" class="form-control"value="{{ $termination->occupation }}" autocomplete="off">
                                   </div>
                                   <div class="form-group">
+                                      <strong>Status</strong>
+                                      <select name="is_active" class="form-control">
+                                        <option value="1" {{ $termination->is_active ? 'selected' : '' }}>Aktiv</option>
+                                        <option value="0" {{ !$termination->is_active ? 'selected' : '' }}>Inaktiv</option>
+                                      </select>
+                                  </div>
+                                  <div class="form-group">
                                       <strong>Austritt zum</strong>
                                       <input type="text" class="form-control exit" name="exit" value="{{$termination->exit->format('d.m.Y')}}" autocomplete="off" >
                                   </div>

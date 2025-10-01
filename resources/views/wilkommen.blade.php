@@ -138,40 +138,71 @@
                                         <tr>
                                           <th>Name</th>
                                           <th>Austritt zum</th>
+                                          <th>Status</th>
                                           <th>Standort</th>
                                           <th>Beschäftigung</th>
                                           <th>Ändern</th>
+                                          <th class="text-center">Status wechseln</th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         @foreach($terminations as $termination)
                                         <tr>
+                                          @php
+                                            $isInactive = !$termination->is_active;
+                                            $exitDate = $termination->exit;
+                                            $dateColor = null;
+                                            if ($exitDate) {
+                                                if ($isInactive) {
+                                                    $dateColor = '#343a40';
+                                                } elseif ($exitDate->lte($week)) {
+                                                    $dateColor = 'red';
+                                                } elseif ($exitDate->lte($month)) {
+                                                    $dateColor = 'orange';
+                                                } else {
+                                                    $dateColor = 'green';
+                                                }
+                                            }
+                                          @endphp
                                           <td>{{$termination->name}}</td>
-                                          @if(is_null($termination->exit))
+                                          @if(is_null($exitDate))
                                           <td></td>
-                                          @elseif($termination->exit->lte($week))
-                                          <td class="text-bold" style="color: red;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
-                                          @elseif($termination->exit->lte($month))
-                                          <td class="text-bold" style="color: orange;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
                                           @else
-                                          <td class="text-bold" style="color: green;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
+                                          <td class="text-bold" style="color: {{$dateColor}};">
+                                            {{$exitDate->format('d.m.Y')}}</td>
                                           @endif
+                                          <td class="text-center">
+                                            @if($isInactive)
+                                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                                            <span class="sr-only">Inaktiv</span>
+                                            @else
+                                            <span class="sr-only">Aktiv</span>
+                                            @endif
+                                          </td>
                                           <td>{{$termination->location}}</td>
                                           <td>{{$termination->occupation}}</td>
-
                                           <td>
                                             <a class="btn btn-outline-dark btn-sm"
                                               href="{{ route('terminations.edit',$termination->id) }}"><i
                                                 class="fa-solid fa-pencil"></i></a>
                                             <button class="btn btn-sm btn-danger show_confirm"
                                               data-id="{{ $termination->id }}"
-                                              data-action="{{route('termination_delete',$termination->id)}}"
                                               onclick="deleteConfirmation2({{ $termination->id }})">
                                               <i class="fa-solid fa-trash-can"></i>
                                             </button>
+                                          </td>
+
+                                          <td class="text-center">
+                                            <form action="{{ route('terminations.toggle', $termination) }}" method="POST"
+                                              class="d-inline">
+                                              @csrf
+                                              <button type="submit"
+                                                class="btn btn-sm {{ $isInactive ? 'btn-secondary' : 'btn-success' }}"
+                                                title="{{ $isInactive ? 'Als aktiv markieren' : 'Als inaktiv markieren' }}">
+                                                <i class="fa-solid {{ $isInactive ? 'fa-toggle-off' : 'fa-toggle-on' }}"></i>
+                                                <span class="sr-only">{{ $isInactive ? 'Aktivieren' : 'Deaktivieren' }}</span>
+                                              </button>
+                                            </form>
                                           </td>
                                         </tr>
                                         @endforeach
@@ -241,6 +272,7 @@
 <script src="https://cdn.datatables.net/responsive/2.4.0/js/dataTables.responsive.min.js"></script>
 
 @endsection
+
 
 @section('script')
 

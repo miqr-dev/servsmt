@@ -54,6 +54,13 @@
                                   <input type="text" name="occupation" class="form-control" autocomplete="off">
                                 </div>
                                 <div class="form-group">
+                                  <strong>Status</strong>
+                                  <select name="is_active" class="form-control">
+                                    <option value="1" selected>Aktiv</option>
+                                    <option value="0">Inaktiv</option>
+                                  </select>
+                                </div>
+                                <div class="form-group">
                                   <strong>Austritt zum</strong>
                                   <input type="text" class="form-control exit" name="exit" autocomplete="off">
                                 </div>

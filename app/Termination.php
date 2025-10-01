@@ -10,4 +10,7 @@ class Termination extends Model
   use SoftDeletes;
   protected $dates = ['created_at', 'updated_at', 'exit'];
   protected $guarded = [];
+  protected $casts = [
+    'is_active' => 'boolean',
+  ];
 }

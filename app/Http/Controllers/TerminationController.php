@@ -40,9 +40,13 @@ class TerminationController extends Controller
       'name' => 'required',
       'location' => 'required',
       'exit' => 'required',
+      'is_active' => 'nullable|boolean',
     ]);
 
-    Termination::create($request->all());
+    $payload = $request->except('is_active');
+    $payload['is_active'] = $request->boolean('is_active', true);
+
+    Termination::create($payload);
     $sucMsg = array(
       'message' => 'Erfolgreich hinzugefügt ',
       'alert-type' => 'success'
@@ -83,9 +87,13 @@ class TerminationController extends Controller
       'name' => 'required',
       'location' => 'required',
       'exit' => 'required',
+      'is_active' => 'nullable|boolean',
     ]);
 
-    $termination->update($request->all());
+    $payload = $request->except('is_active');
+    $payload['is_active'] = $request->boolean('is_active', true);
+
+    $termination->update($payload);
     $sucMsg = array(
       'message' => 'Erfolgreich bearbeitet ',
       'alert-type' => 'success'
@@ -128,6 +136,21 @@ class TerminationController extends Controller
     $termination->delete();
 
     return 'true';
+  }
+
+  public function toggleStatus(Termination $termination)
+  {
+    $termination->is_active = ! $termination->is_active;
+    $termination->save();
+
+    $message = $termination->is_active
+      ? 'Mitarbeiter wurde als aktiv markiert.'
+      : 'Mitarbeiter wurde als inaktiv markiert.';
+
+    return redirect()->back()->with([
+      'message' => $message,
+      'alert-type' => 'success',
+    ]);
   }
   public function history()
   {
