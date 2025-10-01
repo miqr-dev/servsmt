@@ -47,9 +47,12 @@ class TerminationDeletedNotification extends Notification
    */
   public function toMail($notifiable)
   {
+    $subject = $this->myData['mail_subject'] ?? 'Mitarbeiter aktualisiert';
+    $line = $this->myData['mail_line'] ?? ($this->myData['name'] . ' aus ' . $this->myData['location'] . ' wurde aktualisiert.');
+
     return (new MailMessage)
-      ->subject('Mitarbeiter gelöscht')
-      ->line($this->myData['name'] . ' aus ' . $this->myData['location'] . ' wurde gelöscht.');
+      ->subject($subject)
+      ->line($line);
   }
 
   /**
@@ -66,6 +69,7 @@ class TerminationDeletedNotification extends Notification
       'name' => $this->myData['name'],
       'location' => $this->myData['location'],
       'occupation' => $this->myData['occupation'],
+      'status' => $this->myData['status'] ?? null,
     ];
   }
 

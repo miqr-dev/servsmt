@@ -106,31 +106,9 @@ class TerminationController extends Controller
   {
     $termination = Termination::findOrFail($id);
 
-    $data = [
-      'title'      => 'Mitarbeiter gelöscht',
-      'id'         => $termination->id,
-      'name'       => $termination->name,
-      'location'   => $termination->location,
-      'occupation' => $termination->occupation,
-    ];
+    $data = $this->buildNotificationData($termination, 'deleted');
 
-    // Build recipients with a collection, validate & dedupe
-    $recipients = collect([
-      'ara.matoyan@miqr.de',
-      'Katharina.Rempel@miqr.de',
-      'Matthias.Kirchner@miqr.de',
-    ])
-      ->map(function ($e) {
-        return trim($e);
-      })
-      ->filter(function ($e) {
-        return filter_var($e, FILTER_VALIDATE_EMAIL);
-      })
-      ->unique()
-      ->values()
-      ->all(); // => array of unique, valid emails
-
-    Notification::route('mail', $recipients)
+    Notification::route('mail', $this->notificationRecipients())
       ->notify(new \App\Notifications\TerminationDeletedNotification($data));
 
     $termination->delete();
@@ -142,6 +120,13 @@ class TerminationController extends Controller
   {
     $termination->is_active = ! $termination->is_active;
     $termination->save();
+
+    if (! $termination->is_active) {
+      $data = $this->buildNotificationData($termination, 'inactive');
+
+      Notification::route('mail', $this->notificationRecipients())
+        ->notify(new \App\Notifications\TerminationDeletedNotification($data));
+    }
 
     $message = $termination->is_active
       ? 'Mitarbeiter wurde als aktiv markiert.'
@@ -162,5 +147,55 @@ class TerminationController extends Controller
   {
     Termination::withTrashed()->find($id)->restore();
     return back();
+  }
+
+  /**
+   * Build the notification payload for employee changes.
+   */
+  protected function buildNotificationData(Termination $termination, string $status): array
+  {
+    $titles = [
+      'deleted'  => 'Mitarbeiter gelöscht',
+      'inactive' => 'Mitarbeiter inaktiv',
+    ];
+
+    $messages = [
+      'deleted'  => $termination->name . ' aus ' . $termination->location . ' wurde gelöscht.',
+      'inactive' => $termination->name . ' aus ' . $termination->location . ' wurde als inaktiv markiert.',
+    ];
+
+    $title = $titles[$status] ?? 'Mitarbeiter aktualisiert';
+
+    return [
+      'title'        => $title,
+      'id'           => $termination->id,
+      'name'         => $termination->name,
+      'location'     => $termination->location,
+      'occupation'   => $termination->occupation,
+      'status'       => $status,
+      'mail_subject' => $title,
+      'mail_line'    => $messages[$status] ?? ($termination->name . ' aus ' . $termination->location . ' wurde aktualisiert.'),
+    ];
+  }
+
+  /**
+   * Retrieve a sanitized list of notification recipients.
+   */
+  protected function notificationRecipients(): array
+  {
+    return collect([
+      'ara.matoyan@miqr.de',
+      'Katharina.Rempel@miqr.de',
+      'Matthias.Kirchner@miqr.de',
+    ])
+      ->map(function ($e) {
+        return trim($e);
+      })
+      ->filter(function ($e) {
+        return filter_var($e, FILTER_VALIDATE_EMAIL);
+      })
+      ->unique()
+      ->values()
+      ->all();
   }
 }
