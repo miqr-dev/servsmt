@@ -40,9 +40,13 @@ class TerminationController extends Controller
       'name' => 'required',
       'location' => 'required',
       'exit' => 'required',
+      'is_active' => 'nullable|boolean',
     ]);
 
-    Termination::create($request->all());
+    $payload = $request->except('is_active');
+    $payload['is_active'] = $request->boolean('is_active', true);
+
+    Termination::create($payload);
     $sucMsg = array(
       'message' => 'Erfolgreich hinzugefügt ',
       'alert-type' => 'success'
@@ -83,9 +87,13 @@ class TerminationController extends Controller
       'name' => 'required',
       'location' => 'required',
       'exit' => 'required',
+      'is_active' => 'nullable|boolean',
     ]);
 
-    $termination->update($request->all());
+    $payload = $request->except('is_active');
+    $payload['is_active'] = $request->boolean('is_active', true);
+
+    $termination->update($payload);
     $sucMsg = array(
       'message' => 'Erfolgreich bearbeitet ',
       'alert-type' => 'success'

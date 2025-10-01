@@ -17,8 +17,9 @@ class TerminationsImport implements ToModel, WithStartRow
             'name'        =>  $row[0],
             'location'    =>  $row[1],
             'occupation'  =>  $row[2],
-            'exit'        =>  Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row[3]))->format('Y-m-d')
-            
+            'exit'        =>  Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row[3]))->format('Y-m-d'),
+            'is_active'   =>  true,
+
         ]);
     }
 

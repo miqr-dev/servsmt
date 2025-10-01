@@ -138,6 +138,7 @@
                                         <tr>
                                           <th>Name</th>
                                           <th>Austritt zum</th>
+                                          <th>Status</th>
                                           <th>Standort</th>
                                           <th>Beschäftigung</th>
                                           <th>Ändern</th>
@@ -146,19 +147,37 @@
                                       <tbody>
                                         @foreach($terminations as $termination)
                                         <tr>
+                                          @php
+                                            $isInactive = !$termination->is_active;
+                                            $exitDate = $termination->exit;
+                                            $dateColor = null;
+                                            if ($exitDate) {
+                                                if ($isInactive) {
+                                                    $dateColor = '#343a40';
+                                                } elseif ($exitDate->lte($week)) {
+                                                    $dateColor = 'red';
+                                                } elseif ($exitDate->lte($month)) {
+                                                    $dateColor = 'orange';
+                                                } else {
+                                                    $dateColor = 'green';
+                                                }
+                                            }
+                                          @endphp
                                           <td>{{$termination->name}}</td>
-                                          @if(is_null($termination->exit))
+                                          @if(is_null($exitDate))
                                           <td></td>
-                                          @elseif($termination->exit->lte($week))
-                                          <td class="text-bold" style="color: red;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
-                                          @elseif($termination->exit->lte($month))
-                                          <td class="text-bold" style="color: orange;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
                                           @else
-                                          <td class="text-bold" style="color: green;">
-                                            {{$termination->exit->format('d.m.Y')}}</td>
+                                          <td class="text-bold" style="color: {{$dateColor}};">
+                                            {{$exitDate->format('d.m.Y')}}</td>
                                           @endif
+                                          <td class="text-center">
+                                            @if($isInactive)
+                                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                                            <span class="sr-only">Inaktiv</span>
+                                            @else
+                                            <span class="sr-only">Aktiv</span>
+                                            @endif
+                                          </td>
                                           <td>{{$termination->location}}</td>
                                           <td>{{$termination->occupation}}</td>
 

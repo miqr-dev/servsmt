@@ -1116,6 +1116,7 @@ public function userticketshistory()
       $termination->name = $ticket->employee_firstname . ' ' . $ticket->employee_lastname;
       $termination->location = $ticket->location->place->pnname;
       $termination->exit = $ticket->employee_finish_at->format('d-m-Y');
+      $termination->is_active = true;
       $termination->save();
     }
 
