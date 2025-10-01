@@ -141,7 +141,7 @@
                                           <th>Status</th>
                                           <th>Standort</th>
                                           <th>Beschäftigung</th>
-                                          <th>Ändern</th>
+                                          <th class="text-center">Status wechseln</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -163,7 +163,17 @@
                                                 }
                                             }
                                           @endphp
-                                          <td>{{$termination->name}}</td>
+                                          <td>
+                                            <button type="button"
+                                              class="btn btn-link p-0 text-left termination-action-trigger"
+                                              data-toggle="modal" data-target="#terminationActionModal"
+                                              data-id="{{ $termination->id }}"
+                                              data-name="{{ $termination->name }}"
+                                              data-edit-url="{{ route('terminations.edit', $termination->id) }}"
+                                              data-delete-url="{{ route('termination_delete', $termination->id) }}">
+                                              {{$termination->name}}
+                                            </button>
+                                          </td>
                                           @if(is_null($exitDate))
                                           <td></td>
                                           @else
@@ -181,16 +191,17 @@
                                           <td>{{$termination->location}}</td>
                                           <td>{{$termination->occupation}}</td>
 
-                                          <td>
-                                            <a class="btn btn-outline-dark btn-sm"
-                                              href="{{ route('terminations.edit',$termination->id) }}"><i
-                                                class="fa-solid fa-pencil"></i></a>
-                                            <button class="btn btn-sm btn-danger show_confirm"
-                                              data-id="{{ $termination->id }}"
-                                              data-action="{{route('termination_delete',$termination->id)}}"
-                                              onclick="deleteConfirmation2({{ $termination->id }})">
-                                              <i class="fa-solid fa-trash-can"></i>
-                                            </button>
+                                          <td class="text-center">
+                                            <form action="{{ route('terminations.toggle', $termination) }}" method="POST"
+                                              class="d-inline">
+                                              @csrf
+                                              <button type="submit"
+                                                class="btn btn-sm {{ $isInactive ? 'btn-secondary' : 'btn-success' }}"
+                                                title="{{ $isInactive ? 'Als aktiv markieren' : 'Als inaktiv markieren' }}">
+                                                <i class="fa-solid {{ $isInactive ? 'fa-toggle-off' : 'fa-toggle-on' }}"></i>
+                                                <span class="sr-only">{{ $isInactive ? 'Aktivieren' : 'Deaktivieren' }}</span>
+                                              </button>
+                                            </form>
                                           </td>
                                         </tr>
                                         @endforeach
@@ -259,7 +270,34 @@
 <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.4.0/js/dataTables.responsive.min.js"></script>
 
+<div class="modal fade" id="terminationActionModal" tabindex="-1" role="dialog"
+  aria-labelledby="terminationActionModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="terminationActionModalLabel">Eintrag bearbeiten</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Schließen">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Wählen Sie eine Aktion für <strong id="terminationModalName"></strong>.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Abbrechen</button>
+        <a id="terminationEditLink" class="btn btn-outline-dark" href="#">
+          <i class="fa-solid fa-pencil mr-1"></i> Bearbeiten
+        </a>
+        <button id="terminationDeleteButton" type="button" class="btn btn-danger">
+          <i class="fa-solid fa-trash-can mr-1"></i> Löschen
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @endsection
+
 
 @section('script')
 
@@ -301,7 +339,32 @@
   });
 
 
-  function deleteConfirmation2(id) {
+  $('#terminationActionModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget);
+    var name = button.data('name');
+    var editUrl = button.data('edit-url');
+    var deleteUrl = button.data('delete-url');
+    var id = button.data('id');
+
+    var modal = $(this);
+    modal.find('#terminationModalName').text(name);
+    modal.find('#terminationEditLink').attr('href', editUrl);
+
+    var deleteButton = modal.find('#terminationDeleteButton');
+    deleteButton.data('id', id);
+    deleteButton.data('action', deleteUrl);
+  });
+
+  $('#terminationDeleteButton').on('click', function () {
+    var button = $(this);
+    var id = button.data('id');
+    var action = button.data('action');
+    $('#terminationActionModal').modal('hide');
+    deleteConfirmation2(id, action);
+  });
+
+
+  function deleteConfirmation2(id, actionUrl) {
     Swal.fire({
       title: 'sind Sie sicher ?',
       text: "Sie können dies nicht rückgängig machen!",
@@ -317,7 +380,7 @@
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
         $.ajax({
           type: 'POST',
-          url: "{{url('/terminations.delete')}}/" + id,
+          url: actionUrl || "{{url('/terminations.delete')}}/" + id,
           data: { _token: CSRF_TOKEN },
           success: function (results) {
             if (results === 'true') {

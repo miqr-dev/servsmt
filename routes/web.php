@@ -431,6 +431,7 @@ Route::GET('terminations/upload_terminations', 'TerminationController@createUplo
 Route::GET('terminations/history', 'TerminationController@history')->name('termination_history');
 Route::GET('terminations/restore/{id}', 'TerminationController@restore')->name('termination.restore');
 
+Route::POST('terminations/{termination}/toggle', 'TerminationController@toggleStatus')->name('terminations.toggle');
 Route::resource('terminations', 'TerminationController');
 
 //! Employees

@@ -137,6 +137,21 @@ class TerminationController extends Controller
 
     return 'true';
   }
+
+  public function toggleStatus(Termination $termination)
+  {
+    $termination->is_active = ! $termination->is_active;
+    $termination->save();
+
+    $message = $termination->is_active
+      ? 'Mitarbeiter wurde als aktiv markiert.'
+      : 'Mitarbeiter wurde als inaktiv markiert.';
+
+    return redirect()->back()->with([
+      'message' => $message,
+      'alert-type' => 'success',
+    ]);
+  }
   public function history()
   {
     $terminations = Termination::onlyTrashed()->get();
