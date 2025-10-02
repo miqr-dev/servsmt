@@ -44,14 +44,14 @@ Kompakt', 'qty' => 50],
 'Aktualisierung_Infomaterial_DRV_K_ECOM' => ['label' => 'Aktualisierung Infomaterial – DRV K E-COM', 'qty' => 50],
 
 // BAMF
-'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_EN' => ['label' => 'Aktualisierung Infomaterial – BAMF
-Deutsch-/Integrationskurse DE/EN', 'qty' => 50],
-'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_UA' => ['label' => 'Aktualisierung Infomaterial – BAMF
-Deutsch-/Integrationskurse DE/UA', 'qty' => 50],
-'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_AR' => ['label' => 'Aktualisierung Infomaterial – BAMF
-Deutsch-/Integrationskurse DE/AR', 'qty' => 50],
-'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_ES' => ['label' => 'Aktualisierung Infomaterial – BAMF
-Deutsch-/Integrationskurse DE/ES', 'qty' => 50],
+/*'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_EN' => ['label' => 'Aktualisierung Infomaterial – BAMF
+Deutsch-/Integrationskurse DE/EN', 'qty' => 50],*/
+/*'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_UA' => ['label' => 'Aktualisierung Infomaterial – BAMF
+Deutsch-/Integrationskurse DE/UA', 'qty' => 50],*/
+/*'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_AR' => ['label' => 'Aktualisierung Infomaterial – BAMF
+Deutsch-/Integrationskurse DE/AR', 'qty' => 50],*/
+/*'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_ES' => ['label' => 'Aktualisierung Infomaterial – BAMF
+Deutsch-/Integrationskurse DE/ES', 'qty' => 50],*/
 
 // Berufssprachkurse
 'Aktualisierung_Infomaterial_Berufssprachkurse_DE_EN' => ['label' => 'Aktualisierung Infomaterial – Berufssprachkurse
@@ -64,23 +64,23 @@ DE/AR', 'qty' => 50],
 DE/ES', 'qty' => 50],
 
 // BAMF – Alphakurse
-'BAMF_Alpha_DE_EN' => ['label' => 'BAMF-Alphakurse DE/EN', 'qty' => 50],
-'BAMF_Alpha_DE_UA' => ['label' => 'BAMF-Alphakurse DE/UA', 'qty' => 50],
-'BAMF_Alpha_DE_AR' => ['label' => 'BAMF-Alphakurse DE/AR', 'qty' => 50],
-'BAMF_Alpha_DE_ES' => ['label' => 'BAMF-Alphakurse DE/ES', 'qty' => 50],
+/*'BAMF_Alpha_DE_EN' => ['label' => 'BAMF-Alphakurse DE/EN', 'qty' => 50],*/
+/*'BAMF_Alpha_DE_UA' => ['label' => 'BAMF-Alphakurse DE/UA', 'qty' => 50],*/
+/*'BAMF_Alpha_DE_AR' => ['label' => 'BAMF-Alphakurse DE/AR', 'qty' => 50],*/
+/*'BAMF_Alpha_DE_ES' => ['label' => 'BAMF-Alphakurse DE/ES', 'qty' => 50],*/
 
 // BAMF – Zweitschriftlernerkurse
-'BAMF_Zweit_DE_EN' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/EN', 'qty' => 50],
-'BAMF_Zweit_DE_UA' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/UA', 'qty' => 50],
-'BAMF_Zweit_DE_AR' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/AR', 'qty' => 50],
-'BAMF_Zweit_DE_ES' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/ES', 'qty' => 50],
+/*'BAMF_Zweit_DE_EN' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/EN', 'qty' => 50],*/
+/*'BAMF_Zweit_DE_UA' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/UA', 'qty' => 50],*/
+/*'BAMF_Zweit_DE_AR' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/AR', 'qty' => 50],*/
+/*'BAMF_Zweit_DE_ES' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/ES', 'qty' => 50],*/
 
 // BAMF – Integrationskurs für gering Literalisierte
-'BAMF_Gering_Kompakt' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte BAMF Kompakt', 'qty' => 50],
-'BAMF_Gering_DE_EN' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/EN', 'qty' => 50],
-'BAMF_Gering_DE_UA' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/UA', 'qty' => 50],
-'BAMF_Gering_DE_AR' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/AR', 'qty' => 50],
-'BAMF_Gering_DE_ES' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/ES', 'qty' => 50],
+/*'BAMF_Gering_Kompakt' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte BAMF Kompakt', 'qty' => 50],*/
+/*'BAMF_Gering_DE_EN' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/EN', 'qty' => 50],*/
+/*'BAMF_Gering_DE_UA' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/UA', 'qty' => 50],*/
+/*'BAMF_Gering_DE_AR' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/AR', 'qty' => 50],*/
+/*'BAMF_Gering_DE_ES' => ['label' => 'BAMF – Integrationskurs für gering Literalisierte DE/ES', 'qty' => 50],*/
 
 
 // MAPO
@@ -210,6 +210,7 @@ DE/ES', 'qty' => 50],
 
     {{-- Spalte 3: BAMF, MAPO, MISO, MIBO, Sonstiges --}}
     <div class="col-md-3">
+      {{--
       <h5 class="mb-3"><strong>BAMF – Integrationskurse</strong></h5>
       @foreach(['DE_EN','DE_UA','DE_AR','DE_ES'] as $lang)
       @php $name = "BAMF_Deutsch_{$lang}"; @endphp
@@ -265,6 +266,18 @@ DE/ES', 'qty' => 50],
           value="50" step="50" style="width:60px; display:none;">
       </div>
       @endforeach
+      --}}
+
+      <h5 class="mt-4 mb-3"><strong>BAMF Kompakt Flyer</strong></h5>
+      <div class="form-check mb-2 d-flex align-items-center">
+        <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="BAMF_Gering_BAMF_Kompakt"
+          id="BAMF_Gering_BAMF_Kompakt" data-has-quantity-input="true">
+        <label class="form-check-label" for="BAMF_Gering_BAMF_Kompakt">
+          DE
+        </label>
+        <input class="form-control form-control-sm ml-auto quantity-input" type="number"
+          name="BAMF_Gering_BAMF_Kompakt_qty" min="50" value="50" step="50" style="width:60px; display:none;">
+      </div>
     </div>
 
     {{-- Spalte 4: MAPO, MISO, MIBO, Sonstiges --}}
