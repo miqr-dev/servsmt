@@ -22,7 +22,8 @@ public function index()
         ->select('participant_ticket_tables.*')
         ->with(['ticket' => function ($query) {
             $query->select('id', 'created_at', 'done_by');
-        }]);
+        }])
+        ->where('created_at', '>=', now()->subMonths(6));
 
     if ($user->hasRole('Super_Admin')) {
         $participants = $participantsQuery->orderByDesc('created_at')->get();
@@ -52,11 +53,16 @@ public function index()
     {
       $user = Auth()->user();
       if(auth()->user()->hasRole('Super_Admin')){
-        $participants = ParticipantTicketTable::with('ticket_dir')->get();
+        $participants = ParticipantTicketTable::with('ticket_dir')
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->get();
         return $participants;
       }
       else {
-      $participants = ParticipantTicketTable::where('location',$user->ort)->orderBy('created_at','DESC')->get();
+      $participants = ParticipantTicketTable::where('location',$user->ort)
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->orderBy('created_at','DESC')
+            ->get();
       }
       return view ('tickets.participant.index',compact('participants'));
     }
