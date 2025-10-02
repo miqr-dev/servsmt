@@ -18,34 +18,30 @@ public function index()
 {
     $user = Auth()->user();
 
-    // Check if the user has the 'Super_Admin' role
-    if ($user->hasRole('Super_Admin')) {
-        // Fetch all participants if the user is a Super Admin
-        $participants = ParticipantTicketTable::with('ticket')->orderBy('created_at', 'DESC')->get();
-    } else {
-        // Start building the query conditionally based on user location
-        $participantsQuery = ParticipantTicketTable::query();
+    $participantsQuery = ParticipantTicketTable::query()
+        ->select('participant_ticket_tables.*')
+        ->with(['ticket' => function ($query) {
+            $query->select('id', 'created_at', 'done_by');
+        }]);
 
-        // If user's location is Berlin, check the street
+    if ($user->hasRole('Super_Admin')) {
+        $participants = $participantsQuery->orderByDesc('created_at')->get();
+    } else {
         if ($user->ort === 'Berlin') {
             if ($user->straße === 'Prenzlauer Promenade 28') {
                 $participantsQuery->where('location', 'Berlin-PP');
             } elseif ($user->straße === 'Trachenbergring 93') {
                 $participantsQuery->where('location', 'Berlin-TBR');
             } else {
-                // Default to Berlin if none of the specific streets match
                 $participantsQuery->where('location', 'Berlin');
             }
         } else {
-            // Use the location as per the user's ort if not Berlin
             $participantsQuery->where('location', $user->ort);
         }
 
-        // Finalize the query for non-Super Admin users
-        $participants = $participantsQuery->orderBy('created_at', 'DESC')->get();
+        $participants = $participantsQuery->orderByDesc('created_at')->get();
     }
 
-    // Return the view with participants data
     return view('tickets.participant.index', compact('participants'));
 }
 
