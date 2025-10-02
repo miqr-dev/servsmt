@@ -69,6 +69,7 @@ DE/ES', 'qty' => 50],
 'BAMF_Alpha_DE_AR' => ['label' => 'BAMF-Alphakurse DE/AR', 'qty' => 50],
 'BAMF_Alpha_DE_ES' => ['label' => 'BAMF-Alphakurse DE/ES', 'qty' => 50],
 
+
 // BAMF – Zweitschriftlernerkurse
 'BAMF_Zweit_DE_EN' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/EN', 'qty' => 50],
 'BAMF_Zweit_DE_UA' => ['label' => 'BAMF-Zweitschriftlernerkurse DE/UA', 'qty' => 50],
@@ -225,7 +226,7 @@ DE/ES', 'qty' => 50],
       @endforeach
 
       <h5 class="mt-4 mb-3"><strong>BAMF-Alphakurse</strong></h5>
-      @foreach(['DE_EN','DE_UA','DE_AR','DE_ES'] as $lang)
+      @foreach(['DE_EN'] as $lang)
       @php $name = "BAMF_Alpha_{$lang}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
         <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="{{ $name }}" id="{{ $name }}"
@@ -239,7 +240,7 @@ DE/ES', 'qty' => 50],
       @endforeach
 
       <h5 class="mt-4 mb-3"><strong>BAMF-Zweitschriftlernerkurse</strong></h5>
-      @foreach(['DE_EN','DE_UA','DE_AR','DE_ES'] as $lang)
+      @foreach(['DE_EN'] as $lang)
       @php $name = "BAMF_Zweit_{$lang}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
         <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="{{ $name }}" id="{{ $name }}"
@@ -253,7 +254,7 @@ DE/ES', 'qty' => 50],
       @endforeach
 
       <h5 class="mt-4 mb-3"><strong>BAMF – Integrationskurs für gering Literalisierte</strong></h5>
-      @foreach(['DE_EN','DE_UA','DE_AR','DE_ES', 'BAMF_Kompakt'] as $lang)
+      @foreach(['DE_EN'] as $lang)
       @php $name = "BAMF_Gering_{$lang}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
         <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="{{ $name }}" id="{{ $name }}"
@@ -265,6 +266,17 @@ DE/ES', 'qty' => 50],
           value="50" step="50" style="width:60px; display:none;">
       </div>
       @endforeach
+
+      <h5 class="mt-4 mb-3"><strong>BAMF Kompakt</strong></h5>
+      <div class="form-check mb-2 d-flex align-items-center">
+        <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="BAMF_Kompakt"
+          id="BAMF_Kompakt" data-has-quantity-input="true">
+        <label class="form-check-label" for="BAMF_Kompakt">
+          DE
+        </label>
+        <input class="form-control form-control-sm ml-auto quantity-input" type="number"
+          name="BAMF_Kompakt_qty" min="50" value="50" step="50" style="width:60px; display:none;">
+      </div>
     </div>
 
     {{-- Spalte 4: MAPO, MISO, MIBO, Sonstiges --}}
@@ -298,7 +310,7 @@ DE/ES', 'qty' => 50],
       @endforeach
 
       <h5 class="mt-4 mb-3"><strong>MIBO</strong></h5>
-      @foreach(['DE_EN','DE_UA'] as $lang)
+      @foreach(['DE_EN'] as $lang)
       @php $name = "MIBO_{$lang}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
         <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="{{ $name }}" id="{{ $name }}"
