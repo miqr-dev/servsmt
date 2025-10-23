@@ -785,7 +785,7 @@ public function userticketshistory()
       'cityTicketCounts'
     ));
   }
-
+  
   public function userTicketsAdmins($userId = null)
   {
     $user = Auth()->user();

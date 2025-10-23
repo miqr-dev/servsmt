@@ -1,7 +1,6 @@
 ﻿# ===================================
 # Laravel Default
 # ===================================
-
 /vendor/
 /node_modules/
 /public/storage
@@ -9,7 +8,6 @@
 .env
 .env.*.php
 .env.php
-
 # ===================================
 # Laravel Logs & Cache
 # ===================================
@@ -18,26 +16,26 @@
 /storage/framework/sessions
 /storage/framework/views
 /storage/framework/testing
-
+/storage/framework/laravel-excel
+/storage/app/*
 # ===================================
 # Compiled & Generated Files
 # ===================================
 /bootstrap/cache/*.php
 /public/hot
+/public/upload
 /public/storage
 /public/mix-manifest.json
 /public/js/*.map
 /public/css/*.map
 /public/images/**/*.mp4
 /public/admin_images/**/*.mp4
-
 # ===================================
 # PHPUnit & Coverage
 # ===================================
 .phpunit.result.cache
 .phpunit.cache
 /coverage/
-
 # ===================================
 # IDE & OS Files
 # ===================================
