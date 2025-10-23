@@ -305,6 +305,7 @@ Route::get('/mammach', 'TicketController@mammach')->name('ticket.mammach');
 Route::get('/tickets/{userId?}', 'TicketController@userTicketsAdmins')->name('userTicketsAdmins');  //! test merge admins
 Route::get('/tickets/city/{cityName}', 'TicketController@cityTickets')->name('city.tickets');
 
+Route::get('/tickets/custom-view', 'TicketController@customView')->name('ticket.customView');
 
 Route::patch('/notes/{note}', 'NoteController@update')->name('notes.update');
 Route::post('/notes', 'NoteController@store')->name('notes.store');
