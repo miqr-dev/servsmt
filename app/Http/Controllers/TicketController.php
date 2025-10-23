@@ -98,7 +98,7 @@ class TicketController extends Controller
     if ($user->id === 16 || $user->hasRole('Super_Admin')) {
       $cards[] = [
           'title' => 'Spezialansicht',
-          'url'   => route('ticket.customView'),
+          'url'   => route('special-tickets.index'),
           'color' => 'info'
       ];
     }
@@ -896,29 +896,6 @@ public function userticketshistory()
       })->whereNotNull('on_location')->count();
     }
     return $counts;
-  }
-
-  public function customView()
-  {
-    $user = Auth::user();
-
-    if ($user->id !== 16 && !$user->hasRole('Super_Admin')) {
-        abort(403, 'Unauthorized action.');
-    }
-
-    $cities = ['Dresden', 'Chemnitz', 'Berlin', 'Leipzig', 'Döbeln', 'Riesa'];
-
-    $tickets = Ticket::whereIn('problem_type', ['Computer', 'Drucker', 'Benutzer', 'Telefon', 'Web'])
-        ->where('ticket_status_id', '!=', 3)
-        ->whereNull('deleted_at')
-        ->whereHas('subUser', function ($query) use ($cities) {
-            $query->whereIn('ort', $cities);
-        })
-        ->with('subUser', 'assignedUser', 'ticket_status')
-        ->orderBy('created_at', 'DESC')
-        ->get();
-
-    return view('tickets.custom_view', compact('tickets', 'user'));
   }
 
   public function tickethistory()
