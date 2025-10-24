@@ -13,6 +13,21 @@ Auth::routes();
 
 Route::get('city/{city}/tickets/pdf', 'TicketController@generateCityTicketsPdf')->name('city.tickets.pdf');
 
+//! Special ticket view for Mr. Lorenz
+Route::middleware('auth')->group(function () {
+    // create (works already)
+    Route::post('/ticket/{ticket}/special-comments', 'SpecialTicketController@storeSpecialComment')
+        ->name('tickets.specialComments.store');
+
+    // update/delete with unique param name {sc} and explicit suffixes
+    Route::post('/ticket/{ticket}/special-comments/{sc}/update', 'SpecialTicketController@updateSpecialComment')
+        ->name('tickets.specialComments.update');
+    Route::post('/ticket/{ticket}/special-comments/{sc}/delete', 'SpecialTicketController@destroySpecialComment')
+        ->name('tickets.specialComments.destroy');
+});
+
+
+
 //! Korso aufgaben //
 Route::resource('onlinemarketing_items', 'OnlinemarketingItemController');
 Route::resource('zertifizierung_items', 'ZertifizierungItemController');

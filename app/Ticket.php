@@ -79,4 +79,8 @@ class Ticket extends Model
   {
     return $this->hasMany(Reminder::class);
   }
+  public function specialComments()
+  {
+    return $this->hasMany(TicketSpecialComment::class)->latest('created_at');
+  }
 }

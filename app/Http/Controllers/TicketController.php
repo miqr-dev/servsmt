@@ -95,14 +95,6 @@ class TicketController extends Controller
       ];
     }
 
-    if ($user->id === 16 || $user->hasRole('Super_Admin')) {
-      $cards[] = [
-          'title' => 'Spezialansicht',
-          'url'   => route('special-tickets.index'),
-          'color' => 'info'
-      ];
-    }
-
     // Determine Bootstrap column width based on the number of cards:
     $cardsCount = count($cards);
     if ($cardsCount === 3) {
