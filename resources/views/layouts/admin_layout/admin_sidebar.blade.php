@@ -287,6 +287,16 @@
         </li>
         @if(auth()->user()->hasRole('Super_Admin'))
         <li class="nav-item has-treeview">
+          <a href="{{route ('special-tickets.index')}}" class="nav-link">
+            <i class="nav-icon fas fa-earth-americas" style="color:#5aa9d1;"></i>
+            <p>
+              Standort Tickets
+            </p>
+          </a>
+        </li>
+        @endif
+        @if(auth()->user()->hasRole('Super_Admin'))
+        <li class="nav-item has-treeview">
           <a href="{{route ('tasks.index')}}" class="nav-link">
             <i class="nav-icon fas fa-desktop" style="color:#d97706;"></i>
             <p>
@@ -316,7 +326,7 @@
         </li>
         @endif
         <li class="nav-item has-treeview">
-          <a href="{{ route ('korso_index') }}"  rel="noopener noreferrer" class="nav-link">
+          <a href="{{ route ('korso_index') }}" rel="noopener noreferrer" class="nav-link">
             <i class="nav-icon fa-solid fa-people-group" style="color: #65A30D"></i>
             <p>
               Korso Ticket
