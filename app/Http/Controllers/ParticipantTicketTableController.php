@@ -54,13 +54,13 @@ public function index()
       $user = Auth()->user();
       if(auth()->user()->hasRole('Super_Admin')){
         $participants = ParticipantTicketTable::with('ticket_dir')
-            ->where('created_at', '>=', now()->subMonths(6))
+            ->where('created_at', '>=', now()->subMonths(12))
             ->get();
         return $participants;
       }
       else {
       $participants = ParticipantTicketTable::where('location',$user->ort)
-            ->where('created_at', '>=', now()->subMonths(6))
+            ->where('created_at', '>=', now()->subMonths(12))
             ->orderBy('created_at','DESC')
             ->get();
       }
