@@ -85,7 +85,7 @@ class TicketNotification extends Notification
                   )
                   ->line('<h2><u>Windows</u></h2>' . 
                   '<p>Benutzername &#8594; <strong> ' . $this->myData['employee_username'] . '</strong> <br/>' .
-                  'Passwort &#8594; <strong>Miqr.2025# </strong> <br/>' . 
+                  'Passwort &#8594; <strong>Miqr.2026# </strong> <br/>' . 
                   'Email &#8594; <strong>' . $this->myData['employee_email'] . '</strong> </p>'
                   );
                   if($this->myData['isplus'] == true) {

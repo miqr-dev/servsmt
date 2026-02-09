@@ -7,7 +7,7 @@
   <div class="row col-sm-12 flex justify-content-between my-3">
     <input class="col-sm-3 form-control" type="text" id="employee_username" name="employee_username"
       placeholder="Benutzername" value="{{ @$ticket->employee_username ? $ticket->employee_username : '' }}">
-    <input class="col-sm-3 form-control" type="text" id="employee_password" name="employee_password" value="Miqr.2025#"
+    <input class="col-sm-3 form-control" type="text" id="employee_password" name="employee_password" value="Miqr.2026#"
       readonly>
     <input class="col-sm-3 form-control" type="text" id="employee_email" name="employee_email" placeholder="Email"
       value="{{ @$ticket->employee_email ? $ticket->employee_email : '' }}">

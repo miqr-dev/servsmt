@@ -187,6 +187,10 @@ class TerminationController extends Controller
       'ara.matoyan@miqr.de',
       'Katharina.Rempel@miqr.de',
       'Matthias.Kirchner@miqr.de',
+      'Denise.Naue@miqr.de',
+      'Denise.Naue@miqr.de',
+      'Leah.Wittek@miqr.de',
+      'Jens.Ebermann@miqr.de',
     ])
       ->map(function ($e) {
         return trim($e);
