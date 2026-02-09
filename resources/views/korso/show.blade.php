@@ -150,10 +150,28 @@ $isDone = !is_null($korso->deleted_at);
 
           <div class="row mb-2">
             <div class="col-md-6">
+              <label class="font-weight-bold">Standort:</label>
+              <input type="text" class="form-control" value="{{ $korso->subUser->ort ?? '—' }}" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="font-weight-bold">Position:</label>
+              <input type="text" class="form-control" value="{{ $korso->subUser->position ?? '—' }}" readonly>
+            </div>
+          </div>
+
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <label class="font-weight-bold">Abteilung:</label>
+              <input type="text" class="form-control" value="{{ $korso->subUser->abteilung ?? '—' }}" readonly>
+            </div>
+            <div class="col-md-6">
               <label class="font-weight-bold">Telefon:</label>
               <input type="text" class="form-control" value="{{ $korso->tel_number }}" readonly>
             </div>
-            <div class="col-md-6">
+          </div>
+
+          <div class="row mb-2">
+            <div class="col-md-12">
               <label class="font-weight-bold">Adresse:</label>
               <input type="text" class="form-control" value="{{ $korso->submitter_adresse }}" readonly>
             </div>
