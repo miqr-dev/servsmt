@@ -91,7 +91,7 @@
           @foreach($handwerks as $handwerk)
           <tr>
             <td></td> <!-- You can fill this as needed -->
-            <td><a href="{{url ('handwerk/'.$handwerk->id)}}">{{ $handwerk->problem_type}}</a></td>
+            <td><a href="{{ route('handwerk_show', ['myHandwerkTicket' => $handwerk->id, 'from_city' => $city]) }}">{{ $handwerk->problem_type}}</a></td>
             <td>{{ $handwerk->submitter_name }}</td>
             <td>{{ @$handwerk->location->address}}</td>
             <td>{{ @$handwerk->room->rname }}</td>

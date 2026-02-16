@@ -445,6 +445,11 @@ class HandwerkController extends Controller
 
     $handwerk->delete();
     Comment::withTrashed()->where('commentable_id', $id)->restore();
+
+    if ($request->has('from_city')) {
+      return redirect()->route('handwerk.city', ['city' => $request->from_city]);
+    }
+
     return redirect()->route('ticket.usertickets');
   }
 

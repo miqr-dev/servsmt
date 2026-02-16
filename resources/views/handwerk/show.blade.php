@@ -61,6 +61,9 @@
                       <div class="form-group col-md-12 mb-1">
                         <form action="{{ route ('handwerk.delete',$handwerk->id) }}" method="POST">
                           @csrf
+                          @if(request('from_city'))
+                          <input type="hidden" name="from_city" value="{{ request('from_city') }}">
+                          @endif
                           <button type="submit" class="btn btn-success col-md-12" value="Delete">Erledigt</button>
                         </form>
                       </div>
@@ -86,6 +89,9 @@
                         <!-- Only users with Super_Admin, handwerk_admin, or Sekretariat roles can see this -->
                         <form action="{{ route('handwerk.delete', $handwerk->id) }}" method="POST">
                           @csrf
+                          @if(request('from_city'))
+                          <input type="hidden" name="from_city" value="{{ request('from_city') }}">
+                          @endif
                           <button type="submit" class="btn btn-success col-md-12" value="Delete">Erledigt</button>
                         </form>
                       </div>
