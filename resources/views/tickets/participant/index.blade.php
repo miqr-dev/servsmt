@@ -29,7 +29,7 @@
                   <th>Benutzername</th>
                   <th>Passwort</th>
                   <th>Maßnahme</th>
-                  <th>Email</th>
+                  <th>Standort</th>
                   <th>Erstellt am</th>
                   <th>Erledigt am</th>
                   <th>Erledigt von</th>
@@ -59,7 +59,7 @@
                   <td style="font-weight: bold;">{{$participant->username}}</td>
                   <td style="font-family: 'Courier Prime', monospace;">{{$participant->password}}</td>
                   <td>{{@$participant->course}}</td>
-                  <td>{{@$participant->email}}</td>
+                  <td>{{@$participant->location}}</td>
                   <td style="color: blue;">
                     {{\Carbon\carbon::parse($participant->ticket['created_at'])->format('d-m-Y')}}</td>
                   <td style="color: green;">{{$participant->created_at ? $participant->formatted_created_at : ''}}</td>
