@@ -46,18 +46,21 @@ class TicketController extends Controller
   public function landing()
   {
     $user = Auth::user();
-    if ($user->hasRole('Korso_Admin')) {
-      return redirect()->route('korso.dashboard');
-    }
 
-    if ($user->hasAnyRole(['Super_Admin', 'HR'])) {
-      $licenses = License::orderByRaw('CASE WHEN valid IS NULL THEN 0 ELSE 1 END DESC')
-        ->orderBy('valid', 'ASC')
-        ->get();
-      $month = Carbon::now()->addDays(30);
-      $week = Carbon::now()->addDays(7);
-      $terminations = Termination::orderBy('exit', 'ASC')->get();
-      return view('wilkommen', compact('user', 'licenses', 'month', 'week', 'terminations'));
+    if ($user) {
+        if ($user->hasRole('Korso_Admin')) {
+          return redirect()->route('korso.dashboard');
+        }
+
+        if ($user->hasAnyRole(['Super_Admin', 'HR'])) {
+          $licenses = License::orderByRaw('CASE WHEN valid IS NULL THEN 0 ELSE 1 END DESC')
+            ->orderBy('valid', 'ASC')
+            ->get();
+          $month = Carbon::now()->addDays(30);
+          $week = Carbon::now()->addDays(7);
+          $terminations = Termination::orderBy('exit', 'ASC')->get();
+          return view('wilkommen', compact('user', 'licenses', 'month', 'week', 'terminations'));
+        }
     }
 
     return redirect()->route('ticket.landingPage');
@@ -72,27 +75,29 @@ class TicketController extends Controller
     // Prepare the cards based on the user's roles.
     $cards = [];
 
-    // IT Tickets and Korso Tickets are visible by users with the "Verwaltung" role.
-    if ($user->hasRole('Verwaltung')) {
-      $cards[] = [
-        'title' => 'IT Tickets',
-        'url'   => route('ticket.index'),      // Adjust this route name as needed
-        'color' => 'primary'                  // IT Tickets use Bootstrap Primary
-      ];
-      $cards[] = [
-        'title' => 'Korso Tickets',
-        'url'   => route('korso_index'),    // Adjust this route name as needed
-        'color' => 'korso'                  // Korso Tickets use Bootstrap Success (green)
-      ];
-    }
+    if ($user) {
+        // IT Tickets and Korso Tickets are visible by users with the "Verwaltung" role.
+        if ($user->hasRole('Verwaltung')) {
+          $cards[] = [
+            'title' => 'IT Tickets',
+            'url'   => route('ticket.index'),      // Adjust this route name as needed
+            'color' => 'primary'                  // IT Tickets use Bootstrap Primary
+          ];
+          $cards[] = [
+            'title' => 'Korso Tickets',
+            'url'   => route('korso_index'),    // Adjust this route name as needed
+            'color' => 'korso'                  // Korso Tickets use Bootstrap Success (green)
+          ];
+        }
 
-    // Handwerk Tickets are visible by users with the "handwerk" role.
-    if ($user->hasRole('Verwaltung')) {
-      $cards[] = [
-        'title' => 'Handwerk Tickets',
-        'url'   => route('handwerk_index'), // Adjust this route name as needed
-        'color' => 'handwerk'                     // Handwerk Tickets use Bootstrap Info (blue)
-      ];
+        // Handwerk Tickets are visible by users with the "handwerk" role.
+        if ($user->hasRole('Verwaltung')) {
+          $cards[] = [
+            'title' => 'Handwerk Tickets',
+            'url'   => route('handwerk_index'), // Adjust this route name as needed
+            'color' => 'handwerk'                     // Handwerk Tickets use Bootstrap Info (blue)
+          ];
+        }
     }
 
     // Determine Bootstrap column width based on the number of cards:
