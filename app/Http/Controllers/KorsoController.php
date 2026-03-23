@@ -205,6 +205,35 @@ class KorsoController extends Controller
 
   public function form_store_korso(Request $request)
   {
+    $request->validate([
+      'attachments.*' => 'nullable|file|max:5120',
+      'chatgpt_project_name' => 'nullable|string',
+      'chatgpt_introduction_reason' => 'nullable|string',
+      'chatgpt_goal' => 'nullable|string',
+      'chatgpt_process_steps' => 'nullable|string',
+      'chatgpt_has_existing_process' => 'nullable|boolean',
+      'chatgpt_has_output_examples' => 'nullable|boolean',
+      'chatgpt_has_knowledge_base' => 'nullable|boolean',
+      'chatgpt_output_examples' => 'nullable|string',
+      'chatgpt_knowledge_base' => 'nullable|string',
+      'chatgpt_additional_requirements' => 'nullable|string',
+      'is_chatgpt_project' => 'nullable|boolean',
+    ]);
+
+    $isChatGptProject = $request->boolean('is_chatgpt_project');
+
+    if ($isChatGptProject) {
+      $request->validate([
+        'chatgpt_project_name' => 'required|string',
+        'chatgpt_introduction_reason' => 'required|string',
+        'chatgpt_goal' => 'required|string',
+        'chatgpt_process_steps' => 'required|string',
+        'chatgpt_has_existing_process' => 'required|boolean',
+        'chatgpt_has_output_examples' => 'required|boolean',
+        'chatgpt_has_knowledge_base' => 'required|boolean',
+      ]);
+    }
+
     $korso = new Korso();
     $korso->submitter_name     = $request->input('submitter_name');
     $korso->submitter          = $request->input('submitter');
@@ -214,12 +243,23 @@ class KorsoController extends Controller
     $korso->tel_number         = $request->input('tel_number');
     $korso->problem_type       = $request->input('problem_type');
     $korso->onlinemarketing_item = $request->input('onlinemarketing_item');
-    $korso->zertifizierung_item_id = $request->input('zertifizierung_item_id'); // NEW
-    $korso->massnahme_id          = $request->input('massnahme_id'); // NEW (nullable)
+    $korso->zertifizierung_item_id = $request->input('zertifizierung_item_id');
+    $korso->massnahme_id          = $request->input('massnahme_id');
     $korso->location_id        = $request->input('location_id');
     $korso->problem_in_city        = $request->input('submitter_standort_exception');
-    $korso->notizen            = $request->input('notizen');
     $korso->sek_group_id       = $request->input('sek_group_id') ?: null;
+    $korso->is_chatgpt_project = $isChatGptProject;
+    $korso->chatgpt_project_name = $request->input('chatgpt_project_name');
+    $korso->chatgpt_introduction_reason = $request->input('chatgpt_introduction_reason');
+    $korso->chatgpt_goal = $request->input('chatgpt_goal');
+    $korso->chatgpt_process_steps = $request->input('chatgpt_process_steps');
+    $korso->chatgpt_has_existing_process = $request->input('chatgpt_has_existing_process');
+    $korso->chatgpt_has_output_examples = $request->input('chatgpt_has_output_examples');
+    $korso->chatgpt_has_knowledge_base = $request->input('chatgpt_has_knowledge_base');
+    $korso->chatgpt_output_examples = $request->input('chatgpt_output_examples');
+    $korso->chatgpt_knowledge_base = $request->input('chatgpt_knowledge_base');
+    $korso->chatgpt_additional_requirements = $request->input('chatgpt_additional_requirements');
+    $korso->notizen = $this->buildKorsoNotes($request);
     $korso->save();
 
     // Get all Kcourses to check against
@@ -321,6 +361,48 @@ class KorsoController extends Controller
     }
 
     return redirect()->route('ticket.usertickets')->with('success', 'Korso ticket created successfully!');
+  }
+
+
+  protected function buildKorsoNotes(Request $request)
+  {
+    $sections = [];
+
+    if ($request->filled('notizen')) {
+      $sections[] = '<h5>Notizen</h5><div>' . $request->input('notizen') . '</div>';
+    }
+
+    if ($request->boolean('is_chatgpt_project')) {
+      $radioText = function ($value) {
+        return is_null($value) || $value === '' ? '—' : ((int) $value === 1 ? 'Ja' : 'Nein');
+      };
+
+      $rows = [
+        'Projektname' => $request->input('chatgpt_project_name'),
+        'Einführungsgrund' => $request->input('chatgpt_introduction_reason'),
+        'Zielbild' => $request->input('chatgpt_goal'),
+        'Prozessschritte' => $request->input('chatgpt_process_steps'),
+        'Bestehender Prozess' => $radioText($request->input('chatgpt_has_existing_process')),
+        'Perfekter Output vorhanden' => $radioText($request->input('chatgpt_has_output_examples')),
+        'Knowledge Base vorhanden' => $radioText($request->input('chatgpt_has_knowledge_base')),
+        'Output-Beispiele' => $request->input('chatgpt_output_examples'),
+        'Knowledge Base' => $request->input('chatgpt_knowledge_base'),
+        'Sonstige Anforderungen' => $request->input('chatgpt_additional_requirements'),
+      ];
+
+      $html = '<h5>ChatGPT-Projektvorschläge</h5><table style="width:100%; border-collapse:collapse;">';
+      foreach ($rows as $label => $value) {
+        $html .= '<tr>'
+          . '<td style="width:30%; border:1px solid #d5d5d5; padding:8px; font-weight:bold; vertical-align:top;">' . e($label) . '</td>'
+          . '<td style="border:1px solid #d5d5d5; padding:8px;">' . nl2br(e($value ?: '—')) . '</td>'
+          . '</tr>';
+      }
+      $html .= '</table>';
+
+      $sections[] = $html;
+    }
+
+    return implode('<hr>', $sections);
   }
 
   public function show($id)

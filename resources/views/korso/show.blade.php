@@ -316,6 +316,29 @@ $isDone = !is_null($korso->deleted_at);
           </div>
           @endif
 
+
+          @if($korso->is_chatgpt_project)
+          <div class="mt-4">
+            <h5 class="text-success font-weight-bold mb-2">
+              <i class="fas fa-robot"></i> ChatGPT-Projektvorschläge
+            </h5>
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm">
+                <tr><th style="width:30%">Projektname</th><td>{{ $korso->chatgpt_project_name ?: '—' }}</td></tr>
+                <tr><th>Einführungsgrund</th><td>{!! nl2br(e($korso->chatgpt_introduction_reason ?: '—')) !!}</td></tr>
+                <tr><th>Ziele</th><td>{!! nl2br(e($korso->chatgpt_goal ?: '—')) !!}</td></tr>
+                <tr><th>Prozessschritte</th><td>{!! nl2br(e($korso->chatgpt_process_steps ?: '—')) !!}</td></tr>
+                <tr><th>Bestehender Prozess</th><td>{{ is_null($korso->chatgpt_has_existing_process) ? '—' : ($korso->chatgpt_has_existing_process ? 'Ja' : 'Nein') }}</td></tr>
+                <tr><th>Output-Beispiele vorhanden</th><td>{{ is_null($korso->chatgpt_has_output_examples) ? '—' : ($korso->chatgpt_has_output_examples ? 'Ja' : 'Nein') }}</td></tr>
+                <tr><th>Knowledge Base vorhanden</th><td>{{ is_null($korso->chatgpt_has_knowledge_base) ? '—' : ($korso->chatgpt_has_knowledge_base ? 'Ja' : 'Nein') }}</td></tr>
+                <tr><th>Perfekter Output</th><td>{!! nl2br(e($korso->chatgpt_output_examples ?: '—')) !!}</td></tr>
+                <tr><th>Vorhandenes Wissen</th><td>{!! nl2br(e($korso->chatgpt_knowledge_base ?: '—')) !!}</td></tr>
+                <tr><th>Sonstige Anforderungen</th><td>{!! nl2br(e($korso->chatgpt_additional_requirements ?: '—')) !!}</td></tr>
+              </table>
+            </div>
+          </div>
+          @endif
+
           @if($korso->massnahme)
           <div class="mt-3">
             <h5 class="text-success font-weight-bold mb-2">
