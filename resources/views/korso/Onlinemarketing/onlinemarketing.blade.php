@@ -120,6 +120,10 @@
                             <div class="chatgpt-form-card">
                               <div class="chatgpt-form-card-title">Engpässe und “Breaking Points” im bestehenden Prozess (Anlass der Einführung)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_introduction_reason" rows="5"></textarea>
+                              <div class="chatgpt-upload-block">
+                                <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
+                                <input type="file" name="chatgpt_introduction_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                              </div>
                             </div>
                             <div class="chatgpt-form-card mt-4">
                               <div class="chatgpt-form-card-title">Ziele die mit der Einführung des KI-Assistenten verfolgt werden</div>
@@ -128,6 +132,10 @@
                             <div class="chatgpt-form-card mt-4">
                               <div class="chatgpt-form-card-title">Kurzbeschreibung der einzelnen Schritte (Deine “Vorstellung”)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_process_steps" rows="5"></textarea>
+                              <div class="chatgpt-upload-block">
+                                <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
+                                <input type="file" name="chatgpt_process_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                              </div>
                             </div>
                             <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
                               <button type="button" class="btn btn-outline-secondary chatgpt-prev-btn" data-prev-step="1">Zurück</button>
@@ -195,11 +203,19 @@
                             <div class="chatgpt-form-card mt-4 conditional-field d-none" data-visible-when="chatgpt_has_output_examples">
                               <div class="chatgpt-form-card-title">Beispiele für den perfekten Output (falls vorhanden)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_output_examples" rows="6"></textarea>
+                              <div class="chatgpt-upload-block">
+                                <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
+                                <input type="file" name="chatgpt_output_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                              </div>
                             </div>
 
                             <div class="chatgpt-form-card mt-4 conditional-field d-none" data-visible-when="chatgpt_has_knowledge_base">
                               <div class="chatgpt-form-card-title">Vorhandenes Wissen / Knowledge Bases (falls vorhanden)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_knowledge_base" rows="6"></textarea>
+                              <div class="chatgpt-upload-block">
+                                <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
+                                <input type="file" name="chatgpt_knowledge_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                              </div>
                             </div>
                             <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
                               <button type="button" class="btn btn-outline-secondary chatgpt-prev-btn" data-prev-step="2">Zurück</button>
@@ -213,6 +229,10 @@
                             <div class="chatgpt-form-card">
                               <div class="chatgpt-form-card-title">Sonstige Anforderungen</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_additional_requirements" rows="8"></textarea>
+                              <div class="chatgpt-upload-block">
+                                <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
+                                <input type="file" name="chatgpt_additional_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                              </div>
                             </div>
                             <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
                               <button type="button" class="btn btn-outline-secondary chatgpt-prev-btn" data-prev-step="3">Zurück</button>
@@ -329,6 +349,18 @@
     padding: 14px;
     background: #fff;
     box-shadow: none !important;
+  }
+  .chatgpt-upload-block {
+    border-top: 1px solid #ead4d8;
+    padding: 12px 14px 14px;
+    background: #fcf7f8;
+  }
+  .chatgpt-upload-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #661421;
+    margin-bottom: 8px;
   }
   .ms-forms-table td {
     vertical-align: middle;

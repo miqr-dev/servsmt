@@ -358,6 +358,9 @@ $isDone = !is_null($korso->deleted_at);
               <div class="d-flex flex-wrap">
                 @foreach($korso->korsoAttachments as $attachment)
                 <div class="p-2 position-relative" id="attachment-{{ $attachment->id }}">
+                  @if($attachment->context)
+                  <div class="small font-weight-bold text-muted mb-1">{{ $attachment->context }}</div>
+                  @endif
                   @if(str_contains($attachment->file_type, 'image'))
                   <a href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank">
                     <img src="{{ asset('storage/' . $attachment->file_path) }}" class="img-thumbnail" width="100">

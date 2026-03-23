@@ -207,6 +207,11 @@ class KorsoController extends Controller
   {
     $request->validate([
       'attachments.*' => 'nullable|file|max:5120',
+      'chatgpt_introduction_attachments.*' => 'nullable|file|max:5120',
+      'chatgpt_process_attachments.*' => 'nullable|file|max:5120',
+      'chatgpt_output_attachments.*' => 'nullable|file|max:5120',
+      'chatgpt_knowledge_attachments.*' => 'nullable|file|max:5120',
+      'chatgpt_additional_attachments.*' => 'nullable|file|max:5120',
       'chatgpt_project_name' => 'nullable|string',
       'chatgpt_introduction_reason' => 'nullable|string',
       'chatgpt_goal' => 'nullable|string',
@@ -313,26 +318,14 @@ class KorsoController extends Controller
     // Sync Kcourses (store in kcourse_korso pivot table)
     $korso->kcourses()->sync($selectedKcourses);
 
-    // Save attachments (PDFs & images)
-    if ($request->hasFile('attachments')) {
-      foreach ($request->file('attachments') as $file) {
-        $timestamp = now()->format('Y-m-d_H-i-s'); // Get current date-time
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME); // Extract file name
-        $extension = $file->getClientOriginalExtension(); // Get file extension
-
-        // Create a structured filename
-        $filename = "{$timestamp}_{$originalName}.{$extension}";
-
-        // Store the file in the public/uploads/korsos directory
-        $path = $file->storeAs('uploads/korsos', $filename, 'public');
-
-        KorsoAttachment::create([
-          'korso_id'  => $korso->id,
-          'file_path' => $path,
-          'file_type' => $file->getClientMimeType(),
-        ]);
-      }
-    }
+    $this->storeKorsoAttachments($request, $korso, [
+      'attachments' => null,
+      'chatgpt_introduction_attachments' => 'Engpässe und Breaking Points',
+      'chatgpt_process_attachments' => 'Kurzbeschreibung der einzelnen Schritte',
+      'chatgpt_output_attachments' => 'Beispiele für den perfekten Output',
+      'chatgpt_knowledge_attachments' => 'Vorhandenes Wissen / Knowledge Bases',
+      'chatgpt_additional_attachments' => 'Sonstige Anforderungen',
+    ]);
     if ($korso->priority == 3) {
       $notifications = [
         'title' => 'Neues Korso Ticket',
@@ -363,6 +356,31 @@ class KorsoController extends Controller
     return redirect()->route('ticket.usertickets')->with('success', 'Korso ticket created successfully!');
   }
 
+
+
+  protected function storeKorsoAttachments(Request $request, Korso $korso, array $fieldMap)
+  {
+    foreach ($fieldMap as $inputName => $context) {
+      if (!$request->hasFile($inputName)) {
+        continue;
+      }
+
+      foreach ((array) $request->file($inputName) as $file) {
+        $timestamp = now()->format('Y-m-d_H-i-s-u');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = $file->getClientOriginalExtension();
+        $filename = "{$timestamp}_{$originalName}.{$extension}";
+        $path = $file->storeAs('uploads/korsos', $filename, 'public');
+
+        KorsoAttachment::create([
+          'korso_id'  => $korso->id,
+          'file_path' => $path,
+          'file_type' => $file->getClientMimeType(),
+          'context'   => $context,
+        ]);
+      }
+    }
+  }
 
   protected function buildKorsoNotes(Request $request)
   {

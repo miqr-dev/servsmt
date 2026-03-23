@@ -83,6 +83,9 @@
   <h6><i class="fas fa-paperclip"></i> Anhänge</h6>
   <div class="d-flex flex-wrap">
     @foreach($ticket->korsoAttachments as $attachment)
+    @if($attachment->context)
+    <div class="small font-weight-bold text-muted mb-1">{{ $attachment->context }}</div>
+    @endif
     @if(str_contains($attachment->file_type, 'image'))
     <div class="p-1">
       <a href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank">

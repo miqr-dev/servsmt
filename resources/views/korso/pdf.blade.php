@@ -111,6 +111,9 @@
         <h2>Anhäng</h2>
         @if($korso->korsoAttachments->count() > 0)
             @foreach($korso->korsoAttachments as $attachment)
+                @if($attachment->context)
+                    <p><strong>{{ $attachment->context }}</strong></p>
+                @endif
                 @if(str_contains($attachment->file_type, 'image'))
                     <img src="{{ public_path('storage/' . $attachment->file_path) }}" alt="Attachment">
                 @else
