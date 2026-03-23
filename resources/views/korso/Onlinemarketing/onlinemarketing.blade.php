@@ -544,7 +544,7 @@
 
       $('#chatgpt-project-status').removeClass('d-none');
       $('#is_chatgpt_project').val('1');
-      $modal.modal('hide');
+      $form.trigger('submit');
     });
 
     $form.on('submit', function (e) {
