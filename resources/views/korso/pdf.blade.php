@@ -76,10 +76,18 @@
         </table>
     </div>
 
+    @php
+        $cleanNotes = $korso->notizen;
+        if ($korso->is_chatgpt_project && is_string($cleanNotes) && strpos($cleanNotes, '<h5>ChatGPT-Projektvorschläge</h5>') !== false) {
+            $cleanNotes = strpos($cleanNotes, '<hr>') !== false ? strstr($cleanNotes, '<hr>', true) : null;
+        }
+    @endphp
+    @if(!empty(trim(strip_tags($cleanNotes ?? ''))))
     <div class="section">
         <h2>Beschreibung</h2>
-        <p>{!! $korso->notizen !!}</p>
+        <p>{!! $cleanNotes !!}</p>
     </div>
+    @endif
 
 
     @if($korso->is_chatgpt_project)

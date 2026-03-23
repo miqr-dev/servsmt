@@ -32,9 +32,17 @@
   <p><strong>Zugewiesen an:</strong> {{ $ticket->assignedUser->name ?? 'Nicht zugewiesen' }}</p>
   <p><strong>Erstellt am:</strong> {{ $ticket->created_at->format('d.m.Y H:i') }}</p>
 
+  @php
+    $cleanNotes = $ticket->notizen;
+    if ($ticket->is_chatgpt_project && is_string($cleanNotes) && strpos($cleanNotes, '<h5>ChatGPT-Projektvorschläge</h5>') !== false) {
+      $cleanNotes = strpos($cleanNotes, '<hr>') !== false ? strstr($cleanNotes, '<hr>', true) : null;
+    }
+  @endphp
+  @if(!empty(trim(strip_tags($cleanNotes ?? ''))))
   <hr>
   <h6><i class="fas fa-clipboard"></i> Beschreibung</h6>
-  <p>{!! $ticket->notizen ?? '<em>Keine Beschreibung verfügbar.</em>' !!}</p>
+  <p>{!! $cleanNotes !!}</p>
+  @endif
 
   <h6><i class="fas fa-map-marker-alt"></i> Standort</h6>
   <p>{{ optional($ticket->location)->address ?? '-' }}</p>

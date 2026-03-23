@@ -389,43 +389,7 @@ class KorsoController extends Controller
 
   protected function buildKorsoNotes(Request $request)
   {
-    $sections = [];
-
-    if ($request->filled('notizen')) {
-      $sections[] = '<h5>Notizen</h5><div>' . $request->input('notizen') . '</div>';
-    }
-
-    if ($request->boolean('is_chatgpt_project')) {
-      $radioText = function ($value) {
-        return is_null($value) || $value === '' ? '—' : ((int) $value === 1 ? 'Ja' : 'Nein');
-      };
-
-      $rows = [
-        'Projektname' => $request->input('chatgpt_project_name'),
-        'Einführungsgrund' => $request->input('chatgpt_introduction_reason'),
-        'Zielbild' => $request->input('chatgpt_goal'),
-        'Prozessschritte' => $request->input('chatgpt_process_steps'),
-        'Bestehender Prozess' => $radioText($request->input('chatgpt_has_existing_process')),
-        'Perfekter Output vorhanden' => $radioText($request->input('chatgpt_has_output_examples')),
-        'Knowledge Base vorhanden' => $radioText($request->input('chatgpt_has_knowledge_base')),
-        'Output-Beispiele' => $request->input('chatgpt_output_examples'),
-        'Knowledge Base' => $request->input('chatgpt_knowledge_base'),
-        'Sonstige Anforderungen' => $request->input('chatgpt_additional_requirements'),
-      ];
-
-      $html = '<h5>ChatGPT-Projektvorschläge</h5><table style="width:100%; border-collapse:collapse;">';
-      foreach ($rows as $label => $value) {
-        $html .= '<tr>'
-          . '<td style="width:30%; border:1px solid #d5d5d5; padding:8px; font-weight:bold; vertical-align:top;">' . e($label) . '</td>'
-          . '<td style="border:1px solid #d5d5d5; padding:8px;">' . nl2br(e($value ?: '—')) . '</td>'
-          . '</tr>';
-      }
-      $html .= '</table>';
-
-      $sections[] = $html;
-    }
-
-    return implode('<hr>', $sections);
+    return $request->filled('notizen') ? $request->input('notizen') : null;
   }
 
   public function show($id)

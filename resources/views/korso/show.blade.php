@@ -295,15 +295,22 @@ $isDone = !is_null($korso->deleted_at);
 
           </div> <!-- End row -->
 
-          <!-- Beschreibung Section -->
+          @php
+            $cleanNotes = $korso->notizen;
+            if ($korso->is_chatgpt_project && is_string($cleanNotes) && strpos($cleanNotes, '<h5>ChatGPT-Projektvorschläge</h5>') !== false) {
+              $cleanNotes = strpos($cleanNotes, '<hr>') !== false ? strstr($cleanNotes, '<hr>', true) : null;
+            }
+          @endphp
+          @if(!empty(trim(strip_tags($cleanNotes ?? ''))))
           <div class="mt-3">
             <h5 class="text-success font-weight-bold mb-2">
               <i class="fas fa-clipboard"></i> Beschreibung
             </h5>
             <p class="mb-0" style="font-size: 1rem;">
-              {!! $korso->notizen ?? 'Keine Beschreibung verfügbar.' !!}
+              {!! $cleanNotes !!}
             </p>
           </div>
+          @endif
 
           @if($korso->problem_in_city || @$korso->location->place->pnname)
           <div class="mt-3">
