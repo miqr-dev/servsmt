@@ -122,7 +122,11 @@
                               <textarea class="form-control ms-forms-input" name="chatgpt_introduction_reason" rows="5"></textarea>
                               <div class="chatgpt-upload-block">
                                 <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
-                                <input type="file" name="chatgpt_introduction_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                <div class="chatgpt-upload-control">
+                                  <input type="file" name="chatgpt_introduction_attachments[]" id="chatgpt_introduction_attachments" class="chatgpt-upload-input" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                  <label for="chatgpt_introduction_attachments" class="chatgpt-upload-button">Dateien auswählen</label>
+                                  <span class="chatgpt-upload-filename" data-empty-text="Keine Dateien ausgewählt">Keine Dateien ausgewählt</span>
+                                </div>
                               </div>
                             </div>
                             <div class="chatgpt-form-card mt-4">
@@ -134,7 +138,11 @@
                               <textarea class="form-control ms-forms-input" name="chatgpt_process_steps" rows="5"></textarea>
                               <div class="chatgpt-upload-block">
                                 <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
-                                <input type="file" name="chatgpt_process_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                <div class="chatgpt-upload-control">
+                                  <input type="file" name="chatgpt_process_attachments[]" id="chatgpt_process_attachments" class="chatgpt-upload-input" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                  <label for="chatgpt_process_attachments" class="chatgpt-upload-button">Dateien auswählen</label>
+                                  <span class="chatgpt-upload-filename" data-empty-text="Keine Dateien ausgewählt">Keine Dateien ausgewählt</span>
+                                </div>
                               </div>
                             </div>
                             <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
@@ -205,7 +213,11 @@
                               <textarea class="form-control ms-forms-input" name="chatgpt_output_examples" rows="6"></textarea>
                               <div class="chatgpt-upload-block">
                                 <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
-                                <input type="file" name="chatgpt_output_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                <div class="chatgpt-upload-control">
+                                  <input type="file" name="chatgpt_output_attachments[]" id="chatgpt_output_attachments" class="chatgpt-upload-input" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                  <label for="chatgpt_output_attachments" class="chatgpt-upload-button">Dateien auswählen</label>
+                                  <span class="chatgpt-upload-filename" data-empty-text="Keine Dateien ausgewählt">Keine Dateien ausgewählt</span>
+                                </div>
                               </div>
                             </div>
 
@@ -214,7 +226,11 @@
                               <textarea class="form-control ms-forms-input" name="chatgpt_knowledge_base" rows="6"></textarea>
                               <div class="chatgpt-upload-block">
                                 <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
-                                <input type="file" name="chatgpt_knowledge_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                <div class="chatgpt-upload-control">
+                                  <input type="file" name="chatgpt_knowledge_attachments[]" id="chatgpt_knowledge_attachments" class="chatgpt-upload-input" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                  <label for="chatgpt_knowledge_attachments" class="chatgpt-upload-button">Dateien auswählen</label>
+                                  <span class="chatgpt-upload-filename" data-empty-text="Keine Dateien ausgewählt">Keine Dateien ausgewählt</span>
+                                </div>
                               </div>
                             </div>
                             <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
@@ -231,7 +247,11 @@
                               <textarea class="form-control ms-forms-input" name="chatgpt_additional_requirements" rows="8"></textarea>
                               <div class="chatgpt-upload-block">
                                 <label class="chatgpt-upload-label">Anhänge nur für dieses Feld</label>
-                                <input type="file" name="chatgpt_additional_attachments[]" class="form-control-file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                <div class="chatgpt-upload-control">
+                                  <input type="file" name="chatgpt_additional_attachments[]" id="chatgpt_additional_attachments" class="chatgpt-upload-input" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                  <label for="chatgpt_additional_attachments" class="chatgpt-upload-button">Dateien auswählen</label>
+                                  <span class="chatgpt-upload-filename" data-empty-text="Keine Dateien ausgewählt">Keine Dateien ausgewählt</span>
+                                </div>
                               </div>
                             </div>
                             <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
@@ -362,6 +382,35 @@
     color: #661421;
     margin-bottom: 8px;
   }
+  .chatgpt-upload-control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .chatgpt-upload-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+  }
+  .chatgpt-upload-button {
+    margin: 0;
+    padding: 9px 14px;
+    border-radius: 8px;
+    background: #661421;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chatgpt-upload-button:hover {
+    background: #7f1d2d;
+  }
+  .chatgpt-upload-filename {
+    color: #6b7280;
+    font-size: 0.92rem;
+  }
   .ms-forms-table td {
     vertical-align: middle;
     background: #fff;
@@ -432,6 +481,20 @@
 
     $('input[name="chatgpt_has_output_examples"], input[name="chatgpt_has_knowledge_base"]').on('change', function () {
       updateConditionalFields();
+    });
+
+    $('.chatgpt-upload-input').on('change', function () {
+      const files = Array.from(this.files || []);
+      const $nameTarget = $(this).siblings('.chatgpt-upload-filename');
+      const emptyText = $nameTarget.data('empty-text') || 'Keine Dateien ausgewählt';
+
+      if (!files.length) {
+        $nameTarget.text(emptyText);
+      } else if (files.length === 1) {
+        $nameTarget.text(files[0].name);
+      } else {
+        $nameTarget.text(files.length + ' Dateien ausgewählt');
+      }
     });
 
     $('.chatgpt-next-btn').on('click', function () {
