@@ -40,10 +40,12 @@
                                 </label>
                               </div>
                               @if($item->name === 'Zugang Chat GPT')
-                              <div class="chatgpt-project-link-wrap mb-4 ml-4">
-                                <button type="button" class="btn btn-outline-info btn-sm" id="open-chatgpt-project-modal">
+                              <div class="custom-control custom-radio mb-4 ml-4 chatgpt-project-link-wrap">
+                                <input type="radio" id="itemChatgptProject" name="onlinemarketing_item"
+                                  value="chatgpt_project" class="custom-control-input">
+                                <label class="custom-control-label" for="itemChatgptProject">
                                   ChatGPT-Projektvorschläge
-                                </button>
+                                </label>
                                 <div id="chatgpt-project-status" class="small text-success font-weight-bold mt-2 d-none">
                                   Formular ausgefüllt.
                                 </div>
@@ -190,12 +192,12 @@
                               </table>
                             </div>
 
-                            <div class="chatgpt-form-card mt-4">
+                            <div class="chatgpt-form-card mt-4 conditional-field d-none" data-visible-when="chatgpt_has_output_examples">
                               <div class="chatgpt-form-card-title">Beispiele für den perfekten Output (falls vorhanden)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_output_examples" rows="6"></textarea>
                             </div>
 
-                            <div class="chatgpt-form-card mt-4">
+                            <div class="chatgpt-form-card mt-4 conditional-field d-none" data-visible-when="chatgpt_has_knowledge_base">
                               <div class="chatgpt-form-card-title">Vorhandenes Wissen / Knowledge Bases (falls vorhanden)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_knowledge_base" rows="6"></textarea>
                             </div>
@@ -220,7 +222,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="modal-footer justify-content-end">
+                    <div class="modal-footer justify-content-start">
                       <button type="button" class="btn btn-outline-secondary" id="cancel-chatgpt-project">Abbrechen</button>
                     </div>
                   </div>
@@ -373,16 +375,31 @@
       $('.chatgpt-step-panel[data-step="' + step + '"]').addClass('is-active');
       $('.chatgpt-step-pill').removeClass('is-active');
       $('.chatgpt-step-pill[data-step-target="' + step + '"]').addClass('is-active');
+      updateConditionalFields();
     }
 
-    $('#open-chatgpt-project-modal').on('click', function () {
-      $('#is_chatgpt_project').val('1');
-      goToStep(1);
-      $modal.modal('show');
-    });
+    function updateConditionalFields() {
+      $('[data-visible-when="chatgpt_has_output_examples"]').toggleClass('d-none', $form.find('[name="chatgpt_has_output_examples"]:checked').val() !== '1');
+      $('[data-visible-when="chatgpt_has_knowledge_base"]').toggleClass('d-none', $form.find('[name="chatgpt_has_knowledge_base"]:checked').val() !== '1');
+    }
 
     $('#cancel-chatgpt-project').on('click', function () {
       $modal.modal('hide');
+    });
+
+    $('input[name="onlinemarketing_item"]').on('change', function () {
+      if ($(this).val() === 'chatgpt_project') {
+        $('#is_chatgpt_project').val('1');
+        goToStep(1);
+        $modal.modal('show');
+      } else {
+        $('#is_chatgpt_project').val('0');
+        $('#chatgpt-project-status').addClass('d-none');
+      }
+    });
+
+    $('input[name="chatgpt_has_output_examples"], input[name="chatgpt_has_knowledge_base"]').on('change', function () {
+      updateConditionalFields();
     });
 
     $('.chatgpt-next-btn').on('click', function () {
@@ -445,13 +462,17 @@
         return false;
       }
 
-      if ($('#is_chatgpt_project').val() === '1') {
+      if ($('input[name="onlinemarketing_item"]:checked').val() === 'chatgpt_project' && $('#is_chatgpt_project').val() === '1') {
         const missing = validateFields(modalFields);
 
         if (missing.length) {
           e.preventDefault();
           alert('Bitte vervollständigen Sie zuerst das Formular „ChatGPT-Projektvorschläge“.');
-          goToStep(1);
+          const firstMissing = missing[0];
+          if ((stepRequirements[1] || []).includes(firstMissing)) goToStep(1);
+          else if ((stepRequirements[2] || []).includes(firstMissing)) goToStep(2);
+          else if ((stepRequirements[3] || []).includes(firstMissing)) goToStep(3);
+          else goToStep(4);
           $modal.modal('show');
           return false;
         }
@@ -512,6 +533,7 @@
       selectedFiles.forEach(file => dataTransfer.items.add(file));
       fileInput.files = dataTransfer.files;
     });
+    updateConditionalFields();
   });
 </script>
 @endsection
