@@ -325,6 +325,38 @@ $isDone = !is_null($korso->deleted_at);
 
 
           @if($korso->is_chatgpt_project)
+          @php
+            $attachmentGroups = $korso->korsoAttachments->groupBy('context');
+            $renderAttachmentLinks = function ($context) use ($attachmentGroups) {
+              $attachments = $attachmentGroups->get($context, collect());
+              if ($attachments->isEmpty()) {
+                return '';
+              }
+
+              $html = '<div class="mt-2"><div class="small text-muted font-weight-bold mb-1">Anhänge zu diesem Feld</div><div class="d-flex flex-wrap">';
+              foreach ($attachments as $attachment) {
+                $url = asset('storage/' . $attachment->file_path);
+                $label = basename($attachment->file_path);
+                if (str_contains($attachment->file_type, 'image')) {
+                  $html .= '<a href="' . $url . '" target="_blank" class="mr-2 mb-2"><img src="' . $url . '" class="img-thumbnail" width="80"></a>';
+                } else {
+                  $icon = 'fa-file-alt text-muted';
+                  if ($attachment->file_type === 'application/pdf') {
+                    $icon = 'fa-file-pdf text-danger';
+                  } elseif (in_array($attachment->file_type, ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])) {
+                    $icon = 'fa-file-word text-primary';
+                  } elseif (in_array($attachment->file_type, ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])) {
+                    $icon = 'fa-file-excel text-success';
+                  } elseif (in_array($attachment->file_type, ['application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'])) {
+                    $icon = 'fa-file-powerpoint text-warning';
+                  }
+                  $html .= '<a href="' . $url . '" target="_blank" class="border rounded px-2 py-1 mr-2 mb-2 d-inline-flex align-items-center text-dark"><i class="fas ' . $icon . ' mr-2"></i><span style="max-width:220px; word-break:break-word;">' . e($label) . '</span></a>';
+                }
+              }
+              $html .= '</div></div>';
+              return $html;
+            };
+          @endphp
           <div class="mt-4">
             <h5 class="text-success font-weight-bold mb-2">
               <i class="fas fa-robot"></i> ChatGPT-Projektvorschläge
@@ -332,15 +364,15 @@ $isDone = !is_null($korso->deleted_at);
             <div class="table-responsive">
               <table class="table table-bordered table-sm">
                 <tr><th style="width:30%">Projektname</th><td>{{ $korso->chatgpt_project_name ?: '—' }}</td></tr>
-                <tr><th>Einführungsgrund</th><td>{!! nl2br(e($korso->chatgpt_introduction_reason ?: '—')) !!}</td></tr>
+                <tr><th>Einführungsgrund</th><td>{!! nl2br(e($korso->chatgpt_introduction_reason ?: '—')) !!}{!! $renderAttachmentLinks('Engpässe und Breaking Points') !!}</td></tr>
                 <tr><th>Ziele</th><td>{!! nl2br(e($korso->chatgpt_goal ?: '—')) !!}</td></tr>
-                <tr><th>Prozessschritte</th><td>{!! nl2br(e($korso->chatgpt_process_steps ?: '—')) !!}</td></tr>
+                <tr><th>Prozessschritte</th><td>{!! nl2br(e($korso->chatgpt_process_steps ?: '—')) !!}{!! $renderAttachmentLinks('Kurzbeschreibung der einzelnen Schritte') !!}</td></tr>
                 <tr><th>Bestehender Prozess</th><td>{{ is_null($korso->chatgpt_has_existing_process) ? '—' : ($korso->chatgpt_has_existing_process ? 'Ja' : 'Nein') }}</td></tr>
                 <tr><th>Output-Beispiele vorhanden</th><td>{{ is_null($korso->chatgpt_has_output_examples) ? '—' : ($korso->chatgpt_has_output_examples ? 'Ja' : 'Nein') }}</td></tr>
                 <tr><th>Knowledge Base vorhanden</th><td>{{ is_null($korso->chatgpt_has_knowledge_base) ? '—' : ($korso->chatgpt_has_knowledge_base ? 'Ja' : 'Nein') }}</td></tr>
-                <tr><th>Perfekter Output</th><td>{!! nl2br(e($korso->chatgpt_output_examples ?: '—')) !!}</td></tr>
-                <tr><th>Vorhandenes Wissen</th><td>{!! nl2br(e($korso->chatgpt_knowledge_base ?: '—')) !!}</td></tr>
-                <tr><th>Sonstige Anforderungen</th><td>{!! nl2br(e($korso->chatgpt_additional_requirements ?: '—')) !!}</td></tr>
+                <tr><th>Perfekter Output</th><td>{!! nl2br(e($korso->chatgpt_output_examples ?: '—')) !!}{!! $renderAttachmentLinks('Beispiele für den perfekten Output') !!}</td></tr>
+                <tr><th>Vorhandenes Wissen</th><td>{!! nl2br(e($korso->chatgpt_knowledge_base ?: '—')) !!}{!! $renderAttachmentLinks('Vorhandenes Wissen / Knowledge Bases') !!}</td></tr>
+                <tr><th>Sonstige Anforderungen</th><td>{!! nl2br(e($korso->chatgpt_additional_requirements ?: '—')) !!}{!! $renderAttachmentLinks('Sonstige Anforderungen') !!}</td></tr>
               </table>
             </div>
           </div>
@@ -360,10 +392,11 @@ $isDone = !is_null($korso->deleted_at);
           <div class="row mt-4">
             <!-- Left Side: Attachments (Empty if no attachments) -->
             <div class="col-md-6">
-              @if($korso->korsoAttachments->count() > 0)
+              @php($generalAttachments = $korso->korsoAttachments->whereNull('context'))
+              @if($generalAttachments->count() > 0)
               <h5 class="font-weight-bold">Anhänge</h5>
               <div class="d-flex flex-wrap">
-                @foreach($korso->korsoAttachments as $attachment)
+                @foreach($generalAttachments as $attachment)
                 <div class="p-2 position-relative" id="attachment-{{ $attachment->id }}">
                   @if($attachment->context)
                   <div class="small font-weight-bold text-muted mb-1">{{ $attachment->context }}</div>
