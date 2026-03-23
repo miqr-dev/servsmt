@@ -40,7 +40,7 @@
                                 </label>
                               </div>
                               @if($item->name === 'Zugang Chat GPT')
-                              <div class="custom-control custom-radio mb-4 ml-4 chatgpt-project-link-wrap">
+                              <div class="custom-control custom-radio mb-4 chatgpt-project-link-wrap">
                                 <input type="radio" id="itemChatgptProject" name="onlinemarketing_item"
                                   value="chatgpt_project" class="custom-control-input">
                                 <label class="custom-control-label" for="itemChatgptProject">
