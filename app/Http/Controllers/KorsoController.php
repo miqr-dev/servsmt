@@ -239,6 +239,11 @@ class KorsoController extends Controller
       ]);
     }
 
+    $onlinemarketingItem = $request->input('onlinemarketing_item');
+    if ($onlinemarketingItem === 'chatgpt_project') {
+      $onlinemarketingItem = null;
+    }
+
     $korso = new Korso();
     $korso->submitter_name     = $request->input('submitter_name');
     $korso->submitter          = $request->input('submitter');
@@ -247,7 +252,7 @@ class KorsoController extends Controller
     $korso->priority           = $request->input('priority', 2);
     $korso->tel_number         = $request->input('tel_number');
     $korso->problem_type       = $request->input('problem_type');
-    $korso->onlinemarketing_item = $request->input('onlinemarketing_item');
+    $korso->onlinemarketing_item = $onlinemarketingItem;
     $korso->zertifizierung_item_id = $request->input('zertifizierung_item_id');
     $korso->massnahme_id          = $request->input('massnahme_id');
     $korso->location_id        = $request->input('location_id');
