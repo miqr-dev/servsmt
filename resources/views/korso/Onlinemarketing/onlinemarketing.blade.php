@@ -44,7 +44,6 @@
                                 <button type="button" class="btn btn-outline-info btn-sm" id="open-chatgpt-project-modal">
                                   ChatGPT-Projektvorschläge
                                 </button>
-                                <small class="d-block text-muted mt-2">Öffnet ein Lastenheft im Stil von MS Forms.</small>
                                 <div id="chatgpt-project-status" class="small text-success font-weight-bold mt-2 d-none">
                                   Formular ausgefüllt.
                                 </div>
@@ -85,7 +84,6 @@
                   <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header text-white">
                       <div>
-                        <div class="small text-uppercase mb-1">MS Forms Style</div>
                         <h4 class="modal-title mb-0">KI-Assistent (CustomGPT) Lastenheft</h4>
                       </div>
                     </div>
@@ -98,13 +96,23 @@
                             <p class="mb-0 text-muted">Bitte füllen Sie alle Abschnitte für Ihren gewünschten KI-Assistenten aus.</p>
                           </div>
 
-                          <div class="chatgpt-form-section">
+                          <div class="chatgpt-steps-nav mb-4">
+                            <button type="button" class="chatgpt-step-pill is-active" data-step-target="1">1. Use Case</button>
+                            <button type="button" class="chatgpt-step-pill" data-step-target="2">2. Ziele der KI-Einführung</button>
+                            <button type="button" class="chatgpt-step-pill" data-step-target="3">3. Beschreibung des Prozesses</button>
+                            <button type="button" class="chatgpt-step-pill" data-step-target="4">4. Sonstige Anforderungen</button>
+                          </div>
+
+                          <div class="chatgpt-form-section chatgpt-step-panel is-active" data-step="1">
                             <div class="chatgpt-form-section-title">1. Use Case</div>
                             <label class="chatgpt-form-label required-field">Definiere deinen Anwendungsfall in 3-4 Wörtern („Projektname“)</label>
                             <textarea class="form-control ms-forms-input" name="chatgpt_project_name" rows="3"></textarea>
+                            <div class="chatgpt-step-actions text-right mt-4">
+                              <button type="button" class="btn chatgpt-next-btn" data-next-step="2">Weiter</button>
+                            </div>
                           </div>
 
-                          <div class="chatgpt-form-section">
+                          <div class="chatgpt-form-section chatgpt-step-panel" data-step="2">
                             <div class="chatgpt-form-section-title">2. Ziele der KI-Einführung</div>
                             <label class="chatgpt-form-label required-field">Gründe für die Einführung des KI-Assistenten</label>
                             <div class="chatgpt-form-card">
@@ -119,9 +127,13 @@
                               <div class="chatgpt-form-card-title">Kurzbeschreibung der einzelnen Schritte (Deine “Vorstellung”)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_process_steps" rows="5"></textarea>
                             </div>
+                            <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
+                              <button type="button" class="btn btn-outline-secondary chatgpt-prev-btn" data-prev-step="1">Zurück</button>
+                              <button type="button" class="btn chatgpt-next-btn" data-next-step="3">Weiter</button>
+                            </div>
                           </div>
 
-                          <div class="chatgpt-form-section">
+                          <div class="chatgpt-form-section chatgpt-step-panel" data-step="3">
                             <div class="chatgpt-form-section-title">3. Beschreibung des Prozesses</div>
                             <p class="font-weight-bold mb-3">IST-Zustand und vorhandenes Material</p>
                             <p class="text-muted">Wichtig: Je mehr Beispiele bzw. konkrete Vorstellungen des Ergebnisses Du hast, desto besser wird der KI-Assistent.</p>
@@ -187,25 +199,29 @@
                               <div class="chatgpt-form-card-title">Vorhandenes Wissen / Knowledge Bases (falls vorhanden)</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_knowledge_base" rows="6"></textarea>
                             </div>
+                            <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
+                              <button type="button" class="btn btn-outline-secondary chatgpt-prev-btn" data-prev-step="2">Zurück</button>
+                              <button type="button" class="btn chatgpt-next-btn" data-next-step="4">Weiter</button>
+                            </div>
                           </div>
 
-                          <div class="chatgpt-form-section">
+                          <div class="chatgpt-form-section chatgpt-step-panel" data-step="4">
                             <div class="chatgpt-form-section-title">4. Sonstige Anforderungen</div>
                             <label class="chatgpt-form-label">Ergänzende Anforderungen an den KI-Assistenten</label>
                             <div class="chatgpt-form-card">
                               <div class="chatgpt-form-card-title">Sonstige Anforderungen</div>
                               <textarea class="form-control ms-forms-input" name="chatgpt_additional_requirements" rows="8"></textarea>
                             </div>
+                            <div class="chatgpt-step-actions d-flex justify-content-between mt-4">
+                              <button type="button" class="btn btn-outline-secondary chatgpt-prev-btn" data-prev-step="3">Zurück</button>
+                              <button type="button" class="btn chatgpt-save-btn" id="save-chatgpt-project">Formular übernehmen</button>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div class="modal-footer justify-content-between">
-                      <small class="text-muted">Das Modal wird nur über „Cancel“ geschlossen.</small>
-                      <div>
-                        <button type="button" class="btn btn-outline-secondary" id="cancel-chatgpt-project">Cancel</button>
-                        <button type="button" class="btn btn-info" id="save-chatgpt-project">Formular übernehmen</button>
-                      </div>
+                    <div class="modal-footer justify-content-end">
+                      <button type="button" class="btn btn-outline-secondary" id="cancel-chatgpt-project">Abbrechen</button>
                     </div>
                   </div>
                 </div>
@@ -222,16 +238,16 @@
 @section('script')
 <style>
   .chatgpt-project-modal .modal-header {
-    background: linear-gradient(135deg, #0f9fb3, #2563eb);
+    background: linear-gradient(135deg, #661421, #7f1d2d);
     border-bottom: none;
   }
   .chatgpt-form-shell {
-    background: #eef6fb;
+    background: #f8f1f2;
     min-height: 100%;
   }
   .chatgpt-form-banner {
     height: 120px;
-    background: linear-gradient(135deg, #159fb4, #2457d6);
+    background: linear-gradient(135deg, #661421, #8b1e33);
   }
   .chatgpt-form-body {
     max-width: 860px;
@@ -244,13 +260,13 @@
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.08);
+    box-shadow: 0 10px 30px rgba(102, 20, 33, 0.08);
   }
   .chatgpt-form-section-title {
     font-size: 1.6rem;
     font-weight: 700;
     margin-bottom: 18px;
-    color: #102a43;
+    color: #661421;
   }
   .chatgpt-form-label {
     font-weight: 600;
@@ -258,15 +274,51 @@
     margin-bottom: 10px;
   }
   .chatgpt-form-card {
-    border: 1px solid #d5e3f0;
+    border: 1px solid #ead4d8;
     border-radius: 8px;
     overflow: hidden;
   }
   .chatgpt-form-card-title {
-    background: #f4f7fb;
-    border-bottom: 1px solid #d5e3f0;
+    background: #f8f1f2;
+    border-bottom: 1px solid #ead4d8;
     padding: 12px 14px;
     font-weight: 600;
+  }
+  .chatgpt-steps-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .chatgpt-step-pill {
+    border: 1px solid #d7b0b6;
+    background: #fff;
+    color: #661421;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 600;
+  }
+  .chatgpt-step-pill.is-active {
+    background: #661421;
+    border-color: #661421;
+    color: #fff;
+  }
+  .chatgpt-step-panel {
+    display: none;
+  }
+  .chatgpt-step-panel.is-active {
+    display: block;
+  }
+  .chatgpt-next-btn,
+  .chatgpt-save-btn {
+    background: #661421;
+    border-color: #661421;
+    color: #fff;
+  }
+  .chatgpt-next-btn:hover,
+  .chatgpt-save-btn:hover {
+    background: #7f1d2d;
+    border-color: #7f1d2d;
+    color: #fff;
   }
   .ms-forms-input {
     border: none;
@@ -299,8 +351,33 @@
       'chatgpt_has_knowledge_base'
     ];
 
+    const stepRequirements = {
+      1: ['chatgpt_project_name'],
+      2: ['chatgpt_introduction_reason', 'chatgpt_goal', 'chatgpt_process_steps'],
+      3: ['chatgpt_has_existing_process', 'chatgpt_has_output_examples', 'chatgpt_has_knowledge_base'],
+      4: []
+    };
+
+    function validateFields(fields) {
+      return fields.filter(function (field) {
+        const $fields = $form.find('[name="' + field + '"]');
+        if ($fields.attr('type') === 'radio') {
+          return !$form.find('[name="' + field + '"]:checked').length;
+        }
+        return !$fields.val().trim();
+      });
+    }
+
+    function goToStep(step) {
+      $('.chatgpt-step-panel').removeClass('is-active');
+      $('.chatgpt-step-panel[data-step="' + step + '"]').addClass('is-active');
+      $('.chatgpt-step-pill').removeClass('is-active');
+      $('.chatgpt-step-pill[data-step-target="' + step + '"]').addClass('is-active');
+    }
+
     $('#open-chatgpt-project-modal').on('click', function () {
       $('#is_chatgpt_project').val('1');
+      goToStep(1);
       $modal.modal('show');
     });
 
@@ -308,16 +385,47 @@
       $modal.modal('hide');
     });
 
-    $('#save-chatgpt-project').on('click', function () {
-      const missing = modalFields.filter(function (field) {
-        const $fields = $form.find('[name="' + field + '"]');
-        if ($fields.attr('type') === 'radio') {
-          return !$form.find('[name="' + field + '"]:checked').length;
-        }
-        return !$fields.val().trim();
-      });
+    $('.chatgpt-next-btn').on('click', function () {
+      const currentStep = Number($(this).closest('.chatgpt-step-panel').data('step'));
+      const nextStep = Number($(this).data('next-step'));
+      const missing = validateFields(stepRequirements[currentStep] || []);
 
       if (missing.length) {
+        alert('Bitte füllen Sie zuerst alle Pflichtfelder dieses Schritts aus.');
+        return;
+      }
+
+      goToStep(nextStep);
+    });
+
+    $('.chatgpt-prev-btn').on('click', function () {
+      goToStep(Number($(this).data('prev-step')));
+    });
+
+    $('.chatgpt-step-pill').on('click', function () {
+      const targetStep = Number($(this).data('step-target'));
+      const activeStep = Number($('.chatgpt-step-panel.is-active').data('step'));
+
+      if (targetStep > activeStep) {
+        const missing = validateFields(stepRequirements[activeStep] || []);
+        if (missing.length) {
+          alert('Bitte füllen Sie zuerst alle Pflichtfelder dieses Schritts aus.');
+          return;
+        }
+      }
+
+      goToStep(targetStep);
+    });
+
+    $('#save-chatgpt-project').on('click', function () {
+      const missing = validateFields(modalFields);
+
+      if (missing.length) {
+        const firstMissing = missing[0];
+        if ((stepRequirements[1] || []).includes(firstMissing)) goToStep(1);
+        else if ((stepRequirements[2] || []).includes(firstMissing)) goToStep(2);
+        else if ((stepRequirements[3] || []).includes(firstMissing)) goToStep(3);
+
         alert('Bitte füllen Sie alle Pflichtfelder des ChatGPT-Projektformulars aus.');
         return;
       }
@@ -338,17 +446,12 @@
       }
 
       if ($('#is_chatgpt_project').val() === '1') {
-        const missing = modalFields.filter(function (field) {
-          const $fields = $form.find('[name="' + field + '"]');
-          if ($fields.attr('type') === 'radio') {
-            return !$form.find('[name="' + field + '"]:checked').length;
-          }
-          return !$fields.val().trim();
-        });
+        const missing = validateFields(modalFields);
 
         if (missing.length) {
           e.preventDefault();
           alert('Bitte vervollständigen Sie zuerst das Formular „ChatGPT-Projektvorschläge“.');
+          goToStep(1);
           $modal.modal('show');
           return false;
         }
