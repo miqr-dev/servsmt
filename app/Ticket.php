@@ -65,7 +65,7 @@ class Ticket extends Model
 
   public function pcs()
   {
-    return $this->belongsToMany('App\InvItems', 'ticket_pcs', 'ticket_id', 'inv_item_id');
+    return $this->belongsToMany('App\InvItems', 'ticket_pcs', 'ticket_id', 'inv_item_id')->withTimestamps();
   }
 
   public function participanttickettables()

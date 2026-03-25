@@ -420,6 +420,13 @@ class TicketController extends Controller
 
   public function store(Request $request)
   {
+    if ($request->problem_type === 'Anderer PC Standort') {
+      $request->validate([
+        'pc_ids' => 'required|array|min:1',
+        'pc_ids.*' => 'integer|exists:inv_items,id',
+      ]);
+    }
+
     $admins = User::role('Super_Admin')->get();
     $user = Auth()->user();
     $ticket = new Ticket;
@@ -534,8 +541,23 @@ class TicketController extends Controller
 
     $ticket->save();
 
-    if ($request->has('pc_ids') && is_array($request->pc_ids)) {
-      $ticket->pcs()->sync($request->pc_ids);
+    $pcIds = collect((array) $request->input('pc_ids', []))
+      ->filter(function ($id) {
+        return is_numeric($id);
+      })
+      ->map(function ($id) {
+        return (int) $id;
+      })
+      ->unique()
+      ->values()
+      ->all();
+
+    if (!empty($pcIds)) {
+      $ticket->pcs()->sync($pcIds);
+      if (is_null($ticket->gname_id)) {
+        $ticket->gname_id = $pcIds[0];
+        $ticket->save();
+      }
     }
 
     $notifications = [

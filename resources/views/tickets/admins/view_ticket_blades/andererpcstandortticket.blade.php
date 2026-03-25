@@ -10,9 +10,13 @@
       PCs
       <address>
         @forelse($ticket->pcs as $pc)
-          <u class="mt-1 d-block"><strong>{{ $pc->gname }}</strong></u>
+          <u class="mt-1 d-block"><strong>{{ $pc->gname ?: $pc->invnr }}</strong></u>
         @empty
-          <u class="mt-1"><strong>—</strong></u>
+          @if(!empty($ticket->invitem))
+            <u class="mt-1 d-block"><strong>{{ $ticket->invitem->gname ?: $ticket->invitem->invnr }}</strong></u>
+          @else
+            <u class="mt-1"><strong>—</strong></u>
+          @endif
         @endforelse
       </address>
     </div>
