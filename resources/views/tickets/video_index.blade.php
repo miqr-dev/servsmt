@@ -207,6 +207,7 @@
                     <ul class="list-unstyled text-center">
                       <li class="text-weight-bold">Druckerinstallation | Einrichten </li>
                       <a href="{{route('scannerNew')}}"><li class="text-weight-bold">Scannerinstallation | Einrichten </li></a>
+                      <a href="{{route('printer_changes_location')}}"><li>Standort ändern</li></a>
                     </ul>
                   </div>
                   <div class="card-body list-group-item" >

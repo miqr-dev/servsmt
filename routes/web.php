@@ -374,6 +374,7 @@ Route::get('/ticket.tel_changes_location', 'TicketController@tel_changes_locatio
 Route::get('/ticket.tel_changes_name', 'TicketController@tel_changes_name')->name('tel_changes_name');
 Route::get('/ticket.tel_changes_number', 'TicketController@tel_changes_number')->name('tel_changes_number');
 Route::get('/ticket.pc_changes_location', 'TicketController@pc_changes_location')->name('pc_changes_location');
+Route::get('/ticket.printer_changes_location', 'TicketController@printer_changes_location')->name('printer_changes_location');
 Route::post('/ticket.tel_search_inroom', 'TicketController@tel_in_room')->name('tel_in_room');      //! find the Telephone 
 Route::post('/ticket.pc_search_inroom', 'TicketController@pc_in_room')->name('pc_in_room');      //! find PCs and Laptops
 

@@ -287,6 +287,13 @@ class TicketController extends Controller
     return view('tickets.computer.pcChangeLocation', compact('user', 'now', 'users'));
   }
 
+  public function printer_changes_location()
+  {
+    $rooms = InvRoom::with('location')->get();
+    list($user, $users, $now) = User::getAll();
+    return view('tickets.printer.printerChangeLocation', compact('user', 'now', 'users'));
+  }
+
   public function tel_problems()
   {
     $rooms = InvRoom::with('location')->get();
