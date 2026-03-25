@@ -225,6 +225,12 @@
                       <a href="{{route('tel_changes_number')}}"><li>Nummer ändern</li></a>
                     </ul>
                   </div>
+                  <div class="card-body list-group-item" >
+                    <h5 class="text-center" style="color: #2563eb;"><u>PCs</u></h5>
+                    <ul class="list-unstyled text-center">
+                      <a href="{{route('pc_changes_location')}}"><li>Standort ändern</li></a>
+                    </ul>
+                  </div>
                 </ul>
             </div>
             <div class="w-100 d-none d-sm-block d-md-none"><!-- wrap every 2 on sm--></div>

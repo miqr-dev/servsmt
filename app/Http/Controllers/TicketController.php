@@ -280,6 +280,13 @@ class TicketController extends Controller
     return view('tickets.telephone.telChangeNumber', compact('user', 'now', 'users'));
   }
 
+  public function pc_changes_location()
+  {
+    $rooms = InvRoom::with('location')->get();
+    list($user, $users, $now) = User::getAll();
+    return view('tickets.computer.pcChangeLocation', compact('user', 'now', 'users'));
+  }
+
   public function tel_problems()
   {
     $rooms = InvRoom::with('location')->get();
@@ -328,6 +335,15 @@ class TicketController extends Controller
   {
     $telephones = InvItems::where('room_id', $request->telephones)->where('gart_id', '15')->get();
     return $telephones;
+  }
+
+  public function pc_in_room(Request $request)
+  {
+    $pcs = InvItems::where('room_id', $request->pcs)
+      ->where(function ($query) {
+        $query->where('gart_id', '2')->orWhere('gart_id', '3');
+      })->get();
+    return $pcs;
   }
   //! Ajax requests //
   public function pro_in_room(Request $request)
@@ -517,6 +533,10 @@ class TicketController extends Controller
 
 
     $ticket->save();
+
+    if ($request->has('pc_ids') && is_array($request->pc_ids)) {
+      $ticket->pcs()->sync($request->pc_ids);
+    }
 
     $notifications = [
       'title' => 'Neues Ticket',
@@ -909,7 +929,7 @@ public function userticketshistory()
     $admins = User::role('Super_Admin')->get();
     $ticket_status = TicketStatus::all();
     $ticket_priority = TicketPriority::all();
-    $ticket = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with('subUser')->withTrashed()->findorFail($id);
+    $ticket = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with('subUser')->with('pcs.invroom.location.place')->withTrashed()->findorFail($id);
     $blade_name = 'tickets.admins.view_ticket_blades.' . str_replace(' ', '', strtolower($ticket->problem_type)) . 'ticket';
     $not = $user->unreadNotifications()->where('data->id', $id)->first();
     if ($not) {
