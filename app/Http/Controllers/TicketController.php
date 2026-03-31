@@ -427,6 +427,11 @@ class TicketController extends Controller
 
   public function store(Request $request)
   {
+    $user = Auth()->user();
+    $request->validate([
+      'submitter' => 'nullable|integer|exists:users,id',
+    ]);
+
     if ($request->problem_type === 'Anderer PC Standort') {
       $request->validate([
         'pc_ids' => 'required|array|min:1',
@@ -435,9 +440,11 @@ class TicketController extends Controller
     }
 
     $admins = User::role('Super_Admin')->get();
-    $user = Auth()->user();
+    $submitterId = $user->hasRole('Super_Admin') && $request->filled('submitter')
+      ? (int) $request->submitter
+      : $user->id;
     $ticket = new Ticket;
-    $ticket->submitter = $request->submitter;
+    $ticket->submitter = $submitterId;
     $ticket->priority_id = $request->priority;
     $ticket->tel_number = $request->tel_number;
     $ticket->custom_tel_number = $request->custom_tel_number;
@@ -595,9 +602,17 @@ class TicketController extends Controller
       return back()->withErrors($validator);
     }
 
+    $user = Auth()->user();
+    $request->validate([
+      'submitter' => 'nullable|integer|exists:users,id',
+    ]);
+
     $admins = User::role('Super_Admin')->get();
+    $submitterId = $user->hasRole('Super_Admin') && $request->filled('submitter')
+      ? (int) $request->submitter
+      : $user->id;
     $ticket = new Ticket;
-    $ticket->submitter = $request->submitter;
+    $ticket->submitter = $submitterId;
     $ticket->priority_id = $request->priority;
     $ticket->tel_number = $request->tel_number;
     $ticket->custom_tel_number = $request->custom_tel_number;
