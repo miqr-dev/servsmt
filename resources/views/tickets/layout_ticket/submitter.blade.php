@@ -1,4 +1,15 @@
 <div class="col-lg-4">
+  @php
+    $availableSubmitterUsers = $users ?? \App\User::select(
+      'id',
+      'vorname',
+      'name',
+      'username',
+      'ort',
+      'straße',
+      'tel'
+    )->get()->toArray();
+  @endphp
   <div class="card card-primary card-outline">
     <div class="card-body box-profile form-group">
       <div class="row">
@@ -13,7 +24,7 @@
           <input type="text" class="form-control" id="submitter_search" list="submitter_list"
             value="{{ trim(($user->vorname ?? '').' '.($user->name ?? '')) }} ({{$user->username}})" required>
           <datalist id="submitter_list">
-            @foreach($users as $availableUser)
+            @foreach($availableSubmitterUsers as $availableUser)
             <option
               value="{{ (trim(($availableUser['vorname'] ?? '').' '.($availableUser['name'] ?? '')) ?: ($availableUser['username'] ?? 'Unbekannt')) .' ('.($availableUser['username'] ?? 'kein-username').')' }}"
               data-id="{{$availableUser['id']}}"
