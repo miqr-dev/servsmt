@@ -32,17 +32,35 @@
                                 <label for="forward_on">Weiterleitung an: &nbsp;<i class="fas fa-feather-alt fa-lg"
                                     style="color: #661421;"></i>
                                     &nbsp;<i class="fa-solid fa-right-to-bracket fa-lg" style="color:green;"></i></label>
-                                <input type="text" class="form-control" name="forward_on" required>
+                                <select class="form-control forward-user-select" name="forward_on" required>
+                                  <option value="">Bitte Person auswählen</option>
+                                  @foreach($users as $availableUser)
+                                  <option value="{{ $availableUser['id'] }}">
+                                    {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
+                                  </option>
+                                  @endforeach
+                                </select>
                               </div>
                               <div class="form-group col-md-6">
                                 <label for="forward_on">Weiterleitung von: &nbsp;<i class="fas fa-feather-alt fa-lg"
                                     style="color: #661421;"></i>
                                     &nbsp;<i class="fa-solid fa-right-from-bracket fa-lg" style="color:red;"></i></label>
-                                <input type="text" class="form-control" name="forward_from" required>
+                                <select class="form-control forward-user-select" name="forward_from" required>
+                                  <option value="">Bitte Person auswählen</option>
+                                  @foreach($users as $availableUser)
+                                  <option value="{{ $availableUser['id'] }}">
+                                    {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
+                                  </option>
+                                  @endforeach
+                                </select>
                               </div>
                               <div class="form-group mb-2 col-md-6">
                                 <label for="forward_required_at">Benötigt ab</label>
                                 <input type="text" class="form-control startdate" name="forward_required_at" required>
+                              </div>
+                              <div class="form-group mb-2 col-md-6">
+                                <label for="forward_to_at">Bis</label>
+                                <input type="text" class="form-control enddate" name="forward_to_at" required>
                               </div>
                             </div>
                             <div class="col-md-12">
@@ -103,6 +121,23 @@
         }
       });
 
+      $('.enddate').daterangepicker({
+        singleDatePicker: true,
+        showDropdowns: true,
+        startDate: moment(),
+        minDate: moment(),
+        minYear: parseInt(moment().format('YYYY')) - 1,
+        maxYear: parseInt(moment().format('YYYY')) + 1,
+        opens: 'center',
+        locale: {
+          format: 'DD-MM-YYYY'
+        }
+      });
+
+    });
+    $('.forward-user-select').select2({
+      width: '100%',
+      placeholder: 'Bitte Person auswählen'
     });
     $('.notizen').summernote({
       height: 150,

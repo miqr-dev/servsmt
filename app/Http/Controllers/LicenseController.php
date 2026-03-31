@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\User;
 use App\License;
+use App\Ticket;
 use App\Termination;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -23,7 +24,34 @@ class LicenseController extends Controller
       $month = Carbon::now()->addDays(30);
       $week = Carbon::now()->addDays(7);
       $terminations = Termination::orderBy('exit', 'ASC')->get();
-      return view('wilkommen', compact('user', 'licenses', 'month', 'week', 'terminations'));
+      $emailForwardingTickets = Ticket::with(['subUser', 'forwardOnUser', 'forwardFromUser'])
+        ->where('problem_type', 'Email Weiterleitung')
+        ->orderByDesc('created_at')
+        ->get();
+      $activeEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
+        if (empty($ticket->forward_required_at) || empty($ticket->forward_to_at)) {
+          return false;
+        }
+
+        $now = Carbon::now();
+        return $now->between(
+          Carbon::parse($ticket->forward_required_at)->startOfDay(),
+          Carbon::parse($ticket->forward_to_at)->endOfDay()
+        );
+      })->values();
+      $historyEmailForwardingTickets = $emailForwardingTickets->reject(function ($ticket) use ($activeEmailForwardingTickets) {
+        return $activeEmailForwardingTickets->contains('id', $ticket->id);
+      })->values();
+
+      return view('wilkommen', compact(
+        'user',
+        'licenses',
+        'month',
+        'week',
+        'terminations',
+        'activeEmailForwardingTickets',
+        'historyEmailForwardingTickets'
+      ));
     } else {
       return redirect('/');
     }

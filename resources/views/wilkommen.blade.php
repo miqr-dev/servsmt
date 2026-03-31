@@ -220,6 +220,115 @@
 
                           @endif
 
+                          @if(auth()->user()->hasRole('Super_Admin'))
+                          <div class="row mt-4">
+                            <div class="col-md-12 pl-0 ml-0">
+                              <div class="card card-primary card-outline">
+                                <div class="card-header">
+                                  <div class="float-left">
+                                    <h3 class="card-title text-bold">E-Mail-Weiterleitungen (Aktiv)</h3>
+                                  </div>
+                                  <div class="float-right">
+                                    <button type="button" id="toggle-forwarding-history" class="btn btn-outline-primary">
+                                      Verlauf anzeigen
+                                    </button>
+                                  </div>
+                                </div>
+                                <div class="card-body p-0">
+                                  <div class="mailbox-messages p-2">
+                                    <table id="forwarding_active_table" class="display nowrap table-sm" style="width:100%">
+                                      <thead>
+                                        <tr>
+                                          <th>Von</th>
+                                          <th>An</th>
+                                          <th>Von Datum</th>
+                                          <th>Bis Datum</th>
+                                          <th>Erstellt von</th>
+                                          <th>Eingereicht am</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @foreach(($activeEmailForwardingTickets ?? collect()) as $forwardingTicket)
+                                        <tr>
+                                          <td>
+                                            @if($forwardingTicket->forwardFromUser)
+                                              {{ $forwardingTicket->forwardFromUser->name }}, {{ $forwardingTicket->forwardFromUser->vorname }}
+                                            @else
+                                              {{ $forwardingTicket->forward_from }}
+                                            @endif
+                                          </td>
+                                          <td>
+                                            @if($forwardingTicket->forwardOnUser)
+                                              {{ $forwardingTicket->forwardOnUser->name }}, {{ $forwardingTicket->forwardOnUser->vorname }}
+                                            @else
+                                              {{ $forwardingTicket->forward_on }}
+                                            @endif
+                                          </td>
+                                          <td>{{ optional($forwardingTicket->forward_required_at)->format('d.m.Y') }}</td>
+                                          <td>{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
+                                          <td>{{ optional($forwardingTicket->subUser)->name }}, {{ optional($forwardingTicket->subUser)->vorname }}</td>
+                                          <td>{{ optional($forwardingTicket->created_at)->format('d.m.Y H:i') }}</td>
+                                        </tr>
+                                        @endforeach
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="row mt-2" id="forwarding-history-card" style="display:none;">
+                            <div class="col-md-12 pl-0 ml-0">
+                              <div class="card card-secondary card-outline">
+                                <div class="card-header">
+                                  <h3 class="card-title text-bold">E-Mail-Weiterleitungen (Verlauf)</h3>
+                                </div>
+                                <div class="card-body p-0">
+                                  <div class="mailbox-messages p-2">
+                                    <table id="forwarding_history_table" class="display nowrap table-sm" style="width:100%">
+                                      <thead>
+                                        <tr>
+                                          <th>Von</th>
+                                          <th>An</th>
+                                          <th>Von Datum</th>
+                                          <th>Bis Datum</th>
+                                          <th>Erstellt von</th>
+                                          <th>Eingereicht am</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @foreach(($historyEmailForwardingTickets ?? collect()) as $forwardingTicket)
+                                        <tr>
+                                          <td>
+                                            @if($forwardingTicket->forwardFromUser)
+                                              {{ $forwardingTicket->forwardFromUser->name }}, {{ $forwardingTicket->forwardFromUser->vorname }}
+                                            @else
+                                              {{ $forwardingTicket->forward_from }}
+                                            @endif
+                                          </td>
+                                          <td>
+                                            @if($forwardingTicket->forwardOnUser)
+                                              {{ $forwardingTicket->forwardOnUser->name }}, {{ $forwardingTicket->forwardOnUser->vorname }}
+                                            @else
+                                              {{ $forwardingTicket->forward_on }}
+                                            @endif
+                                          </td>
+                                          <td>{{ optional($forwardingTicket->forward_required_at)->format('d.m.Y') }}</td>
+                                          <td>{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
+                                          <td>{{ optional($forwardingTicket->subUser)->name }}, {{ optional($forwardingTicket->subUser)->vorname }}</td>
+                                          <td>{{ optional($forwardingTicket->created_at)->format('d.m.Y H:i') }}</td>
+                                        </tr>
+                                        @endforeach
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          @endif
+
 
                         </div>
                         <!-- <div class="col-sm-6">
@@ -310,6 +419,33 @@
       info: false,
       order: [],
       responsive: true
+    });
+
+    if ($('#forwarding_active_table').length) {
+      $('#forwarding_active_table').DataTable({
+        searching: true,
+        paging: false,
+        info: false,
+        order: [],
+        responsive: true
+      });
+    }
+
+    if ($('#forwarding_history_table').length) {
+      $('#forwarding_history_table').DataTable({
+        searching: true,
+        paging: false,
+        info: false,
+        order: [],
+        responsive: true
+      });
+    }
+
+    $('#toggle-forwarding-history').on('click', function () {
+      const $historyCard = $('#forwarding-history-card');
+      const isVisible = $historyCard.is(':visible');
+      $historyCard.toggle(!isVisible);
+      $(this).text(isVisible ? 'Verlauf anzeigen' : 'Verlauf ausblenden');
     });
   });
 

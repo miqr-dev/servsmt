@@ -16,6 +16,7 @@ class Ticket extends Model
     'deleted_at',
     'participant_required_at',
     'forward_required_at',
+    'forward_to_at',
     'employee_required_at',
     'employee_finish_at'
   ];
@@ -84,6 +85,16 @@ class Ticket extends Model
   public function reminders()
   {
     return $this->hasMany(Reminder::class);
+  }
+
+  public function forwardOnUser()
+  {
+    return $this->belongsTo('App\User', 'forward_on', 'id')->withTrashed();
+  }
+
+  public function forwardFromUser()
+  {
+    return $this->belongsTo('App\User', 'forward_from', 'id')->withTrashed();
   }
   public function specialComments()
   {

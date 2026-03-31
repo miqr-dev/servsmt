@@ -57,7 +57,34 @@ class TicketController extends Controller
       $month = Carbon::now()->addDays(30);
       $week = Carbon::now()->addDays(7);
       $terminations = Termination::orderBy('exit', 'ASC')->get();
-      return view('wilkommen', compact('user', 'licenses', 'month', 'week', 'terminations'));
+      $emailForwardingTickets = Ticket::with(['subUser', 'forwardOnUser', 'forwardFromUser'])
+        ->where('problem_type', 'Email Weiterleitung')
+        ->orderByDesc('created_at')
+        ->get();
+      $activeEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
+        if (empty($ticket->forward_required_at) || empty($ticket->forward_to_at)) {
+          return false;
+        }
+
+        $now = Carbon::now();
+        return $now->between(
+          Carbon::parse($ticket->forward_required_at)->startOfDay(),
+          Carbon::parse($ticket->forward_to_at)->endOfDay()
+        );
+      })->values();
+      $historyEmailForwardingTickets = $emailForwardingTickets->reject(function ($ticket) use ($activeEmailForwardingTickets) {
+        return $activeEmailForwardingTickets->contains('id', $ticket->id);
+      })->values();
+
+      return view('wilkommen', compact(
+        'user',
+        'licenses',
+        'month',
+        'week',
+        'terminations',
+        'activeEmailForwardingTickets',
+        'historyEmailForwardingTickets'
+      ));
     }
 
     return redirect()->route('ticket.landingPage');
@@ -438,6 +465,22 @@ class TicketController extends Controller
         'pc_ids.*' => 'integer|exists:inv_items,id',
       ]);
     }
+    if ($request->problem_type === 'Email Weiterleitung') {
+      $request->validate([
+        'forward_on' => 'required|integer|exists:users,id',
+        'forward_from' => 'required|integer|exists:users,id',
+        'forward_required_at' => 'required|date_format:d-m-Y',
+        'forward_to_at' => 'required|date_format:d-m-Y',
+      ]);
+
+      $forwardRequiredAt = Carbon::createFromFormat('d-m-Y', $request->forward_required_at);
+      $forwardToAt = Carbon::createFromFormat('d-m-Y', $request->forward_to_at);
+      if ($forwardToAt->lt($forwardRequiredAt)) {
+        return redirect()->back()
+          ->withInput()
+          ->withErrors(['forward_to_at' => 'Das "Bis"-Datum muss am oder nach dem "Benötigt ab"-Datum liegen.']);
+      }
+    }
 
     $admins = User::role('Super_Admin')->get();
     $submitterId = $user->hasRole('Super_Admin') && $request->filled('submitter')
@@ -528,7 +571,12 @@ class TicketController extends Controller
     $ticket->terminal_expiry = $request->terminal_expiry;
     $ticket->forward_on = $request->forward_on;
     $ticket->forward_from = $request->forward_from;
-    $ticket->forward_required_at = $request->forward_required_at;
+    $ticket->forward_required_at = $request->filled('forward_required_at')
+      ? Carbon::createFromFormat('d-m-Y', $request->forward_required_at)->format('Y-m-d')
+      : null;
+    $ticket->forward_to_at = $request->filled('forward_to_at')
+      ? Carbon::createFromFormat('d-m-Y', $request->forward_to_at)->format('Y-m-d')
+      : null;
     $ticket->cancelForward = $request->cancelForward;
     $description = $request->notizen;
 

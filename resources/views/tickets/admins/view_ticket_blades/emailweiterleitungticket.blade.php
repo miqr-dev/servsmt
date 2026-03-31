@@ -8,15 +8,19 @@
     <div class="col-sm-6 invoice-col">
       E-Mails an folgenden Empfänger weiterleiten
       <address>
-        <u class="mt-1"><strong>{{@$ticket->forward_on}}</strong></u><br>
+        <u class="mt-1"><strong>{{ optional($ticket->forwardOnUser)->name }}, {{ optional($ticket->forwardOnUser)->vorname }}</strong></u><br>
       </address>
       Von:
       <address>
-        <u class="mt-1"><strong>{{@$ticket->forward_from}}</strong></u><br>
+        <u class="mt-1"><strong>{{ optional($ticket->forwardFromUser)->name }}, {{ optional($ticket->forwardFromUser)->vorname }}</strong></u><br>
       </address>
       Ab
       <address>
         <u class="mt-1"><strong>{{\Carbon\carbon::parse(@$ticket->forward_required_at)->format('d-m-Y') }} </strong></u><br>
+      </address>
+      Bis
+      <address>
+        <u class="mt-1"><strong>{{ !empty($ticket->forward_to_at) ? \Carbon\carbon::parse($ticket->forward_to_at)->format('d-m-Y') : '-' }} </strong></u><br>
       </address>
     </div>
     @if($ticket->cancelForward)
