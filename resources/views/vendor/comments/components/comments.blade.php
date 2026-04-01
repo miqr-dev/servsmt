@@ -13,6 +13,23 @@ $isDone = ($isTicket && $ticket->deleted_at) || ($isKorso && $korso->deleted_at)
   .comment-content img {
     cursor: zoom-in;
   }
+
+  #comment-image-preview-modal .modal-dialog {
+    max-width: none;
+    width: auto;
+    margin: 1rem;
+  }
+
+  #comment-image-preview-modal .modal-body {
+    overflow: auto;
+    max-height: calc(100vh - 2rem);
+  }
+
+  #comment-image-preview {
+    max-width: none;
+    width: auto;
+    height: auto;
+  }
 </style>
 
 
@@ -123,10 +140,10 @@ $isDone = ($isTicket && $ticket->deleted_at) || ($isKorso && $korso->deleted_at)
 </div>
 
 <div class="modal fade" id="comment-image-preview-modal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-body text-center p-2">
-        <img id="comment-image-preview" src="" alt="Kommentarbild Vorschau" class="img-fluid">
+        <img id="comment-image-preview" src="" alt="Kommentarbild Vorschau">
       </div>
     </div>
   </div>
