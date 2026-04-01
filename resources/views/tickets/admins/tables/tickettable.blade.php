@@ -171,7 +171,7 @@
               Anzahl Erledigter Tickets: {{@$done}}
               @endif
             </h3>
-            @if (URL::current() == route('ticket.unassigned'))
+            @if (URL::current() == route('ticket.unassigned') || URL::current() == route('ticket.opentickets'))
             <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
               Aktiv {{ (int)($activeForwardingCount ?? 0) }} Weiterleitungen
             </a>

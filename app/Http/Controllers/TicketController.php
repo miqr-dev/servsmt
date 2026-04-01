@@ -882,6 +882,7 @@ public function userticketshistory()
       $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     }
 
+    $activeForwardingCount = $this->getActiveForwardingCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
 
     return view('tickets.admins.open', compact(
@@ -892,7 +893,8 @@ public function userticketshistory()
       'UnassignedTicketsCount',
       'myTicketsCount',
       'ticketCounts',
-      'cityTicketCounts'
+      'cityTicketCounts',
+      'activeForwardingCount'
     ));
   }
   
