@@ -33,7 +33,7 @@
                                     style="color: #661421;"></i>
                                     &nbsp;<i class="fa-solid fa-right-to-bracket fa-lg" style="color:green;"></i></label>
                                 <select class="form-control forward-user-select" name="forward_on" required>
-                                  <option value="">Bitte Person auswählen</option>
+                                  <option value="">Mitarbeiter</option>
                                   @foreach($users as $availableUser)
                                   <option value="{{ $availableUser['id'] }}">
                                     {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
@@ -46,9 +46,9 @@
                                     style="color: #661421;"></i>
                                     &nbsp;<i class="fa-solid fa-right-from-bracket fa-lg" style="color:red;"></i></label>
                                 <select class="form-control forward-user-select" name="forward_from" required>
-                                  <option value="">Bitte Person auswählen</option>
+                                  <option value="">Mitarbeiter</option>
                                   @foreach($users as $availableUser)
-                                  <option value="{{ $availableUser['id'] }}">
+                                  <option value="{{ $availableUser['id'] }}" @if((int)($availableUser['id'] ?? 0) === (int)auth()->id()) selected @endif>
                                     {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
                                   </option>
                                   @endforeach
@@ -61,13 +61,6 @@
                               <div class="form-group mb-2 col-md-6">
                                 <label for="forward_to_at">Bis</label>
                                 <input type="text" class="form-control enddate" name="forward_to_at" required>
-                              </div>
-                            </div>
-                            <div class="col-md-12">
-                              <div class="custom-control custom-checkbox mb-4" style="color: red;">
-                                <input type="checkbox" class="custom-control-input" id="cancelForward"
-                                  name="cancelForward">
-                                <label class="custom-control-label" for="cancelForward">Weiterleitung abbrechen </label>
                               </div>
                             </div>
                           </div>
@@ -124,8 +117,8 @@
       $('.enddate').daterangepicker({
         singleDatePicker: true,
         showDropdowns: true,
-        startDate: moment(),
-        minDate: moment(),
+        startDate: moment().add(1, 'day'),
+        minDate: moment().add(1, 'day'),
         minYear: parseInt(moment().format('YYYY')) - 1,
         maxYear: parseInt(moment().format('YYYY')) + 1,
         opens: 'center',
@@ -134,10 +127,20 @@
         }
       });
 
+      $('.startdate').on('apply.daterangepicker', function (ev, picker) {
+        const minEndDate = picker.startDate.clone().add(1, 'day');
+        const endPicker = $('.enddate').data('daterangepicker');
+        endPicker.minDate = minEndDate;
+        if (endPicker.startDate.isBefore(minEndDate)) {
+          endPicker.setStartDate(minEndDate);
+          endPicker.setEndDate(minEndDate);
+        }
+      });
+
     });
     $('.forward-user-select').select2({
       width: '100%',
-      placeholder: 'Bitte Person auswählen'
+      placeholder: 'Mitarbeiter'
     });
     $('.notizen').summernote({
       height: 150,

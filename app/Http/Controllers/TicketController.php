@@ -475,10 +475,10 @@ class TicketController extends Controller
 
       $forwardRequiredAt = Carbon::createFromFormat('d-m-Y', $request->forward_required_at);
       $forwardToAt = Carbon::createFromFormat('d-m-Y', $request->forward_to_at);
-      if ($forwardToAt->lt($forwardRequiredAt)) {
+      if ($forwardToAt->lt($forwardRequiredAt->copy()->addDay())) {
         return redirect()->back()
           ->withInput()
-          ->withErrors(['forward_to_at' => 'Das "Bis"-Datum muss am oder nach dem "Benötigt ab"-Datum liegen.']);
+          ->withErrors(['forward_to_at' => 'Das "Bis"-Datum muss mindestens 1 Tag nach dem "Benötigt ab"-Datum liegen.']);
       }
     }
 
