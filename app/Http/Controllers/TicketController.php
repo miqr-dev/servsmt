@@ -936,6 +936,7 @@ public function userticketshistory()
       $ticketCounts[$admin->id] = Ticket::Where('assignedTo', $admin->id)->whereNull('on_location')->count();
       $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     }
+    $activeForwardingCount = $this->getActiveForwardingCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
     return view('tickets.admins.unassigned', compact(
       'user',
@@ -945,9 +946,35 @@ public function userticketshistory()
       'myTicketsCount',
       'AllTicketsCount',
       'ticketCounts',
-      'cityTicketCounts'
+      'cityTicketCounts',
+      'activeForwardingCount'
 
     ));
+  }
+
+  private function getActiveForwardingCountForHeader()
+  {
+    $today = Carbon::today();
+    $activeTodayIds = Ticket::where('problem_type', 'Email Weiterleitung')
+      ->whereNotNull('forward_required_at')
+      ->whereNotNull('forward_to_at')
+      ->whereDate('forward_required_at', '<=', $today)
+      ->whereDate('forward_to_at', '>=', $today)
+      ->pluck('id');
+
+    if (!$today->isFriday()) {
+      return $activeTodayIds->count();
+    }
+
+    $nextMonday = $today->copy()->next(Carbon::MONDAY);
+    $activeMondayIds = Ticket::where('problem_type', 'Email Weiterleitung')
+      ->whereNotNull('forward_required_at')
+      ->whereNotNull('forward_to_at')
+      ->whereDate('forward_required_at', '<=', $nextMonday)
+      ->whereDate('forward_to_at', '>=', $nextMonday)
+      ->pluck('id');
+
+    return $activeTodayIds->merge($activeMondayIds)->unique()->count();
   }
 
 

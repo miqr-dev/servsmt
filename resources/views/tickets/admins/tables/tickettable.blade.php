@@ -161,15 +161,22 @@
     <div class="col-md-11 mx-auto">
       <div class="card card-primary card-outline">
         <div class="card-header">
-          <h3 class="card-title text-bold">
-            @if (URL::current() == route('ticket.opentickets'))
-            Anzahl offener Tickets:{{@$AllTicketsCount}}</h3>
-          @elseif (URL::current() == route('ticket.unassigned'))
-          Anzahl Nicht zugewiesener Tickets: {{@$UnassignedTicketsCount}}</h3>
-          @elseif (URL::current() == route('ticket.history'))
-          Anzahl Erledigter Tickets: {{@$done}}</h3>
-          @endif
-
+          <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h3 class="card-title text-bold mb-0">
+              @if (URL::current() == route('ticket.opentickets'))
+              Anzahl offener Tickets:{{@$AllTicketsCount}}
+              @elseif (URL::current() == route('ticket.unassigned'))
+              Anzahl Nicht zugewiesener Tickets: {{@$UnassignedTicketsCount}}
+              @elseif (URL::current() == route('ticket.history'))
+              Anzahl Erledigter Tickets: {{@$done}}
+              @endif
+            </h3>
+            @if (URL::current() == route('ticket.unassigned'))
+            <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
+              Aktiv {{ (int)($activeForwardingCount ?? 0) }} Weiterleitungen
+            </a>
+            @endif
+          </div>
         </div>
         <!-- /.card-header -->
         <div class="card-body p-1">
