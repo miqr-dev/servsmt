@@ -58,6 +58,26 @@
       margin-top: 10px;
     }
   }
+
+  .forwarding-count {
+    font-weight: 700;
+  }
+
+  .forwarding-count.is-alert {
+    display: inline-block;
+    animation: forwardingPulse 1s infinite;
+  }
+
+  @keyframes forwardingPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: .25;
+    }
+  }
 </style>
 
 @section('content')
@@ -173,7 +193,11 @@
             </h3>
             @if (URL::current() == route('ticket.unassigned') || URL::current() == route('ticket.opentickets'))
             <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
-              Aktiv {{ (int)($activeForwardingCount ?? 0) }} Weiterleitungen
+              Aktiv
+              <span class="forwarding-count {{ (int)($activeForwardingCount ?? 0) > 0 ? 'is-alert' : '' }}">
+                {{ (int)($activeForwardingCount ?? 0) }}
+              </span>
+              Weiterleitungen
             </a>
             @endif
           </div>
