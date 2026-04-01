@@ -59,6 +59,7 @@ class TicketController extends Controller
       $terminations = Termination::orderBy('exit', 'ASC')->get();
       $emailForwardingTickets = Ticket::with(['subUser', 'forwardOnUser', 'forwardFromUser'])
         ->where('problem_type', 'Email Weiterleitung')
+        ->orderBy('forward_required_at', 'asc')
         ->orderByDesc('created_at')
         ->get();
       $activeEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
@@ -67,10 +68,7 @@ class TicketController extends Controller
         }
 
         $now = Carbon::now();
-        return $now->between(
-          Carbon::parse($ticket->forward_required_at)->startOfDay(),
-          Carbon::parse($ticket->forward_to_at)->endOfDay()
-        );
+        return Carbon::parse($ticket->forward_to_at)->endOfDay()->gte($now);
       })->values();
       $historyEmailForwardingTickets = $emailForwardingTickets->reject(function ($ticket) use ($activeEmailForwardingTickets) {
         return $activeEmailForwardingTickets->contains('id', $ticket->id);
