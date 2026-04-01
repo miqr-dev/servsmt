@@ -955,6 +955,10 @@ public function userticketshistory()
   private function getActiveForwardingCountForHeader()
   {
     $today = Carbon::today();
+    $nextCheckDate = $today->isFriday()
+      ? $today->copy()->next(Carbon::MONDAY)
+      : $today->copy()->addDay();
+
     $activeTodayIds = Ticket::where('problem_type', 'Email Weiterleitung')
       ->whereNotNull('forward_required_at')
       ->whereNotNull('forward_to_at')
@@ -962,19 +966,14 @@ public function userticketshistory()
       ->whereDate('forward_to_at', '>=', $today)
       ->pluck('id');
 
-    if (!$today->isFriday()) {
-      return $activeTodayIds->count();
-    }
-
-    $nextMonday = $today->copy()->next(Carbon::MONDAY);
-    $activeMondayIds = Ticket::where('problem_type', 'Email Weiterleitung')
+    $activeUpcomingIds = Ticket::where('problem_type', 'Email Weiterleitung')
       ->whereNotNull('forward_required_at')
       ->whereNotNull('forward_to_at')
-      ->whereDate('forward_required_at', '<=', $nextMonday)
-      ->whereDate('forward_to_at', '>=', $nextMonday)
+      ->whereDate('forward_required_at', '<=', $nextCheckDate)
+      ->whereDate('forward_to_at', '>=', $nextCheckDate)
       ->pluck('id');
 
-    return $activeTodayIds->merge($activeMondayIds)->unique()->count();
+    return $activeTodayIds->merge($activeUpcomingIds)->unique()->count();
   }
 
 
