@@ -215,7 +215,8 @@
                     <ul class="list-unstyled text-center">
                       <a href="{{route('users_namechange')}}"><li>Namensänderung</li></a>
                        <a href="{{route('users_email_forward')}}"><li>Email Weiterleiten</li>
-                      <li>Weiterleitung abbrechen</li></a>
+                      <!-- <li>Weiterleitung abbrechen</li></a> -->
+                       </a>
                     </ul>
                   </div>
                   <div class="card-body list-group-item" >
