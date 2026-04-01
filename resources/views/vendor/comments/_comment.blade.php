@@ -10,7 +10,7 @@
     onerror="this.onerror=null;this.src='/images/admin_images/mitarbeiter/nopic.jpg';">
     <div class="media-body">
         <h5 class="mt-0 mb-1" style="font-weight:bold; color: #661421;">{{ $comment->commenter->username ?? $comment->guest_name }} <small class="text-muted">- {{ $comment->created_at->diffForHumans() }}</small></h5>
-        <div style="white-space: pre-wrap; font-weight:bold;">{!! $comment->comment !!}</div>
+        <div class="comment-content" style="white-space: pre-wrap; font-weight:bold;">{!! $comment->comment !!}</div>
 
         @if(!$isDone)
         <div>

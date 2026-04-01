@@ -9,6 +9,12 @@ $isKorso = isset($korso);
 $isDone = ($isTicket && $ticket->deleted_at) || ($isKorso && $korso->deleted_at);
 @endphp
 
+<style>
+  .comment-content img {
+    cursor: zoom-in;
+  }
+</style>
+
 
 <div class="row">
   @if($comments->count() < 1 && is_null(@$ticket->deleted_at))
@@ -115,3 +121,46 @@ $isDone = ($isTicket && $ticket->deleted_at) || ($isKorso && $korso->deleted_at)
     @endauth
   </div>
 </div>
+
+<div class="modal fade" id="comment-image-preview-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body text-center p-2">
+        <img id="comment-image-preview" src="" alt="Kommentarbild Vorschau" class="img-fluid">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  if (!window.commentImagePreviewInitialized) {
+    window.commentImagePreviewInitialized = true;
+
+    document.addEventListener('click', function (event) {
+      var target = event.target;
+
+      if (!(target instanceof HTMLImageElement)) {
+        return;
+      }
+
+      if (!target.closest('.media-body') || target.closest('#comment-image-preview-modal')) {
+        return;
+      }
+
+      var modalImage = document.getElementById('comment-image-preview');
+      if (!modalImage) {
+        return;
+      }
+
+      modalImage.src = target.currentSrc || target.src;
+      $('#comment-image-preview-modal').modal('show');
+    });
+
+    $('#comment-image-preview-modal').on('hidden.bs.modal', function () {
+      var modalImage = document.getElementById('comment-image-preview');
+      if (modalImage) {
+        modalImage.src = '';
+      }
+    });
+  }
+</script>
