@@ -180,6 +180,16 @@
                                           <td>{{ optional($forwardingTicket->subUser)->name }}, {{ optional($forwardingTicket->subUser)->vorname }}</td>
                                           <td>{{ optional($forwardingTicket->created_at)->format('d.m.Y H:i') }}</td>
                                           <td>
+                                            <div class="small text-muted mb-1">
+                                              <div><strong>Zugewiesen:</strong>
+                                                @if($forwardingTicket->user)
+                                                  {{ $forwardingTicket->user->name }}, {{ $forwardingTicket->user->vorname }}
+                                                @else
+                                                  -
+                                                @endif
+                                              </div>
+                                              <div><strong>Erledigt von:</strong> {{ $forwardingTicket->done_by ?? '-' }}</div>
+                                            </div>
                                             <form method="POST" action="{{ route('ticket.forwarding_removed', $forwardingTicket->id) }}">
                                               @csrf
                                               <button type="submit" class="btn btn-sm btn-success">

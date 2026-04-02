@@ -57,7 +57,7 @@ class TicketController extends Controller
       $month = Carbon::now()->addDays(30);
       $week = Carbon::now()->addDays(7);
       $terminations = Termination::orderBy('exit', 'ASC')->get();
-      $emailForwardingTickets = Ticket::withTrashed()->with(['subUser', 'forwardOnUser', 'forwardFromUser', 'forwardRemovedByUser'])
+      $emailForwardingTickets = Ticket::withTrashed()->with(['subUser', 'forwardOnUser', 'forwardFromUser', 'forwardRemovedByUser', 'user'])
         ->where('problem_type', 'Email Weiterleitung')
         ->orderBy('forward_required_at', 'asc')
         ->orderByDesc('created_at')
