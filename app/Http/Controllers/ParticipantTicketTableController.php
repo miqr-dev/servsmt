@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Ticket;
+use App\Place;
 use Illuminate\Http\Request;
 use App\ParticipantTicketTable;
 use Illuminate\Support\Facades\Redirect;
@@ -30,15 +31,32 @@ public function index()
     } else {
         if ($user->ort === 'Berlin') {
             if ($user->straße === 'Prenzlauer Promenade 28') {
-                $participantsQuery->where('location', 'Berlin-PP');
+                $targetLocation = 'Berlin-PP';
             } elseif ($user->straße === 'Trachenbergring 93') {
-                $participantsQuery->where('location', 'Berlin-TBR');
+                $targetLocation = 'Berlin-TBR';
             } else {
-                $participantsQuery->where('location', 'Berlin');
+                $targetLocation = 'Berlin';
             }
         } else {
-            $participantsQuery->where('location', $user->ort);
+            $targetLocation = (string) $user->ort;
         }
+
+        $normalizedTargetLocation = mb_strtolower(trim($targetLocation));
+        $matchingPlaceIds = Place::query()
+            ->whereRaw('LOWER(TRIM(pnname)) = ?', [$normalizedTargetLocation])
+            ->pluck('id')
+            ->map(function ($id) {
+                return (string) $id;
+            })
+            ->all();
+
+        $participantsQuery->where(function ($query) use ($normalizedTargetLocation, $matchingPlaceIds) {
+            $query->whereRaw('LOWER(TRIM(location)) = ?', [$normalizedTargetLocation]);
+
+            if (!empty($matchingPlaceIds)) {
+                $query->orWhereIn('location', $matchingPlaceIds);
+            }
+        });
 
         $participants = $participantsQuery->orderByDesc('created_at')->get();
     }
