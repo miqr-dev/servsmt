@@ -402,6 +402,7 @@ Route::post('/ticket.restore/{myTicket}', 'TicketController@restore')->name('tic
 Route::post('/ticket/assignTo', 'TicketController@assignedTo')->name('ticket.assignedTo');
 Route::post('/ticket/priority', 'TicketController@ticketPriority')->name('ticket.ticketPriority');
 Route::post('/ticket/status', 'TicketController@ticketStatus')->name('ticket.ticketStatus');
+Route::post('/ticket/{ticketId}/forwarding-removed', 'TicketController@markForwardingRemoved')->name('ticket.forwarding_removed');
 Route::post('/ticket/admin_notes', 'TicketController@admin_notes')->name('ticket.admin_notes');
 Route::post('/ticket/employee_username', 'TicketController@employee_username')->name('ticket.employee_username'); //! employee username ajax 
 Route::post('/ticket/employee_password', 'TicketController@employee_password')->name('ticket.employee_password'); //! employee password ajax 

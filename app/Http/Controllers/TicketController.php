@@ -57,7 +57,7 @@ class TicketController extends Controller
       $month = Carbon::now()->addDays(30);
       $week = Carbon::now()->addDays(7);
       $terminations = Termination::orderBy('exit', 'ASC')->get();
-      $emailForwardingTickets = Ticket::with(['subUser', 'forwardOnUser', 'forwardFromUser'])
+      $emailForwardingTickets = Ticket::withTrashed()->with(['subUser', 'forwardOnUser', 'forwardFromUser', 'forwardRemovedByUser'])
         ->where('problem_type', 'Email Weiterleitung')
         ->orderBy('forward_required_at', 'asc')
         ->orderByDesc('created_at')
@@ -67,11 +67,10 @@ class TicketController extends Controller
           return false;
         }
 
-        $now = Carbon::now();
-        return Carbon::parse($ticket->forward_to_at)->endOfDay()->gte($now);
+        return empty($ticket->forward_removed_at);
       })->values();
-      $historyEmailForwardingTickets = $emailForwardingTickets->reject(function ($ticket) use ($activeEmailForwardingTickets) {
-        return $activeEmailForwardingTickets->contains('id', $ticket->id);
+      $historyEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
+        return !empty($ticket->forward_removed_at);
       })->values();
 
       return view('wilkommen', compact(
@@ -956,26 +955,31 @@ public function userticketshistory()
 
   private function getActiveForwardingCountForHeader()
   {
-    $today = Carbon::today();
-    $nextCheckDate = $today->isFriday()
-      ? $today->copy()->next(Carbon::MONDAY)
-      : $today->copy()->addDay();
-
-    $activeTodayIds = Ticket::where('problem_type', 'Email Weiterleitung')
+    return Ticket::withTrashed()->where('problem_type', 'Email Weiterleitung')
       ->whereNotNull('forward_required_at')
       ->whereNotNull('forward_to_at')
-      ->whereDate('forward_required_at', '<=', $today)
-      ->whereDate('forward_to_at', '>=', $today)
-      ->pluck('id');
+      ->whereNull('forward_removed_at')
+      ->count();
+  }
 
-    $activeUpcomingIds = Ticket::where('problem_type', 'Email Weiterleitung')
-      ->whereNotNull('forward_required_at')
-      ->whereNotNull('forward_to_at')
-      ->whereDate('forward_required_at', '<=', $nextCheckDate)
-      ->whereDate('forward_to_at', '>=', $nextCheckDate)
-      ->pluck('id');
+  public function markForwardingRemoved($ticketId)
+  {
+    $user = Auth::user();
+    if (!$user || !$user->hasAnyRole(['Super_Admin', 'HR'])) {
+      abort(403, 'Unauthorized action.');
+    }
 
-    return $activeTodayIds->merge($activeUpcomingIds)->unique()->count();
+    $ticket = Ticket::withTrashed()->findOrFail($ticketId);
+
+    if ($ticket->problem_type !== 'Email Weiterleitung') {
+      return redirect()->back()->withErrors(['forwarding' => 'Nur E-Mail-Weiterleitungen können als aufgehoben markiert werden.']);
+    }
+
+    $ticket->forward_removed_at = Carbon::now();
+    $ticket->forward_removed_by = $user->id;
+    $ticket->save();
+
+    return redirect()->back()->with('status', 'Weiterleitung wurde als aufgehoben markiert.');
   }
 
 

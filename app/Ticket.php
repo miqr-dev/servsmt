@@ -17,6 +17,7 @@ class Ticket extends Model
     'participant_required_at',
     'forward_required_at',
     'forward_to_at',
+    'forward_removed_at',
     'employee_required_at',
     'employee_finish_at'
   ];
@@ -96,6 +97,12 @@ class Ticket extends Model
   {
     return $this->belongsTo('App\User', 'forward_from', 'id')->withTrashed();
   }
+
+  public function forwardRemovedByUser()
+  {
+    return $this->belongsTo('App\User', 'forward_removed_by', 'id')->withTrashed();
+  }
+
   public function specialComments()
   {
     return $this->hasMany(TicketSpecialComment::class)->latest('created_at');

@@ -24,7 +24,7 @@ class LicenseController extends Controller
       $month = Carbon::now()->addDays(30);
       $week = Carbon::now()->addDays(7);
       $terminations = Termination::orderBy('exit', 'ASC')->get();
-      $emailForwardingTickets = Ticket::with(['subUser', 'forwardOnUser', 'forwardFromUser'])
+      $emailForwardingTickets = Ticket::withTrashed()->with(['subUser', 'forwardOnUser', 'forwardFromUser', 'forwardRemovedByUser'])
         ->where('problem_type', 'Email Weiterleitung')
         ->orderBy('forward_required_at', 'asc')
         ->orderByDesc('created_at')
@@ -34,11 +34,10 @@ class LicenseController extends Controller
           return false;
         }
 
-        $now = Carbon::now();
-        return Carbon::parse($ticket->forward_to_at)->endOfDay()->gte($now);
+        return empty($ticket->forward_removed_at);
       })->values();
-      $historyEmailForwardingTickets = $emailForwardingTickets->reject(function ($ticket) use ($activeEmailForwardingTickets) {
-        return $activeEmailForwardingTickets->contains('id', $ticket->id);
+      $historyEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
+        return !empty($ticket->forward_removed_at);
       })->values();
 
       return view('wilkommen', compact(

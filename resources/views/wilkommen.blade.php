@@ -128,6 +128,11 @@
                                     </button>
                                   </div>
                                 </div>
+                                @if (session('status'))
+                                <div class="px-3 pt-2">
+                                  <div class="alert alert-success mb-0">{{ session('status') }}</div>
+                                </div>
+                                @endif
                                 <div class="card-body p-0">
                                   <div class="mailbox-messages p-2">
                                     <table id="forwarding_active_table" class="display nowrap table-sm" style="width:100%">
@@ -137,12 +142,17 @@
                                           <th>An</th>
                                           <th>Von Datum</th>
                                           <th>Bis Datum</th>
+                                          <th>Status</th>
                                           <th>Erstellt von</th>
                                           <th>Eingereicht am</th>
+                                          <th>Aktion</th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         @foreach(($activeEmailForwardingTickets ?? collect()) as $forwardingTicket)
+                                        @php
+                                          $isOverdue = !empty($forwardingTicket->forward_to_at) && optional($forwardingTicket->forward_to_at)->endOfDay()->lt(\Carbon\Carbon::now());
+                                        @endphp
                                         <tr>
                                           <td>
                                             @if($forwardingTicket->forwardFromUser)
@@ -160,8 +170,23 @@
                                           </td>
                                           <td>{{ optional($forwardingTicket->forward_required_at)->format('d.m.Y') }}</td>
                                           <td>{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
+                                          <td>
+                                            @if($isOverdue)
+                                              <span class="badge badge-danger">Überfällig</span>
+                                            @else
+                                              <span class="badge badge-warning">Aktiv</span>
+                                            @endif
+                                          </td>
                                           <td>{{ optional($forwardingTicket->subUser)->name }}, {{ optional($forwardingTicket->subUser)->vorname }}</td>
                                           <td>{{ optional($forwardingTicket->created_at)->format('d.m.Y H:i') }}</td>
+                                          <td>
+                                            <form method="POST" action="{{ route('ticket.forwarding_removed', $forwardingTicket->id) }}">
+                                              @csrf
+                                              <button type="submit" class="btn btn-sm btn-success">
+                                                Als entfernt markieren
+                                              </button>
+                                            </form>
+                                          </td>
                                         </tr>
                                         @endforeach
                                       </tbody>
@@ -183,8 +208,11 @@
                                           <th>An</th>
                                           <th>Von Datum</th>
                                           <th>Bis Datum</th>
+                                          <th>Status</th>
                                           <th>Erstellt von</th>
                                           <th>Eingereicht am</th>
+                                          <th>Entfernt am</th>
+                                          <th>Entfernt von</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -206,8 +234,17 @@
                                           </td>
                                           <td>{{ optional($forwardingTicket->forward_required_at)->format('d.m.Y') }}</td>
                                           <td>{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
+                                          <td><span class="badge badge-secondary">Entfernt</span></td>
                                           <td>{{ optional($forwardingTicket->subUser)->name }}, {{ optional($forwardingTicket->subUser)->vorname }}</td>
                                           <td>{{ optional($forwardingTicket->created_at)->format('d.m.Y H:i') }}</td>
+                                          <td>{{ optional($forwardingTicket->forward_removed_at)->format('d.m.Y H:i') }}</td>
+                                          <td>
+                                            @if($forwardingTicket->forwardRemovedByUser)
+                                              {{ $forwardingTicket->forwardRemovedByUser->name }}, {{ $forwardingTicket->forwardRemovedByUser->vorname }}
+                                            @else
+                                              -
+                                            @endif
+                                          </td>
                                         </tr>
                                         @endforeach
                                       </tbody>
