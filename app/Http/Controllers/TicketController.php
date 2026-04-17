@@ -882,6 +882,7 @@ public function userticketshistory()
     }
 
     $activeForwardingCount = $this->getActiveForwardingCountForHeader();
+    $dueForwardingCount = $this->getDueForwardingCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
 
     return view('tickets.admins.open', compact(
@@ -893,7 +894,8 @@ public function userticketshistory()
       'myTicketsCount',
       'ticketCounts',
       'cityTicketCounts',
-      'activeForwardingCount'
+      'activeForwardingCount',
+      'dueForwardingCount'
     ));
   }
   
@@ -938,6 +940,7 @@ public function userticketshistory()
       $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     }
     $activeForwardingCount = $this->getActiveForwardingCountForHeader();
+    $dueForwardingCount = $this->getDueForwardingCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
     return view('tickets.admins.unassigned', compact(
       'user',
@@ -948,7 +951,8 @@ public function userticketshistory()
       'AllTicketsCount',
       'ticketCounts',
       'cityTicketCounts',
-      'activeForwardingCount'
+      'activeForwardingCount',
+      'dueForwardingCount'
 
     ));
   }
@@ -959,6 +963,16 @@ public function userticketshistory()
       ->whereNotNull('forward_required_at')
       ->whereNotNull('forward_to_at')
       ->whereNull('forward_removed_at')
+      ->count();
+  }
+
+  private function getDueForwardingCountForHeader()
+  {
+    return Ticket::withTrashed()->where('problem_type', 'Email Weiterleitung')
+      ->whereNotNull('forward_required_at')
+      ->whereNotNull('forward_to_at')
+      ->whereNull('forward_removed_at')
+      ->whereDate('forward_to_at', '<=', Carbon::today())
       ->count();
   }
 

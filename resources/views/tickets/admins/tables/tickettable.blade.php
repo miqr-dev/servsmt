@@ -68,6 +68,10 @@
     animation: forwardingPulse 1s infinite;
   }
 
+  .forwarding-alert-btn {
+    animation: forwardingPulse 1s infinite;
+  }
+
   @keyframes forwardingPulse {
     0%,
     100% {
@@ -192,13 +196,24 @@
               @endif
             </h3>
             @if (URL::current() == route('ticket.unassigned') || URL::current() == route('ticket.opentickets'))
-            <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
-              Aktiv
-              <span class="forwarding-count {{ (int)($activeForwardingCount ?? 0) > 0 ? 'is-alert' : '' }}">
-                {{ (int)($activeForwardingCount ?? 0) }}
-              </span>
-              Weiterleitungen
-            </a>
+            <div class="d-flex align-items-center flex-wrap mt-2 mt-md-0">
+              <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-primary">
+                Aktiv
+                <span class="forwarding-count {{ (int)($activeForwardingCount ?? 0) > 0 ? 'is-alert' : '' }}">
+                  {{ (int)($activeForwardingCount ?? 0) }}
+                </span>
+                Weiterleitungen
+              </a>
+
+              @if ((int)($dueForwardingCount ?? 0) > 0)
+              <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-danger ml-2 forwarding-alert-btn">
+                Endet/Überfällig
+                <span class="forwarding-count is-alert">
+                  {{ (int)($dueForwardingCount ?? 0) }}
+                </span>
+              </a>
+              @endif
+            </div>
             @endif
           </div>
         </div>
