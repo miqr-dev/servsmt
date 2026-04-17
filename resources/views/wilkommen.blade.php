@@ -169,7 +169,7 @@
                                             @endif
                                           </td>
                                           <td>{{ optional($forwardingTicket->forward_required_at)->format('d.m.Y') }}</td>
-                                          <td>{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
+                                          <td data-order="{{ optional($forwardingTicket->forward_to_at)->format('Y-m-d') }}">{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
                                           <td>
                                             @if($isOverdue)
                                               <span class="badge badge-danger">Überfällig</span>
@@ -243,7 +243,7 @@
                                             @endif
                                           </td>
                                           <td>{{ optional($forwardingTicket->forward_required_at)->format('d.m.Y') }}</td>
-                                          <td>{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
+                                          <td data-order="{{ optional($forwardingTicket->forward_to_at)->format('Y-m-d') }}">{{ optional($forwardingTicket->forward_to_at)->format('d.m.Y') }}</td>
                                           <td><span class="badge badge-secondary">Entfernt</span></td>
                                           <td>{{ optional($forwardingTicket->subUser)->name }}, {{ optional($forwardingTicket->subUser)->vorname }}</td>
                                           <td>{{ optional($forwardingTicket->created_at)->format('d.m.Y H:i') }}</td>
@@ -463,7 +463,7 @@
         searching: true,
         paging: false,
         info: false,
-        order: [],
+        order: [[3, 'desc']],
         responsive: true
       });
     }
@@ -473,7 +473,7 @@
         searching: true,
         paging: false,
         info: false,
-        order: [],
+        order: [[3, 'desc']],
         responsive: true
       });
     }
