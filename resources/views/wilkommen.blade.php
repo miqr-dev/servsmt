@@ -463,7 +463,7 @@
         searching: true,
         paging: false,
         info: false,
-        order: [[3, 'desc']],
+        order: [[3, 'asc']],
         responsive: true
       });
     }
@@ -473,7 +473,7 @@
         searching: true,
         paging: false,
         info: false,
-        order: [[3, 'desc']],
+        order: [[3, 'asc']],
         responsive: true
       });
     }
