@@ -22,6 +22,7 @@
                     <div class="card-body box-profile form-group">
                       <div class="row">
                         <div class="col-md-12 d-flex justify-content-around">
+                          <button type="button" class="btn btn-outline-primary" id="bbb_new_user">Neuer Benutzer</button>
                           <button type="button" class="btn btn-outline-primary" id="bbb_requests">Funktionsanfragen</button>
                           <button type="button" class="btn btn-outline-primary" id="bbb_errors">Fehlermeldung</button>
                         </div>
@@ -63,7 +64,7 @@ $(document).ready(function() {
     underform.children().remove();
     $('#bbb_requests').removeClass().addClass('btn btn-primary');
     $('#bbb_errors').removeClass().addClass('btn btn-outline-primary');
-    $('#bbb_others').removeClass().addClass('btn btn-outline-primary');
+    $('#bbb_new_user').removeClass().addClass('btn btn-outline-primary');
     underform.append(
     `
     <input type="hidden" name="problem_type" value="BBB Funktionsanfragen">
@@ -100,11 +101,54 @@ $(document).ready(function() {
   })
 
 
+  $('#bbb_new_user').click(function(){
+    underform.children().remove();
+    $('#bbb_new_user').removeClass().addClass('btn btn-primary');
+    $('#bbb_requests').removeClass().addClass('btn btn-outline-primary');
+    $('#bbb_errors').removeClass().addClass('btn btn-outline-primary');
+    underform.append(
+      `
+    <input type="hidden" name="problem_type" value="BBB Neuer Benutzer">
+    <div class="card-body box-profile form-group">       
+      <div class="row col-md-12">
+        <div class="form-group col-md-12">
+          <div class="row">
+            <div class="form-group col-md-6">
+              <label for="bbb_subject">Betreff &nbsp;<i class="fas fa-feather-alt fa-lg" style="color: #661421;"></i></label>
+              <input type="text" class="form-control" name="bbb_subject" required>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="bbb_username">Benutzername</label>
+              <input type="text" class="form-control" name="bbb_username">
+            </div>
+          </div>
+        </div>
+        <div class="form-group col-md-6">
+        </div> 
+        <div class="form-group col-md-6 col-lg-12">
+          <label for="notizen">Beschreibung</label>
+          <textarea type="text" name="notizen" class="form-contro notizen" ></textarea>
+        </div>
+        </div>                  
+        <div>
+          <button type="submit" class="btn btn-outline-success col-lg-2 float-right">Einreichen</button>
+        </div>
+      </div>
+      `
+    );
+    $('.notizen').summernote({
+      height:150,
+      lang:'de-DE'
+    });
+
+  })
+
+
   $('#bbb_errors').click(function(){
     underform.children().remove();
     $('#bbb_requests').removeClass().addClass('btn btn-outline-primary');
     $('#bbb_errors').removeClass().addClass('btn btn-primary');
-    $('#bbb_others').removeClass().addClass('btn btn-outline-primary');
+    $('#bbb_new_user').removeClass().addClass('btn btn-outline-primary');
     underform.append(
       `
     <input type="hidden" name="problem_type" value="BBB Fehlermeldung">
