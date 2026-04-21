@@ -883,6 +883,7 @@ public function userticketshistory()
 
     $activeForwardingCount = $this->getActiveForwardingCountForHeader();
     $dueForwardingCount = $this->getDueForwardingCountForHeader();
+    $dueTerminationCount = $this->getDueTerminationCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
 
     return view('tickets.admins.open', compact(
@@ -895,7 +896,8 @@ public function userticketshistory()
       'ticketCounts',
       'cityTicketCounts',
       'activeForwardingCount',
-      'dueForwardingCount'
+      'dueForwardingCount',
+      'dueTerminationCount'
     ));
   }
   
@@ -941,6 +943,7 @@ public function userticketshistory()
     }
     $activeForwardingCount = $this->getActiveForwardingCountForHeader();
     $dueForwardingCount = $this->getDueForwardingCountForHeader();
+    $dueTerminationCount = $this->getDueTerminationCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
     return view('tickets.admins.unassigned', compact(
       'user',
@@ -952,7 +955,8 @@ public function userticketshistory()
       'ticketCounts',
       'cityTicketCounts',
       'activeForwardingCount',
-      'dueForwardingCount'
+      'dueForwardingCount',
+      'dueTerminationCount'
 
     ));
   }
@@ -973,6 +977,13 @@ public function userticketshistory()
       ->whereNotNull('forward_to_at')
       ->whereNull('forward_removed_at')
       ->whereDate('forward_to_at', '<=', Carbon::today())
+      ->count();
+  }
+
+  private function getDueTerminationCountForHeader()
+  {
+    return Termination::where('is_active', true)
+      ->whereDate('exit', '<=', Carbon::today())
       ->count();
   }
 

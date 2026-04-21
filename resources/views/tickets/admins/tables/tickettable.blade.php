@@ -213,6 +213,15 @@
                 </span>
               </a>
               @endif
+
+              @if ((int)($dueTerminationCount ?? 0) > 0)
+              <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-danger ml-2 forwarding-alert-btn">
+                überfällige Kündigungen
+                <span class="forwarding-count is-alert">
+                  {{ (int)($dueTerminationCount ?? 0) }}
+                </span>
+              </a>
+              @endif
             </div>
             @endif
           </div>
