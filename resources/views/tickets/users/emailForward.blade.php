@@ -31,7 +31,7 @@
                               <div class="form-group col-md-6">
                                 <label for="forward_on">Weiterleitung an: &nbsp;<i class="fas fa-feather-alt fa-lg"
                                     style="color: #661421;"></i>
-                                    &nbsp;<i class="fa-solid fa-right-to-bracket fa-lg" style="color:green;"></i></label>
+                                  &nbsp;<i class="fa-solid fa-right-to-bracket fa-lg" style="color:green;"></i></label>
                                 <select class="form-control forward-user-select" name="forward_on" required>
                                   <option value="">Mitarbeiter</option>
                                   @foreach($users as $availableUser)
@@ -44,11 +44,12 @@
                               <div class="form-group col-md-6">
                                 <label for="forward_on">Weiterleitung von: &nbsp;<i class="fas fa-feather-alt fa-lg"
                                     style="color: #661421;"></i>
-                                    &nbsp;<i class="fa-solid fa-right-from-bracket fa-lg" style="color:red;"></i></label>
+                                  &nbsp;<i class="fa-solid fa-right-from-bracket fa-lg" style="color:red;"></i></label>
                                 <select class="form-control forward-user-select" name="forward_from" required>
                                   <option value="">Mitarbeiter</option>
                                   @foreach($users as $availableUser)
-                                  <option value="{{ $availableUser['id'] }}" @if((int)($availableUser['id'] ?? 0) === (int)auth()->id()) selected @endif>
+                                  <option value="{{ $availableUser['id'] }}" @if((int)($availableUser['id'] ??
+                                    0)===(int)auth()->id()) selected @endif>
                                     {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
                                   </option>
                                   @endforeach
@@ -61,6 +62,9 @@
                               <div class="form-group mb-2 col-md-6">
                                 <label for="forward_to_at">Bis</label>
                                 <input type="text" class="form-control enddate" name="forward_to_at" required>
+                                <small class="form-text text-primary">Zur Aufhebung ist kein Ticket erforderlich, die
+                                  Weiterleitung wird nach dem angegebenen Datum entfernt.</small>
+
                               </div>
                             </div>
                           </div>
