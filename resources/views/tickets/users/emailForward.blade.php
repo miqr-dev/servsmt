@@ -61,6 +61,7 @@
                               <div class="form-group mb-2 col-md-6">
                                 <label for="forward_to_at">Bis</label>
                                 <input type="text" class="form-control enddate" name="forward_to_at" required>
+                                <small class="form-text text-muted">Zur Aufhebung ist kein Ticket erforderlich, die Weiterleitung wird nach dem angegebenen Datum entfernt.</small>
                               </div>
                             </div>
                           </div>
