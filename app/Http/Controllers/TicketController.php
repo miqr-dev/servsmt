@@ -976,14 +976,14 @@ public function userticketshistory()
       ->whereNotNull('forward_required_at')
       ->whereNotNull('forward_to_at')
       ->whereNull('forward_removed_at')
-      ->whereDate('forward_to_at', '<=', Carbon::today())
+      ->whereDate('forward_to_at', '<', Carbon::today())
       ->count();
   }
 
   private function getDueTerminationCountForHeader()
   {
     return Termination::where('is_active', true)
-      ->whereDate('exit', '<=', Carbon::today())
+      ->whereDate('exit', '<', Carbon::today())
       ->count();
   }
 
