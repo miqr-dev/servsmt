@@ -149,6 +149,14 @@
                         <input type="text" class="form-control" name="tel_number" value="{{$handwerk->tel_number}}"
                           readonly>
                       </div>
+                      @if(auth()->user()->hasAnyRole(['Super_Admin', 'handwerk_admin']))
+                      <div class="form-group col-md-12">
+                        <a href="{{ route('handwerk.ticket.pdf', $handwerk->id) }}" target="_blank" rel="noopener"
+                          class="btn btn-danger col-md-12">
+                          Ticket + Kommentare als PDF
+                        </a>
+                      </div>
+                      @endif
                     </div>
                   </div> <!-- Closing div for card-body -->
                 </div> <!-- Closing div for card -->

@@ -32,6 +32,19 @@
             display: inline-block;
             width: 150px;
         }
+        .comment {
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        .comment-meta {
+            color: #555;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .reply {
+            margin-left: 24px;
+        }
     </style>
 </head>
 <body>
@@ -84,6 +97,27 @@
             
             @if($handwerk->admin_notes)
                 <p><strong>Beschreibung:</strong> {!! nl2br(e($handwerk->admin_notes)) !!}</p>
+            @endif
+
+
+            @if(isset($comments) && $comments->count())
+                <p><strong>Kommentare:</strong></p>
+                @foreach($comments->where('child_id', null)->merge($comments->where('child_id', '')) as $comment)
+                    <div class="comment">
+                        <div class="comment-meta">
+                            {{ $comment->commenter->username ?? $comment->guest_name ?? 'Unbekannt' }} · {{ $comment->created_at->format('d.m.Y H:i') }}
+                        </div>
+                        <div>{!! $comment->comment !!}</div>
+                    </div>
+                    @foreach($comments->where('child_id', $comment->getKey()) as $reply)
+                        <div class="comment reply">
+                            <div class="comment-meta">
+                                {{ $reply->commenter->username ?? $reply->guest_name ?? 'Unbekannt' }} · {{ $reply->created_at->format('d.m.Y H:i') }}
+                            </div>
+                            <div>{!! $reply->comment !!}</div>
+                        </div>
+                    @endforeach
+                @endforeach
             @endif
         </div>
     </div>

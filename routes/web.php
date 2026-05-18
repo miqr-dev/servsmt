@@ -87,6 +87,7 @@ Route::get('handwerk/{city}/open-tickets-pdf', 'HandwerkController@openTicketsPD
 
 Route::get('handwerk', 'HandwerkController@index')->name('handwerk_index');  // index
 Route::get('/handwerk/{myHandwerkTicket}', 'HandwerkController@show')->name('handwerk_show');  // show
+Route::get('/handwerk/{myHandwerkTicket}/pdf', 'HandwerkController@exportTicketPdf')->name('handwerk.ticket.pdf');
 
 Route::get('einrichtungsgegenstände', 'Handwerkcontroller@einrichtungsgegenstände')->name('einrichtungsgegenstände'); //
 Route::get('elektro', 'Handwerkcontroller@elektro')->name('elektro');

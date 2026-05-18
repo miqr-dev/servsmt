@@ -311,6 +311,24 @@ class HandwerkController extends Controller
   //   return view('handwerk.userhandwerks', compact('user', 'myhandwerk', 'handwerkdone', 'myhandwerkcount'));
   // }
 
+
+  public function exportTicketPdf($id)
+  {
+    abort_unless(auth()->user()->hasAnyRole(['Super_Admin', 'handwerk_admin']), 403);
+
+    $handwerk = Handwerk::with([
+      'room.location.place',
+      'subUser',
+      'comments.commenter',
+    ])->withTrashed()->findOrFail($id);
+
+    $comments = $handwerk->comments->sortBy('created_at')->values();
+
+    $pdf = PDF::loadView('handwerk.ticket_details', compact('handwerk', 'comments'));
+
+    return $pdf->stream('handwerk_ticket_' . $handwerk->id . '.pdf');
+  }
+
   public function show($id)
   {
     $user = Auth()->user();
