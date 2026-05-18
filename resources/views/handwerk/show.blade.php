@@ -153,7 +153,7 @@
                       <div class="form-group col-md-12">
                         <a href="{{ route('handwerk.ticket.pdf', $handwerk->id) }}" target="_blank" rel="noopener"
                           class="btn btn-danger col-md-12">
-                          Ticket + Kommentare als PDF
+                          als PDF Herunterladen
                         </a>
                       </div>
                       @endif
