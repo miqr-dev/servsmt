@@ -149,6 +149,9 @@ class TicketController extends Controller
         ->whereDate('forward_to_at', '>=', Carbon::today())
         ->whereHas('forwardFromUser', function ($query) use ($user) {
           $query->where('ort', $user->ort);
+          if ($user->ort === 'Berlin') {
+            $query->where('straße', $user->straße);
+          }
         })
         ->with(['forwardFromUser', 'forwardOnUser'])
         ->get();
