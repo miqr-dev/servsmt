@@ -16,7 +16,18 @@
 @extends('layouts.admin_layout.admin_layout')
 
 @section('content')
-<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
+<div class="container d-flex flex-column justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
+    @if($activeForwarding)
+        <div class="row w-100 justify-content-center mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info text-center shadow-sm" role="alert">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Für Ihr Konto ist bis zum <strong>{{ $activeForwarding->forward_to_at->format('d.m.Y') }}</strong> eine E-Mail-Weiterleitung an „<strong>{{ $activeForwarding->forwardOnUser->vorname }} {{ $activeForwarding->forwardOnUser->name }}</strong>“ eingerichtet.
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="row w-100 justify-content-center">
         @foreach($cards as $card)
             <div class="col-md-{{ $colWidth }} mb-4">
