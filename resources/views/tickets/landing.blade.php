@@ -1,5 +1,3 @@
-@extends('layouts.admin_layout.admin_layout')
-
 <style>
 .bg-handwerk {
   background-color: #007bff !important; /* or any blue shade you prefer */
