@@ -95,6 +95,7 @@ class TicketController extends Controller
 
     // Prepare the cards based on the user's roles.
     $cards = [];
+    $activeForwarding = null;
 
     // IT Tickets and Korso Tickets are visible by users with the "Verwaltung" role.
     if ($user->hasRole('Verwaltung')) {
@@ -108,6 +109,15 @@ class TicketController extends Controller
         'url'   => route('korso_index'),    // Adjust this route name as needed
         'color' => 'korso'                  // Korso Tickets use Bootstrap Success (green)
       ];
+
+      // Check for active email forwarding for the current user
+      $activeForwarding = Ticket::where('forward_from', $user->id)
+        ->where('problem_type', 'Email Weiterleitung')
+        ->whereNull('forward_removed_at')
+        ->whereDate('forward_required_at', '<=', Carbon::today())
+        ->whereDate('forward_to_at', '>=', Carbon::today())
+        ->with('forwardOnUser')
+        ->first();
     }
 
     // Handwerk Tickets are visible by users with the "handwerk" role.
@@ -129,7 +139,7 @@ class TicketController extends Controller
       $colWidth = 12; // 1 card takes the full width
     }
 
-    return view('tickets.landing', compact('user', 'now', 'users', 'datum', 'cards', 'colWidth'));
+    return view('tickets.landing', compact('user', 'now', 'users', 'datum', 'cards', 'colWidth', 'activeForwarding'));
   }
 
 
