@@ -121,8 +121,8 @@
       $('.enddate').daterangepicker({
         singleDatePicker: true,
         showDropdowns: true,
-        startDate: moment().add(1, 'day'),
-        minDate: moment().add(1, 'day'),
+        startDate: moment(),
+        minDate: moment(),
         minYear: parseInt(moment().format('YYYY')) - 1,
         maxYear: parseInt(moment().format('YYYY')) + 1,
         opens: 'center',
@@ -132,7 +132,7 @@
       });
 
       $('.startdate').on('apply.daterangepicker', function (ev, picker) {
-        const minEndDate = picker.startDate.clone().add(1, 'day');
+        const minEndDate = picker.startDate.clone();
         const endPicker = $('.enddate').data('daterangepicker');
         endPicker.minDate = minEndDate;
         if (endPicker.startDate.isBefore(minEndDate)) {
