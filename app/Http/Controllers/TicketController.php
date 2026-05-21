@@ -95,6 +95,8 @@ class TicketController extends Controller
 
     // Prepare the cards based on the user's roles.
     $cards = [];
+    $activeForwarding = null;
+
 
     // IT Tickets and Korso Tickets are visible by users with the "Verwaltung" role.
     if ($user->hasRole('Verwaltung')) {
@@ -108,6 +110,14 @@ class TicketController extends Controller
         'url'   => route('korso_index'),    // Adjust this route name as needed
         'color' => 'korso'                  // Korso Tickets use Bootstrap Success (green)
       ];
+      // Check for active email forwarding for the current user
+      $activeForwarding = Ticket::where('forward_from', $user->id)
+        ->where('problem_type', 'Email Weiterleitung')
+        ->whereNull('forward_removed_at')
+        ->whereDate('forward_required_at', '<=', Carbon::today())
+        ->whereDate('forward_to_at', '>=', Carbon::today())
+        ->with('forwardOnUser')
+        ->first();
     }
 
     // Handwerk Tickets are visible by users with the "handwerk" role.
@@ -129,7 +139,7 @@ class TicketController extends Controller
       $colWidth = 12; // 1 card takes the full width
     }
 
-    return view('tickets.landing', compact('user', 'now', 'users', 'datum', 'cards', 'colWidth'));
+    return view('tickets.landing', compact('user', 'now', 'users', 'datum', 'cards', 'colWidth', 'activeForwarding'));
   }
 
 
@@ -796,8 +806,8 @@ class TicketController extends Controller
   }
 
 
-public function userticketshistory()
-{
+  public function userticketshistory()
+  {
     $user = Auth::user();
 
     // 1) eager-load all SekGroups + their users
@@ -805,66 +815,66 @@ public function userticketshistory()
 
     // 2) collect every member’s ID (plus the user’s own ID)
     $memberIds = $user->sekGroups
-        ->flatMap(function($group) {
-            return $group->users->pluck('id');
-        })
-        ->push($user->id)
-        ->unique()
-        ->all();
+      ->flatMap(function ($group) {
+        return $group->users->pluck('id');
+      })
+      ->push($user->id)
+      ->unique()
+      ->all();
 
     // ———————————————————————————————
     // regular Ticket history (unchanged)
     // ———————————————————————————————
     $oldTickets = Ticket::onlyTrashed()
-        ->with('invitem.invroom.location.place', 'printer.invroom.location.place')
-        ->where(function ($q) use ($user) {
-            $q->where('submitter',   $user->id)
-              ->orWhere('assignedTo', $user->id);
-        })
-        ->orderBy('deleted_at', 'desc')
-        ->get();
+      ->with('invitem.invroom.location.place', 'printer.invroom.location.place')
+      ->where(function ($q) use ($user) {
+        $q->where('submitter',   $user->id)
+          ->orWhere('assignedTo', $user->id);
+      })
+      ->orderBy('deleted_at', 'desc')
+      ->get();
 
     // ———————————————————————————————
     // Korso history *for the whole group*:
     // ———————————————————————————————
     $oldKorsoTickets = Korso::onlyTrashed()
-        ->with('doneByUser', 'subUser', 'ticket_status')
-        ->whereIn('submitter', $memberIds)
-        ->orderBy('deleted_at', 'desc')
-        ->get();
+      ->with('doneByUser', 'subUser', 'ticket_status')
+      ->whereIn('submitter', $memberIds)
+      ->orderBy('deleted_at', 'desc')
+      ->get();
 
     // update your counts to include group members, if you like
     $assignedCount = Korso::whereIn('submitter', $memberIds)
-        ->orWhereIn('assignedTo',   $memberIds)
-        ->count();
+      ->orWhereIn('assignedTo',   $memberIds)
+      ->count();
 
     $myDoneCount = Korso::onlyTrashed()
-        ->whereIn('submitter', $memberIds)
-        ->orWhereIn('assignedTo', $memberIds)
-        ->count();
+      ->whereIn('submitter', $memberIds)
+      ->orWhereIn('assignedTo', $memberIds)
+      ->count();
 
     // non-Korso counts stay the same
     $ticketsdone    = Ticket::onlyTrashed()
-        ->where(function ($q) use ($user) {
-            $q->where('submitter',   $user->id)
-              ->orWhere('assignedTo', $user->id);
-        })
-        ->count();
+      ->where(function ($q) use ($user) {
+        $q->where('submitter',   $user->id)
+          ->orWhere('assignedTo', $user->id);
+      })
+      ->count();
 
     $myTicketsCount = Ticket::where('submitter',   $user->id)
-        ->orWhere('assignedTo', $user->id)
-        ->count();
+      ->orWhere('assignedTo', $user->id)
+      ->count();
 
     return view('tickets.userticketsdone', compact(
-        'user',
-        'oldTickets',
-        'myTicketsCount',
-        'ticketsdone',
-        'oldKorsoTickets',
-        'myDoneCount',
-        'assignedCount'
+      'user',
+      'oldTickets',
+      'myTicketsCount',
+      'ticketsdone',
+      'oldKorsoTickets',
+      'myDoneCount',
+      'assignedCount'
     ));
-}
+  }
 
 
   public function opentickets()
@@ -900,7 +910,7 @@ public function userticketshistory()
       'dueTerminationCount'
     ));
   }
-  
+
   public function userTicketsAdmins($userId = null)
   {
     $user = Auth()->user();
