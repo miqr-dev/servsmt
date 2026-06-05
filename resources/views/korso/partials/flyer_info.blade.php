@@ -25,7 +25,7 @@ $flyerItems = [
 'Aktualisierung_Infomaterial_KBM' => ['label' => 'Aktualisierung Infomaterial – KBM', 'qty' => 50],
 'Aktualisierung_Infomaterial_IK' => ['label' => 'Aktualisierung Infomaterial – IK', 'qty' => 50],
 'Aktualisierung_Infomaterial_KiG' => ['label' => 'Aktualisierung Infomaterial – KiG', 'qty' => 50],
-'Aktualisierung_Infomaterial_K_ECom' => ['label' => 'Aktualisierung Infomaterial – K E-Com', 'qty' => 50],
+'Aktualisierung_Infomaterial_Weiterfuehrendes_AG_Migranten' => ['label' => 'Weiterführendes AG Migranten', 'qty' => 50],
 
 // DRV
 'Aktualisierung_Infomaterial_DRV_FOSI' => ['label' => 'Aktualisierung Infomaterial – DRV FOSI', 'qty' => 50],
@@ -41,7 +41,6 @@ Kompakt', 'qty' => 50],
 'Aktualisierung_Infomaterial_DRV_KBM' => ['label' => 'Aktualisierung Infomaterial – DRV KBM', 'qty' => 50],
 'Aktualisierung_Infomaterial_DRV_IK' => ['label' => 'Aktualisierung Infomaterial – DRV IK', 'qty' => 50],
 'Aktualisierung_Infomaterial_DRV_KIG' => ['label' => 'Aktualisierung Infomaterial – DRV KIG', 'qty' => 50],
-'Aktualisierung_Infomaterial_DRV_K_ECOM' => ['label' => 'Aktualisierung Infomaterial – DRV K E-COM', 'qty' => 50],
 
 // BAMF
 'Aktualisierung_Infomaterial_BAMF_Deutsch_Integrationskurse_DE_EN' => ['label' => 'Aktualisierung Infomaterial – BAMF
@@ -158,16 +157,27 @@ DE/ES', 'qty' => 50],
     <div class="col-md-3">
       <h5 class="mb-3"><strong>AfA</strong></h5>
       @foreach([
-      'APO','PAA','BUS','ISO','ISO_Kompakt','IBO',
-      'MWe_Kompakt','Bewerbungstraining','kbQ',
-      'Umschulung_Kompakt','KBM','IK','KiG','K_ECom'
-      ] as $key)
+      'APO' => 'APO',
+      'PAA' => 'PAA',
+      'BUS' => 'BUS',
+      'ISO' => 'ISO',
+      'ISO_Kompakt' => 'ISO Kompakt',
+      'IBO' => 'IBO',
+      'MWe_Kompakt' => 'MWe Kompakt',
+      'Bewerbungstraining' => 'Bewerbungstraining',
+      'kbQ' => 'kbQ',
+      'Umschulung_Kompakt' => 'Umschulung Kompakt',
+      'KBM' => 'KBM',
+      'IK' => 'IK',
+      'KiG' => 'KiG',
+      'Weiterfuehrendes_AG_Migranten' => 'Weiterführendes AG Migranten',
+      ] as $key => $label)
       @php $name = "Aktualisierung_{$key}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
         <input class="form-check-input mr-2 item-checkbox" type="checkbox" name="{{ $name }}" id="{{ $name }}"
           data-has-quantity-input="true">
         <label class="form-check-label" for="{{ $name }}">
-          {{ str_replace('_',' ',$key) }}
+          {{ $label }}
         </label>
         <input class="form-control form-control-sm ml-auto quantity-input" type="number" name="{{ $name }}_qty" min="50"
           value="50" step="50" style="width:60px; display:none;">
@@ -180,7 +190,7 @@ DE/ES', 'qty' => 50],
       <h5 class="mb-3"><strong>DRV</strong></h5>
       @foreach([
       'FOSI','OSI','BT_S','VL_bbU','bbU','RVL',
-      'RVL_intensiv','Umschulung_Kompakt','KBM','IK','KIG','K_ECOM'
+      'RVL_intensiv','Umschulung_Kompakt','KBM','IK','KIG'
       ] as $key)
       @php $name = "DRV_{$key}"; @endphp
       <div class="form-check mb-2 d-flex align-items-center">
