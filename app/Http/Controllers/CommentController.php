@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\CommentNotification;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravelista\Comments\CommentControllerInterface;
 
 
@@ -55,6 +57,7 @@ class CommentController extends Controller implements CommentControllerInterface
       'commentable_type' => 'required|string',
       'commentable_id'   => 'required|string|min:1',
       'message'          => 'required|string',
+      'attachments.*'    => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
     ]))->validate();
 
     // Load the commentable model
@@ -72,7 +75,7 @@ class CommentController extends Controller implements CommentControllerInterface
     }
 
     $comment->commentable()->associate($model);
-    $comment->comment   = $request->message;
+    $comment->comment   = $this->commentWithAttachments($request, $request->message);
     $comment->approved  = ! Config::get('comments.approval_required');
 
     // Prepare notification payload
@@ -212,7 +215,8 @@ class CommentController extends Controller implements CommentControllerInterface
     Gate::authorize('reply-to-comment', $comment);
 
     Validator::make($request->all(), [
-      'message' => 'required|string'
+      'message'       => 'required|string',
+      'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
     ])->validate();
 
     // Build the reply
@@ -221,7 +225,7 @@ class CommentController extends Controller implements CommentControllerInterface
     $reply->commenter()->associate(Auth::user());
     $reply->commentable()->associate($comment->commentable);
     $reply->parent()->associate($comment);
-    $reply->comment  = $request->message;
+    $reply->comment  = $this->commentWithAttachments($request, $request->message);
     $reply->approved = ! Config::get('comments.approval_required');
 
     // Common payload
@@ -268,5 +272,40 @@ class CommentController extends Controller implements CommentControllerInterface
     $reply->save();
 
     return Redirect::to(URL::previous() . '#comment-' . $reply->getKey());
+  }
+  /**
+   * Appends validated image/PDF uploads to the comment body as safe links.
+   */
+  private function commentWithAttachments(Request $request, string $message): string
+  {
+    if (! $request->hasFile('attachments')) {
+      return $message;
+    }
+
+    $links = [];
+
+    foreach ($request->file('attachments') as $file) {
+      if (! $file || ! $file->isValid()) {
+        continue;
+      }
+
+      $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+      $path = $file->storeAs('comment-attachments/' . date('Y/m'), $filename, 'public');
+      $url = Storage::disk('public')->url($path);
+      $name = e($file->getClientOriginalName());
+      $mime = $file->getMimeType();
+
+      if (Str::startsWith($mime, 'image/')) {
+        $links[] = '<a href="' . e($url) . '" target="_blank" rel="noopener"><img src="' . e($url) . '" alt="' . $name . '" class="img-thumbnail mt-2" style="max-width: 200px; max-height: 200px;"></a>';
+      } else {
+        $links[] = '<a href="' . e($url) . '" target="_blank" rel="noopener" class="d-inline-block mt-2"><i class="fas fa-file-pdf text-danger"></i> ' . $name . '</a>';
+      }
+    }
+
+    if (empty($links)) {
+      return $message;
+    }
+
+    return rtrim($message) . "\n\n" . implode("<br>\n", $links);
   }
 }
