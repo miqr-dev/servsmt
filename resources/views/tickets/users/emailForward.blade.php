@@ -36,7 +36,7 @@
                                   <option value="">Mitarbeiter</option>
                                   @foreach($users as $availableUser)
                                   <option value="{{ $availableUser['id'] }}">
-                                    {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
+                                    {{ $forwardingMailboxLabels->get(strtolower($availableUser['email'] ?? '')) ?? trim(($availableUser['name'] ?? '') . ', ' . ($availableUser['vorname'] ?? ''), ', ') }}
                                   </option>
                                   @endforeach
                                 </select>
@@ -50,7 +50,7 @@
                                   @foreach($users as $availableUser)
                                   <option value="{{ $availableUser['id'] }}" @if((int)($availableUser['id'] ??
                                     0)===(int)auth()->id()) selected @endif>
-                                    {{ $availableUser['name'] ?? '' }}, {{ $availableUser['vorname'] ?? '' }}
+                                    {{ $forwardingMailboxLabels->get(strtolower($availableUser['email'] ?? '')) ?? trim(($availableUser['name'] ?? '') . ', ' . ($availableUser['vorname'] ?? ''), ', ') }}
                                   </option>
                                   @endforeach
                                 </select>

@@ -279,7 +279,12 @@ class TicketController extends Controller
   public function emailForward()
   {
     list($user, $users, $now) = User::getAll();
-    return view('tickets.users.emailForward', compact('user', 'now', 'users'));
+    $forwardingMailboxLabels = collect(config('forwarding.mailboxes', []))
+      ->mapWithKeys(function ($label, $email) {
+        return [strtolower($email) => $label];
+      });
+
+    return view('tickets.users.emailForward', compact('user', 'now', 'users', 'forwardingMailboxLabels'));
   }
   public function users_others()
   {
