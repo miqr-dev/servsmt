@@ -31,7 +31,7 @@
         <table class="info-table">
             <tr>
                 <th>Ersteller</th>
-                <td>{{ $korso->subUser->name ?? 'Unknown' }}</td>
+                <td>{{ trim(($korso->subUser->vorname ?? '') . ' ' . ($korso->subUser->name ?? '')) ?: 'Unknown' }}</td>
             </tr>
             <tr>
                 <th>Erstellt am</th>

@@ -140,7 +140,7 @@ $isDone = !is_null($korso->deleted_at);
           <div class="row mb-2">
             <div class="col-md-6">
               <label class="font-weight-bold">Ersteller:</label>
-              <input type="text" class="form-control" value="{{ $korso->subUser->name ?? 'Unknown' }}" readonly>
+              <input type="text" class="form-control" value="{{ trim(($korso->subUser->vorname ?? '') . ' ' . ($korso->subUser->name ?? '')) ?: 'Unknown' }}" readonly>
             </div>
             <div class="col-md-6">
               <label class="font-weight-bold">Am:</label>

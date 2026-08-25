@@ -2,7 +2,7 @@
   <h5 class="text-success font-weight-bold">Ticket Details</h5>
   <hr>
 
-  <p><strong>Ersteller:</strong> {{ $ticket->subUser->name ?? 'Unbekannt' }}</p>
+  <p><strong>Ersteller:</strong> {{ trim(($ticket->subUser->vorname ?? '') . ' ' . ($ticket->subUser->name ?? '')) ?: 'Unbekannt' }}</p>
   <p><strong>Standort:</strong> {{ $ticket->subUser->ort ?? '—' }}</p>
   <p><strong>Position:</strong> {{ $ticket->subUser->position ?? '—' }}</p>
   <p><strong>Abteilung:</strong> {{ $ticket->subUser->abteilung ?? '—' }}</p>
