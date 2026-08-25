@@ -315,7 +315,7 @@
           </a>
         </li>
         @endif
-        @if(auth()->user()->hasAnyRole(['Super_Admin','Verwaltung']))
+        @if(auth()->user()->hasAnyRole(['Super_Admin','Verwaltung','Teilnehmer_Info']))
         <li class="nav-item has-treeview">
           <a href="{{route ('participants.index')}}" class="nav-link">
             <i class="nav-icon fa-solid fa-users" style="color:#55917F;"></i>
