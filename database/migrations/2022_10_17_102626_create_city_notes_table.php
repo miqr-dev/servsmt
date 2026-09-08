@@ -22,7 +22,7 @@ class CreateCityNotesTable extends Migration
             $table->longText('leipzig')->nullable();
             $table->longText('suhl')->nullable();
             $table->longText('erfurt')->nullable();
-            $table->longText('döbeln ')->nullable();
+            $table->longText('döbeln')->nullable();
             $table->timestamps();
         });
     }
