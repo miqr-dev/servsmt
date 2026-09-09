@@ -10,6 +10,10 @@ class KorsoInternalCommentController extends Controller
 {
   public function store(Request $request)
   {
+    if (! Auth::check()) {
+      return response()->json(['message' => 'Unauthenticated.'], 401);
+    }
+
     $request->validate([
       'korso_id' => 'required|exists:korsos,id',
       'comment' => 'required|string|max:1000',

@@ -27,6 +27,9 @@ class KorsoController extends Controller
   public function dashboard()
   {
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
 
     // Get all Korso_Ma users with assigned ticket count
     $korso_ma_users = User::role('Korso_ma')
@@ -85,6 +88,10 @@ class KorsoController extends Controller
   public function filterTickets(Request $request)
   {
     $user = Auth::user();
+    if (! $user) {
+      abort(401, 'Unauthenticated.');
+    }
+
     $query = Korso::with(['subUser', 'assignedUser', 'ticket_status']);
 
     if ($request->filter === 'assigned') {
@@ -104,7 +111,7 @@ class KorsoController extends Controller
       $query->where('assignedTo', $request->user_id);
     }
 
-    $korso_ma_users = User::role('korso_ma')->get();
+    $korso_ma_users = User::role('Korso_ma')->get();
     $tickets = $query
       ->orderByRaw("CASE priority 
                           WHEN 3 THEN 1 
@@ -168,21 +175,21 @@ class KorsoController extends Controller
 
   public function printmarketing()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     $payers = Payer::with('kcourses')->get();
     return view('korso.printmarketing.printmarketing', compact('user', 'now', 'isException', 'payers'));
   }
   public function onlinemarketing()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     $onlinemarketingItems = OnlinemarketingItem::all();
     return view('korso.onlinemarketing.onlinemarketing', compact('user', 'now', 'isException', 'onlinemarketingItems'));
   }
   public function zertifizierung()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     $massnahmes = Massnahme::orderBy('name', 'asc')->get();
     $zertifizierung_items = ZertifizierungItem::all();
@@ -441,7 +448,7 @@ class KorsoController extends Controller
     // ...
 
     // Prepare additional data if needed
-    $korso_ma_users = User::role('korso_ma')->get();
+    $korso_ma_users = User::role('Korso_ma')->get();
     $ticket_statuses = TicketStatus::all();
 
     // Generate the PDF using a dedicated Blade view (see Step 3)

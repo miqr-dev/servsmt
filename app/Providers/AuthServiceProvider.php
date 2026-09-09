@@ -30,6 +30,15 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // Super_Admin bypasses every Gate::allows()/@can/permission: check.
+        // Without this, every permission (role-list, role-create, ...) would
+        // need to be individually seeded AND assigned to Super_Admin before
+        // that role could use any permission-gated screen - the exact trap
+        // RoleController was stuck in (see the roles & permissions audit).
+        Gate::before(function ($user, $ability) {
+            return $user->hasRole('Super_Admin') ? true : null;
+        });
+
         WindowsAuthenticate::rememberAuthenticatedUsers();
         //WindowsAuthenticate::logoutUnauthenticatedUsers();
         //WindowsAuthenticate::bypassDomainVerification();

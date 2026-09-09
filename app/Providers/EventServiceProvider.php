@@ -21,6 +21,9 @@ class EventServiceProvider extends ServiceProvider
     'Illuminate\Notifications\Events\NotificationSent' => [
       'App\Listeners\UpdateReminderStatus',
     ],
+    \LdapRecord\Laravel\Events\Import\Imported::class => [
+      \App\Listeners\AssignDefaultRoleToNewLdapUser::class,
+    ],
   ];
 
   /**

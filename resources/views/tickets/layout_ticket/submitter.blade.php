@@ -1,14 +1,21 @@
 <div class="col-lg-4">
   @php
-    $availableSubmitterUsers = $users ?? \App\User::select(
-      'id',
-      'vorname',
-      'name',
-      'username',
-      'ort',
-      'straße',
-      'tel'
-    )->get()->toArray();
+    // The datalist below only ever renders for Super_Admin (see the
+    // role check further down), so the fallback query only needs to run when
+    // $users wasn't already supplied by the controller AND the current
+    // user is actually Super_Admin - avoids the query entirely for
+    // everyone else.
+    $availableSubmitterUsers = $users ?? (auth()->user() && auth()->user()->hasRole('Super_Admin')
+      ? \App\User::select(
+          'id',
+          'vorname',
+          'name',
+          'username',
+          'ort',
+          'straße',
+          'tel'
+        )->get()->toArray()
+      : []);
   @endphp
   <div class="card card-primary card-outline">
     <div class="card-body box-profile form-group">

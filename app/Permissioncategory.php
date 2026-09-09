@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Permissioncategory extends Model
 {
-  public function permissions()
-  {
-      return $this->hasMany('Spatie\Permission\Models\Permission');
-  }
+    protected $fillable = ['name'];
+
+    public function permissions()
+    {
+        return $this->hasMany(Permission::class, 'permissioncategory_id');
+    }
 }

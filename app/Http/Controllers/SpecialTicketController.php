@@ -14,6 +14,9 @@ class SpecialTicketController extends Controller
   public function index(Request $request)
   {
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
 
     if ($user->id !== 16 && !$user->hasRole('Super_Admin')) {
       abort(403, 'Unauthorized action.');

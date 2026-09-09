@@ -57,3 +57,6 @@ iisexpress.log
 *.db
 *.bak
 *.swp
+
+/.node14/
+/Claude outputs/

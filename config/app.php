@@ -43,6 +43,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Local Dev Auth Bypass (Herd / no-LDAP-reachable machines only)
+    |--------------------------------------------------------------------------
+    |
+    | This app authenticates via LDAP/Windows-Integrated Auth in production.
+    | On a local dev machine (e.g. Laravel Herd) with no real Active
+    | Directory reachable, nobody ever gets logged in, which crashes any
+    | code that assumes Auth::user() is populated.
+    |
+    | When LOCAL_DEV_AUTH_BYPASS is explicitly "true", a small middleware
+    | (App\Http\Middleware\LocalDevAuthBypass) logs in a local test user
+    | so the app is usable locally. This is intentionally gated by its own
+    | dedicated flag rather than APP_ENV/environment name, since APP_ENV is
+    | not a reliable signal in this app's real deployments. It defaults to
+    | false/off, and must never be set to true outside of local development.
+    |
+    */
+
+    'local_dev_auth_bypass' => env('LOCAL_DEV_AUTH_BYPASS', false),
+    'local_dev_auth_user_id' => env('LOCAL_DEV_AUTH_USER_ID'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

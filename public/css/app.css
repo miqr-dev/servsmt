@@ -29,7 +29,7 @@
   --gray: #6c757d;
   --gray-dark: #343a40;
   --primary: #681a24;
-  --secondary: #177E89;
+  --secondary: #6c757d;
   --success: #285D17;
   --info: #85323E;
   --warning: #ffed4a;
@@ -2751,7 +2751,6 @@ fieldset:disabled a.btn {
 .show > .btn-secondary.dropdown-toggle:focus {
   box-shadow: 0 0 0 0.2rem rgba(130, 138, 145, 0.5);
 }
-
 
 .btn-success {
   color: #fff;

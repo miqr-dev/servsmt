@@ -84,37 +84,37 @@ class HandwerkController extends Controller
 
   public function einrichtungsgegenstände()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     return view('handwerk.new.einrichtungsgegenstände', compact('user', 'now', 'isException'));
   }
   public function elektro()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     return view('handwerk.new.elektro', compact('user', 'now', 'isException'));
   }
   public function neustandort()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     return view('handwerk.new.neustandort', compact('user', 'now', 'isException'));
   }
   public function reparatur_elektro()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     return view('handwerk.reparatur.elektro', compact('user', 'now', 'isException'));
   }
   public function reparatur_mobiliar()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     return view('handwerk.reparatur.mobiliar', compact('user', 'now', 'isException'));
   }
   public function modifikation()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
     return view('handwerk.modification.modifikation', compact('user', 'now', 'isException'));
   }
@@ -295,6 +295,10 @@ class HandwerkController extends Controller
   public function myHandwerks()
   {
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
+
     $handwerks = Handwerk::where('submitter', $user->id)->get();
 
     return view('handwerk.my_handwerks', compact('handwerks'));

@@ -68,8 +68,19 @@ class User extends Authenticatable implements LdapAuthenticatable
     $users = User::get()->toArray();
     $user = Auth()->user();
     $now = Carbon::now()->locale('de_DE')->translatedFormat('d F Y H:i');
-    $admins = User::role('Super_Admin')->get();
-    return [$user, $users, $now, $admins];
+    return [$user, $users, $now];
+  }
+
+  /**
+   * Lightweight variant of getAll() for pages that only need the
+   * current user and the formatted timestamp - avoids the full,
+   * all-columns users table query when nothing on the page uses it.
+   */
+  public static function getCurrentAndNow()
+  {
+    $user = Auth()->user();
+    $now = Carbon::now()->locale('de_DE')->translatedFormat('d F Y H:i');
+    return [$user, $now];
   }
 
 

@@ -15,6 +15,9 @@ class PracticeCompanyController extends Controller
   {
     $companies = PracticeCompany::all();
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
     $isSuperAdmin = $user->hasRole('Super_Admin');
 
     return view('practice_companies.index', compact('companies', 'isSuperAdmin'));
@@ -25,6 +28,9 @@ class PracticeCompanyController extends Controller
     $place = Place::where('pnname', $city)->firstOrFail();
     $companies = PracticeCompany::where('place_id', $place->id)->get();
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
     $isSuperAdmin = $user->hasRole('Super_Admin');
 
     return view('practice_companies.city', compact('companies', 'isSuperAdmin', 'place'));
@@ -35,6 +41,9 @@ class PracticeCompanyController extends Controller
     $place = Place::where('pnname', $city)->firstOrFail();
     $companies = PracticeCompany::where('place_id', $place->id)->get();
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
     $isSuperAdmin = $user->hasRole('Super_Admin');
 
     return view('practice_companies.lex', compact('companies', 'isSuperAdmin', 'place'));

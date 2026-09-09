@@ -315,6 +315,37 @@
           </a>
         </li>
         @endif
+        @if(auth()->user()->hasRole('Super_Admin'))
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link">
+            <i class="nav-icon fas fa-user-shield" style="color:#f472b6;"></i>
+            <p>
+              Rollen &amp; Berechtigungen
+              <i class="right fas fa-angle-left"></i>
+            </p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{{ route('roles.index') }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Rollen</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('permissions.index') }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Berechtigungen</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ route('users.index') }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Benutzer</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+        @endif
         @if(auth()->user()->hasAnyRole(['Super_Admin','Verwaltung']))
         <li class="nav-item has-treeview">
           <a href="{{route ('participants.index')}}" class="nav-link">

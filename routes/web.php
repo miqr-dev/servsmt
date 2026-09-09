@@ -38,7 +38,7 @@ Route::post('/korso/assign', 'KorsoController@assignUser')->name('korso.assign')
 Route::get('printmarketing', 'KorsoController@printmarketing')->name('printmarketing');
 Route::get('onlinemarketing', 'KorsoController@onlinemarketing')->name('onlinemarketing');
 Route::get('zertifizierung', 'KorsoController@zertifizierung')->name('zertifizierung');
-Route::post('form_store_korso', 'Korsocontroller@form_store_korso')->name('form_store_korso');
+Route::post('form_store_korso', 'KorsoController@form_store_korso')->name('form_store_korso');
 Route::get('/dashboard/filter-tickets', 'KorsoController@filterTickets')->name('dashboard.filterTickets');
 Route::post('/korso/{korso}/done', 'KorsoController@markAsDone')->name('korso.markDone');  //softDelete ticket
 Route::post('/korso/{korso}/restore', 'KorsoController@restore')->name('korso.restore');  //restore softDeleted ticket
@@ -89,16 +89,16 @@ Route::get('handwerk', 'HandwerkController@index')->name('handwerk_index');  // 
 Route::get('/handwerk/{myHandwerkTicket}', 'HandwerkController@show')->name('handwerk_show');  // show
 Route::get('/handwerk/{myHandwerkTicket}/pdf', 'HandwerkController@exportTicketPdf')->name('handwerk.ticket.pdf');
 
-Route::get('einrichtungsgegenstände', 'Handwerkcontroller@einrichtungsgegenstände')->name('einrichtungsgegenstände'); //
-Route::get('elektro', 'Handwerkcontroller@elektro')->name('elektro');
-Route::get('neustandort', 'Handwerkcontroller@neustandort')->name('neustandort');
+Route::get('einrichtungsgegenstände', 'HandwerkController@einrichtungsgegenstände')->name('einrichtungsgegenstände'); //
+Route::get('elektro', 'HandwerkController@elektro')->name('elektro');
+Route::get('neustandort', 'HandwerkController@neustandort')->name('neustandort');
 // reparatur
-Route::get('reparatur_elektro', 'Handwerkcontroller@reparatur_elektro')->name('reparatur_elektro');
-Route::get('reparatur_mobiliar', 'Handwerkcontroller@reparatur_mobiliar')->name('reparatur_mobiliar');
+Route::get('reparatur_elektro', 'HandwerkController@reparatur_elektro')->name('reparatur_elektro');
+Route::get('reparatur_mobiliar', 'HandwerkController@reparatur_mobiliar')->name('reparatur_mobiliar');
 // modifikation
-Route::get('modifikation', 'Handwerkcontroller@modifikation')->name('modifikation');
+Route::get('modifikation', 'HandwerkController@modifikation')->name('modifikation');
 
-Route::post('form_store_handwerk', 'Handwerkcontroller@form_store_handwerk')->name('form_store_handwerk');
+Route::post('form_store_handwerk', 'HandwerkController@form_store_handwerk')->name('form_store_handwerk');
 
 Route::get('/my-handwerks-tickets', 'HandwerkController@myHandwerks')->name('my_handwerks');
 
@@ -149,7 +149,7 @@ Route::get('/korso-dashboard', 'KorsoController@dashboard')->name('korso.dashboa
 Route::get('/video', 'TicketController@video')->name('video');
 Route::get('/video_index', 'TicketController@video_index')->name('video_index');
 
-Route::group(['middleware' => ['auth']], function () {
+Route::group(['middleware' => ['auth', 'role:Super_Admin']], function () {
   Route::resource('roles', 'RoleController');
   Route::resource('users', 'UserController'); //add to User Modal protected $guard_name = 'web';
   Route::resource('permissions', 'PermissionController');
@@ -248,10 +248,13 @@ Route::get('/settings/cityAddressList', 'InvRoomController@cityAddressList')->na
 Route::post('/create_address', 'LocationController@addLocation')->name('addLocation');
 Route::post('/create_room', 'InvRoomController@addRoom')->name('addRoom');
 
-/* Role index */
-Route::get('/settings/roleList', 'RoleController@index')->name('settings.roleList');
-/* users index */
-Route::get('/settings/usersList', 'UserController@index')->name('settings.usersList');
+/* Role index / users index - Super_Admin only. These were previously
+   unauthenticated duplicate routes to RoleController@index / UserController@index
+   (the same actions already gated above); wrapped here to close that gap. */
+Route::group(['middleware' => ['auth', 'role:Super_Admin']], function () {
+  Route::get('/settings/roleList', 'RoleController@index')->name('settings.roleList');
+  Route::get('/settings/usersList', 'UserController@index')->name('settings.usersList');
+});
 /* first page */
 Route::get('/settings/firstpage/{id}/edit', 'SettingController@firstpage')->name('settings.firstpage');
 Route::patch('/settings/firstpage/{id}', 'SettingController@firstupdate')->name('settings.firstupdate');

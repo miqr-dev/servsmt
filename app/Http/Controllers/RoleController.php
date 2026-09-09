@@ -3,7 +3,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use App\Permission;
 use DB;
 class RoleController extends Controller
 {
@@ -39,8 +39,11 @@ return view('roles.index',compact('roles'))
 */
 public function create()
 {
-  $permission = Permission::with('category')->get();
-return view('roles.create',compact('permission'));
+  $permissionsByCategory = Permission::with('category')->orderBy('name')->get()
+    ->groupBy(function ($permission) {
+      return optional($permission->category)->name ?? 'Sonstige';
+    });
+return view('roles.create',compact('permissionsByCategory'));
 }
 /**
 * Store a newly created resource in storage.
@@ -87,11 +90,14 @@ return view('roles.show',compact('role','rolePermissions'));
 public function edit($id)
 {
 $role = Role::find($id);
-$permission = Permission::with('category')->get();
+$permissionsByCategory = Permission::with('category')->orderBy('name')->get()
+  ->groupBy(function ($permission) {
+    return optional($permission->category)->name ?? 'Sonstige';
+  });
 $rolePermissions = DB::table("role_has_permissions")->where("role_has_permissions.role_id",$id)
 ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
 ->all();
-return view('roles.edit',compact('role','permission','rolePermissions'));
+return view('roles.edit',compact('role','permissionsByCategory','rolePermissions'));
 }
 /**
 * Update the specified resource in storage.

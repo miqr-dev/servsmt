@@ -46,6 +46,10 @@ class TicketController extends Controller
   public function landing()
   {
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
+
     if ($user->hasRole('Korso_Admin')) {
       return redirect()->route('korso.dashboard');
     }
@@ -90,7 +94,7 @@ class TicketController extends Controller
   public function landingPage()
   {
     // Retrieve user and other shared data
-    list($user, $users, $now, $admins) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $datum = Standortbesuch::find(1);
 
     // Prepare the cards based on the user's roles.
@@ -156,16 +160,16 @@ class TicketController extends Controller
         ->get();
     }
 
-    return view('tickets.landing', compact('user', 'now', 'users', 'datum', 'cards', 'colWidth', 'activeForwarding', 'cityForwardings'));
+    return view('tickets.landing', compact('user', 'now', 'datum', 'cards', 'colWidth', 'activeForwarding', 'cityForwardings'));
   }
 
 
   //! index Ticketanfrage main page//
   public function index()
   {
-    list($user, $users, $now, $admins) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $datum = Standortbesuch::find(1);
-    return view('tickets.index', compact('user', 'now', 'users', 'datum'));
+    return view('tickets.index', compact('user', 'now', 'datum'));
   }
   //! Ticket computer //
   public function computer_all()
@@ -174,54 +178,54 @@ class TicketController extends Controller
   }
   public function softwareRequest()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.softwareRequest', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.softwareRequest', compact('user', 'now', 'computers'));
   }
   public function softwareInstall()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.softwareinstall', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.softwareinstall', compact('user', 'now', 'computers'));
   }
   public function softwareError()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.softwareerror', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.softwareerror', compact('user', 'now', 'computers'));
   }
   public function peripheralRequest()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.peripheralRequest', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.peripheralRequest', compact('user', 'now', 'computers'));
   }
   public function hardwareRequest()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $machines = Gart::where('id', '2')->orwhere('id', '3')->orwhere('id', '4')->orwhere('id', '5')
       ->orwhere('id', '13')->orwhere('id', '15')->orwhere('id', '18')->orwhere('id', '17')->orwhere('id', '6')->get();
-    return view('tickets.computer.hardwareRequest', compact('user', 'now', 'users', 'machines'));
+    return view('tickets.computer.hardwareRequest', compact('user', 'now', 'machines'));
   }
   public function pc_problems()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.pc_problems', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.pc_problems', compact('user', 'now', 'computers'));
   }
   public function printer_in_out()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.printer_in_out', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.printer_in_out', compact('user', 'now', 'computers'));
   }
   public function other()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.other', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.computer.other', compact('user', 'now', 'computers'));
   }
 
   //! Ticket printer //
@@ -232,31 +236,31 @@ class TicketController extends Controller
 
   public function scanner()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.scanner', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.printer.scanner', compact('user', 'now', 'computers'));
   }
   public function scannerNew()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.scanner_new', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.printer.scanner_new', compact('user', 'now', 'computers'));
   }
   public function functuality()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.functuality', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.printer.functuality', compact('user', 'now', 'computers'));
   }
   public function errors()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.errors', compact('user', 'now', 'users', 'computers'));
+    return view('tickets.printer.errors', compact('user', 'now', 'computers'));
   }
 
   //! Ticket users //
@@ -273,8 +277,8 @@ class TicketController extends Controller
 
   public function participant()
   {
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.users.participant', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.users.participant', compact('user', 'now'));
   }
   public function emailForward()
   {
@@ -289,108 +293,108 @@ class TicketController extends Controller
   public function users_others()
   {
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.users.usersOthers', compact('user', 'now', 'users', 'computers'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.users.usersOthers', compact('user', 'now', 'computers'));
   }
   public function users_namechange()
   {
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.users.nameChange', compact('user', 'now', 'users', 'computers'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.users.nameChange', compact('user', 'now', 'computers'));
   }
   public function users_loginProblem()
   {
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.users.loginProblem', compact('user', 'now', 'users', 'computers'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.users.loginProblem', compact('user', 'now', 'computers'));
   }
 
   //! Ticket telephone //
   public function telephone_all()
   {
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.telephone.all', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.telephone.all', compact('user', 'now'));
   }
   public function tel_changes()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.telephone.tel_changes', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.telephone.tel_changes', compact('user', 'now'));
   }
   public function tel_changes_location()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.telephone.telChangeLocation', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.telephone.telChangeLocation', compact('user', 'now'));
   }
   public function tel_changes_name()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.telephone.telChangeName', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.telephone.telChangeName', compact('user', 'now'));
   }
   public function tel_changes_number()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.telephone.telChangeNumber', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.telephone.telChangeNumber', compact('user', 'now'));
   }
 
   public function pc_changes_location()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.computer.pcChangeLocation', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.computer.pcChangeLocation', compact('user', 'now'));
   }
 
   public function printer_changes_location()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.printer.printerChangeLocation', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.printer.printerChangeLocation', compact('user', 'now'));
   }
 
   public function tel_problems()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.telephone.tel_problems', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.telephone.tel_problems', compact('user', 'now'));
   }
   public function projectorProblems()
   {
     $rooms = InvRoom::with('location')->get();
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.projector.projector_problem', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.projector.projector_problem', compact('user', 'now'));
   }
   //! Ticket Web //
   public function web_all()
   {
-    list($user, $users, $now, $tickets) = User::getAll();
-    return view('tickets.web.all', compact('user', 'now', 'users'));
+    list($user, $now) = User::getCurrentAndNow();
+    return view('tickets.web.all', compact('user', 'now'));
   }
   public function terminal_tn()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     return view('tickets.web.terminal_tn', compact('user', 'now'));
   }
   public function bbb()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     return view('tickets.web.bbb', compact('user', 'now'));
   }
   public function vtiger()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     return view('tickets.web.vtiger', compact('user', 'now'));
   }
   public function smt()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     return view('tickets.web.smt', compact('user', 'now'));
   }
   public function firmenvz()
   {
-    list($user, $users, $now) = User::getAll();
+    list($user, $now) = User::getCurrentAndNow();
     return view('tickets.web.firmenvz', compact('user', 'now'));
   }
   //! Ajax requests //
@@ -759,7 +763,7 @@ class TicketController extends Controller
       ->whereIn('submitter', $memberIds)
       ->orderBy('updated_at', 'DESC')
       ->get();
-    $korso_ma_users = User::role('korso_ma')->get();
+    $korso_ma_users = User::role('Korso_ma')->get();
     $assignedCount = Korso::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     $myDoneCount = Korso::onlyTrashed()->where(function ($query) use ($user) {
       $query->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
@@ -831,6 +835,9 @@ class TicketController extends Controller
   public function userticketshistory()
   {
     $user = Auth::user();
+    if (! $user) {
+      return redirect()->route('login');
+    }
 
     // 1) eager-load all SekGroups + their users
     $user->load('sekGroups.users');
