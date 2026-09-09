@@ -179,25 +179,25 @@ class TicketController extends Controller
   public function softwareRequest()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.softwareRequest', compact('user', 'now', 'computers'));
   }
   public function softwareInstall()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.softwareinstall', compact('user', 'now', 'computers'));
   }
   public function softwareError()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.softwareerror', compact('user', 'now', 'computers'));
   }
   public function peripheralRequest()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.peripheralRequest', compact('user', 'now', 'computers'));
   }
   public function hardwareRequest()
@@ -210,21 +210,21 @@ class TicketController extends Controller
   public function pc_problems()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.pc_problems', compact('user', 'now', 'computers'));
   }
   public function printer_in_out()
   {
     list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.printer_in_out', compact('user', 'now', 'computers'));
   }
   public function other()
   {
     list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.computer.other', compact('user', 'now', 'computers'));
   }
 
@@ -238,28 +238,28 @@ class TicketController extends Controller
   {
     list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.printer.scanner', compact('user', 'now', 'computers'));
   }
   public function scannerNew()
   {
     list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.printer.scanner_new', compact('user', 'now', 'computers'));
   }
   public function functuality()
   {
     list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.printer.functuality', compact('user', 'now', 'computers'));
   }
   public function errors()
   {
     list($user, $now) = User::getCurrentAndNow();
     $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     return view('tickets.printer.errors', compact('user', 'now', 'computers'));
   }
 
@@ -292,19 +292,19 @@ class TicketController extends Controller
   }
   public function users_others()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     list($user, $now) = User::getCurrentAndNow();
     return view('tickets.users.usersOthers', compact('user', 'now', 'computers'));
   }
   public function users_namechange()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     list($user, $now) = User::getCurrentAndNow();
     return view('tickets.users.nameChange', compact('user', 'now', 'computers'));
   }
   public function users_loginProblem()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
+    $computers = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id', '2')->orwhere('gart_id', '3');})->get();
     list($user, $now) = User::getCurrentAndNow();
     return view('tickets.users.loginProblem', compact('user', 'now', 'computers'));
   }
@@ -400,13 +400,13 @@ class TicketController extends Controller
   //! Ajax requests //
   public function tel_in_room(Request $request)
   {
-    $telephones = InvItems::where('room_id', $request->telephones)->where('gart_id', '15')->get();
+    $telephones = InvItems::whereNull('ausdat')->where('room_id', $request->telephones)->where('gart_id', '15')->get();
     return $telephones;
   }
 
   public function pc_in_room(Request $request)
   {
-    $pcs = InvItems::where('room_id', $request->pcs)
+    $pcs = InvItems::whereNull('ausdat')->where('room_id', $request->pcs)
       ->where(function ($query) {
         $query->where('gart_id', '2')->orWhere('gart_id', '3');
       })->get();
@@ -415,7 +415,7 @@ class TicketController extends Controller
   //! Ajax requests //
   public function pro_in_room(Request $request)
   {
-    $projectors = InvItems::where('room_id', $request->projectors)->where('gart_id', '13')->get();
+    $projectors = InvItems::whereNull('ausdat')->where('room_id', $request->projectors)->where('gart_id', '13')->get();
     return $projectors;
   }
   public function problem_type(Request $request)
@@ -454,7 +454,7 @@ class TicketController extends Controller
 
   public function printer_in_room(Request $request)
   {
-    $printers = InvItems::where('room_id', $request->printers)->where('gart_id', '5')->get();
+    $printers = InvItems::whereNull('ausdat')->where('room_id', $request->printers)->where('gart_id', '5')->get();
     return $printers;
   }
 
