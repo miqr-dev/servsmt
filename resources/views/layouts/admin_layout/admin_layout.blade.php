@@ -35,8 +35,6 @@
   <link rel="stylesheet" href="{{ url ('plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
   <!-- Daterange picker -->
   <link rel="stylesheet" href="{{ url ('plugins/daterangepicker/daterangepicker.css') }}">
-  <!-- summernote -->
-  <link rel="stylesheet" href="{{ url ('plugins/summernote/summernote-bs4.css') }}">
   <!-- Google Font: Source Sans Pro -->
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
   <!-- Datatables Css -->
@@ -98,7 +96,6 @@
     <!-- jQuery UI 1.11.4 -->
     <script src="{{ url ('plugins/jquery-ui/jquery-ui.min.js') }}"></script>
     <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.3/dist/jquery.validate.min.js"></script>
     <script>
       $.widget.bridge('uibutton', $.ui.button)
     </script>
@@ -121,8 +118,6 @@
     <script src="{{ url ('plugins/daterangepicker/daterangepicker.js') }}"></script>
     <!-- Tempusdominus Bootstrap 4 -->
     <script src="{{ url ('plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js') }}"></script>
-    <!-- Summernote -->
-    <script src="{{ url ('plugins/summernote/summernote-bs4.min.js') }}"></script>
     <!-- overlayScrollbars -->
     <script src="{{ url ('plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
     <!-- AdminLTE App -->
@@ -204,34 +199,12 @@
     <!-- Bootstrap table JS -->
     <script src="https://unpkg.com/bootstrap-table@1.19.1/dist/bootstrap-table.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.7/dist/cdn.min.js
-"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.7/dist/cdn.min.js"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script> -->
 
 
 
     <script type="text/javascript">
-
-      //     $(document).ready(function() {
-      //     // Use a more specific selector if necessary to target only form submit buttons
-      //     $('button[type="submit"]').click(function() {
-      //         var button = $(this); // Get the button that was clicked
-      //         button.prop('disabled', true); // Disable it
-      //         button.text('Hmmmm...'); // Optional: change text
-
-      //         // Get the form to which the button belongs
-      //         var form = button.closest('form');
-
-      //         // Optional: Check if the form is valid if you're using any form validation plugin
-      //         if(form.valid()) {
-      //             form.submit(); // If valid, submit the form
-      //         } else {
-      //             button.prop('disabled', false); // If not, re-enable the button
-      //             button.text('Einreichen'); // Optional: Reset button text
-      //         }
-
-      //     });
-      // });
 
       $(document).ready(function () {
         $('form').on('submit', function (e) {
@@ -284,7 +257,6 @@
 
 
     <!-- Video js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/js/all.min.js"></script>
     <script src="https://vjs.zencdn.net/7.18.1/video.min.js"></script>
     @yield('script')
 </body>
