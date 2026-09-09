@@ -1,5 +1,9 @@
 @extends('layouts.admin_layout.admin_layout')
 
+@push('styles')
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+@endpush
+
 @section('content')
 <div class="container">
     <h1>Create Device Status</h1>

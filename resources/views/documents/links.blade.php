@@ -1,5 +1,8 @@
 @extends('layouts.admin_layout.admin_layout')
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+@push('styles')
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+@endpush
 
 @section('content')
 <div class="container mx-auto p-6">

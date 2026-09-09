@@ -1,5 +1,9 @@
 @extends('layouts.admin_layout.admin_layout')
 
+@push('styles')
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+@endpush
+
 @section('content')
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="bg-white shadow sm:rounded-lg p-6">

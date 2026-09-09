@@ -41,16 +41,12 @@
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.4/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap4.min.css">
   <link rel="stylesheet" type="text/css"
-    href="https://cdn.datatables.net/responsive/2.2.8/css/responsive.dataTables.min.css">
+    href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.dataTables.min.css">
   <link rel="stylesheet" type="text/css"
     href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css">
   <!-- toastr -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
 
-  <link rel="stylesheet"
-    href="http://demo.hackandphp.com/address-book-with-bootstrap-and-jquery/css/animatecss/animate.min.css">
-  <link rel="stylesheet"
-    href="http://demo.hackandphp.com/address-book-with-bootstrap-and-jquery/js/slidernav/slidernav.css">
   <!-- video.js -->
   <link href="https://vjs.zencdn.net/7.15.4/video-js.css" rel="stylesheet" />
   <link href="https://unpkg.com/@videojs/themes@1/dist/city/index.css" rel="stylesheet" />
@@ -63,7 +59,8 @@
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap">
 
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  {{-- Page-specific stylesheets (e.g. Tailwind, only on the handful of pages that use it) --}}
+  @stack('styles')
 
 </head>
 
@@ -167,7 +164,7 @@
 
     <!-- Datatables script-->
     <script type="text/javascript" charset="utf8"
-      src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+      src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" charset="utf8"
       src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
     <script type="text/javascript" charset="utf8"
@@ -235,7 +232,6 @@
 
       setInterval(function () {
         $('#notification_bell').load(document.URL + ' #notification_bell');
-        console.log('notification refreshed');
       }, 10000 * 5);
     </script>
 

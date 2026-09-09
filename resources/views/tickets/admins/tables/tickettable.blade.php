@@ -1,5 +1,9 @@
 @extends('layouts.admin_layout.admin_layout')
 
+@push('styles')
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+@endpush
+
 <style>
   table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before,
   table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
