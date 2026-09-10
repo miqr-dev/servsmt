@@ -25,18 +25,31 @@ use Illuminate\Support\Facades\DB;
  * the merged table. Dropping it is a separate, later migration that only
  * runs once you're satisfied everything works.
  *
- * Legacy data safety: inv_ab_items has a handful of rows carrying
+ * Legacy data safety #1: inv_ab_items has a handful of rows carrying
  * location_id/amg_id/gart_id values that were never valid foreign keys
  * (almost certainly written by a raw import with FOREIGN_KEY_CHECKS off
  * at some point - inv_ab_items has had a real FK on these columns since
  * 2020, so they couldn't have gotten in there through the app). Since
  * inv_items now enforces the same FKs, copying those values verbatim
- * would crash the migration (this happened once already, on location_id
- * = 0 for id 446, which has no matching row in locations). Rather than
- * fail or silently drop the row, any such value is set to NULL on the
- * inv_items side (inv_ab_items itself is never touched) and reported by
- * name below so nothing is lost silently - a location_id/amg_id/gart_id
- * that was already meaningless is not real data to lose.
+ * would crash the migration. Rather than fail or silently drop the row,
+ * any such value is set to NULL on the inv_items side (inv_ab_items
+ * itself is never touched) and reported by name below - a location_id/
+ * amg_id/gart_id that was already meaningless is not real data to lose.
+ *
+ * Legacy data safety #2: invnr is the human-facing inventory number and
+ * is unique on inv_items, but it has been reused over time - a
+ * decommissioned item's old invnr can since have been reassigned to a
+ * different, currently-active item (different id, same invnr string).
+ * Inserting the decommissioned inv_ab_items row in that case would
+ * either violate the unique constraint or silently attach unrelated
+ * historical data to the wrong live item. Instead, any such row is
+ * skipped (left only in inv_ab_items, which is never touched) and
+ * reported by name below so you can see and decide on every case.
+ *
+ * up() runs inside a single DB transaction: if anything still causes an
+ * unexpected failure, everything from this run is rolled back together
+ * rather than left half-applied, so a fresh `php artisan migrate` retry
+ * after a fix is always safe.
  */
 class BackfillInvAbItemsIntoInvItemsTable extends Migration
 {
@@ -44,20 +57,22 @@ class BackfillInvAbItemsIntoInvItemsTable extends Migration
     {
         $updated = 0;
         $inserted = 0;
+        $skipped = 0;
         $badLocations = [];
         $badAmgs = [];
         $badGarts = [];
+        $skippedInvnrConflicts = [];
 
         $validLocationIds = DB::table('locations')->pluck('id')->all();
         $validAmgIds = DB::table('amgs')->pluck('id')->all();
         $validGartIds = DB::table('garts')->pluck('id')->all();
 
         DB::transaction(function () use (
-            &$updated, &$inserted, &$badLocations, &$badAmgs, &$badGarts,
+            &$updated, &$inserted, &$skipped, &$badLocations, &$badAmgs, &$badGarts, &$skippedInvnrConflicts,
             $validLocationIds, $validAmgIds, $validGartIds
         ) {
             DB::table('inv_ab_items')->orderBy('id')->chunk(200, function ($abItems) use (
-                &$updated, &$inserted, &$badLocations, &$badAmgs, &$badGarts,
+                &$updated, &$inserted, &$skipped, &$badLocations, &$badAmgs, &$badGarts, &$skippedInvnrConflicts,
                 $validLocationIds, $validAmgIds, $validGartIds
             ) {
                 foreach ($abItems as $ab) {
@@ -88,27 +103,35 @@ class BackfillInvAbItemsIntoInvItemsTable extends Migration
                     if ($existing) {
                         DB::table('inv_items')->where('id', $ab->id)->update($extra);
                         $updated++;
-                    } else {
-                        $gartId = $ab->gart_id;
-                        if ($gartId !== null && !in_array($gartId, $validGartIds)) {
-                            $badGarts[] = "inv_ab_items.id={$ab->id} (gart_id was {$gartId})";
-                            $gartId = null;
-                        }
-
-                        DB::table('inv_items')->insert(array_merge($extra, [
-                            'id' => $ab->id,
-                            'dateupd' => $ab->andat,
-                            'invnr' => $ab->invnr,
-                            'room_id' => null,
-                            'gname' => $ab->gname,
-                            'sn' => $ab->sn,
-                            'gart_id' => $gartId,
-                            'gtyp' => $ab->gtyp,
-                            'created_at' => $ab->created_at,
-                            'updated_at' => $ab->updated_at,
-                        ]));
-                        $inserted++;
+                        continue;
                     }
+
+                    $invnrConflict = DB::table('inv_items')->where('invnr', $ab->invnr)->first();
+                    if ($invnrConflict) {
+                        $skippedInvnrConflicts[] = "inv_ab_items.id={$ab->id}, invnr={$ab->invnr} is already used by a different, currently-active inv_items.id={$invnrConflict->id} - left only in inv_ab_items, not merged";
+                        $skipped++;
+                        continue;
+                    }
+
+                    $gartId = $ab->gart_id;
+                    if ($gartId !== null && !in_array($gartId, $validGartIds)) {
+                        $badGarts[] = "inv_ab_items.id={$ab->id} (gart_id was {$gartId})";
+                        $gartId = null;
+                    }
+
+                    DB::table('inv_items')->insert(array_merge($extra, [
+                        'id' => $ab->id,
+                        'dateupd' => $ab->andat,
+                        'invnr' => $ab->invnr,
+                        'room_id' => null,
+                        'gname' => $ab->gname,
+                        'sn' => $ab->sn,
+                        'gart_id' => $gartId,
+                        'gtyp' => $ab->gtyp,
+                        'created_at' => $ab->created_at,
+                        'updated_at' => $ab->updated_at,
+                    ]));
+                    $inserted++;
                 }
             });
         });
@@ -118,7 +141,7 @@ class BackfillInvAbItemsIntoInvItemsTable extends Migration
 
         echo "\n";
         echo "  inv_ab_items -> inv_items backfill complete.\n";
-        echo "  inv_ab_items rows processed: matched/updated {$updated}, no match/inserted {$inserted}.\n";
+        echo "  inv_ab_items rows processed: matched/updated {$updated}, no match/inserted {$inserted}, skipped (invnr conflict) {$skipped}.\n";
         echo "  inv_ab_items total rows: {$abCount}. inv_items total rows now: {$itemsCount}.\n";
         echo "  inv_ab_items was NOT modified - please spot check the counts above before moving on.\n";
 
@@ -137,6 +160,12 @@ class BackfillInvAbItemsIntoInvItemsTable extends Migration
         if (!empty($badGarts)) {
             echo "\n  NOTE: " . count($badGarts) . " newly-inserted row(s) had a gart_id with no matching row in garts - set to NULL on inv_items instead of crashing:\n";
             foreach ($badGarts as $line) {
+                echo "    - {$line}\n";
+            }
+        }
+        if (!empty($skippedInvnrConflicts)) {
+            echo "\n  NOTE: " . count($skippedInvnrConflicts) . " row(s) skipped - their invnr is now used by a different, currently-active item. Still fully intact in inv_ab_items, just not merged:\n";
+            foreach ($skippedInvnrConflicts as $line) {
                 echo "    - {$line}\n";
             }
         }
