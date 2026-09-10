@@ -24,19 +24,6 @@ use Illuminate\Support\Facades\DB;
  * left fully intact so nothing is at risk while the app is verified on
  * the merged table. Dropping it is a separate, later migration that only
  * runs once you're satisfied everything works.
- *
- * Legacy data safety: inv_ab_items has a handful of rows carrying
- * location_id/amg_id/gart_id values that were never valid foreign keys
- * (almost certainly written by a raw import with FOREIGN_KEY_CHECKS off
- * at some point - inv_ab_items has had a real FK on these columns since
- * 2020, so they couldn't have gotten in there through the app). Since
- * inv_items now enforces the same FKs, copying those values verbatim
- * would crash the migration (this happened once already, on location_id
- * = 0 for id 446, which has no matching row in locations). Rather than
- * fail or silently drop the row, any such value is set to NULL on the
- * inv_items side (inv_ab_items itself is never touched) and reported by
- * name below so nothing is lost silently - a location_id/amg_id/gart_id
- * that was already meaningless is not real data to lose.
  */
 class BackfillInvAbItemsIntoInvItemsTable extends Migration
 {
@@ -44,73 +31,40 @@ class BackfillInvAbItemsIntoInvItemsTable extends Migration
     {
         $updated = 0;
         $inserted = 0;
-        $badLocations = [];
-        $badAmgs = [];
-        $badGarts = [];
 
-        $validLocationIds = DB::table('locations')->pluck('id')->all();
-        $validAmgIds = DB::table('amgs')->pluck('id')->all();
-        $validGartIds = DB::table('garts')->pluck('id')->all();
+        DB::table('inv_ab_items')->orderBy('id')->chunk(200, function ($abItems) use (&$updated, &$inserted) {
+            foreach ($abItems as $ab) {
+                $extra = [
+                    'andat' => $ab->andat,
+                    'location_id' => $ab->location_id,
+                    'kp' => $ab->kp,
+                    'notes' => $ab->notes,
+                    'path_to_rg' => $ab->path_to_rg,
+                    'ausdat' => $ab->ausdat,
+                    'amg_id' => $ab->amg_id,
+                ];
 
-        DB::transaction(function () use (
-            &$updated, &$inserted, &$badLocations, &$badAmgs, &$badGarts,
-            $validLocationIds, $validAmgIds, $validGartIds
-        ) {
-            DB::table('inv_ab_items')->orderBy('id')->chunk(200, function ($abItems) use (
-                &$updated, &$inserted, &$badLocations, &$badAmgs, &$badGarts,
-                $validLocationIds, $validAmgIds, $validGartIds
-            ) {
-                foreach ($abItems as $ab) {
-                    $locationId = $ab->location_id;
-                    if ($locationId !== null && !in_array($locationId, $validLocationIds)) {
-                        $badLocations[] = "inv_ab_items.id={$ab->id} (location_id was {$locationId})";
-                        $locationId = null;
-                    }
+                $existing = DB::table('inv_items')->where('id', $ab->id)->first();
 
-                    $amgId = $ab->amg_id;
-                    if ($amgId !== null && !in_array($amgId, $validAmgIds)) {
-                        $badAmgs[] = "inv_ab_items.id={$ab->id} (amg_id was {$amgId})";
-                        $amgId = null;
-                    }
-
-                    $extra = [
-                        'andat' => $ab->andat,
-                        'location_id' => $locationId,
-                        'kp' => $ab->kp,
-                        'notes' => $ab->notes,
-                        'path_to_rg' => $ab->path_to_rg,
-                        'ausdat' => $ab->ausdat,
-                        'amg_id' => $amgId,
-                    ];
-
-                    $existing = DB::table('inv_items')->where('id', $ab->id)->first();
-
-                    if ($existing) {
-                        DB::table('inv_items')->where('id', $ab->id)->update($extra);
-                        $updated++;
-                    } else {
-                        $gartId = $ab->gart_id;
-                        if ($gartId !== null && !in_array($gartId, $validGartIds)) {
-                            $badGarts[] = "inv_ab_items.id={$ab->id} (gart_id was {$gartId})";
-                            $gartId = null;
-                        }
-
-                        DB::table('inv_items')->insert(array_merge($extra, [
-                            'id' => $ab->id,
-                            'dateupd' => $ab->andat,
-                            'invnr' => $ab->invnr,
-                            'room_id' => null,
-                            'gname' => $ab->gname,
-                            'sn' => $ab->sn,
-                            'gart_id' => $gartId,
-                            'gtyp' => $ab->gtyp,
-                            'created_at' => $ab->created_at,
-                            'updated_at' => $ab->updated_at,
-                        ]));
-                        $inserted++;
-                    }
+                if ($existing) {
+                    DB::table('inv_items')->where('id', $ab->id)->update($extra);
+                    $updated++;
+                } else {
+                    DB::table('inv_items')->insert(array_merge($extra, [
+                        'id' => $ab->id,
+                        'dateupd' => $ab->andat,
+                        'invnr' => $ab->invnr,
+                        'room_id' => null,
+                        'gname' => $ab->gname,
+                        'sn' => $ab->sn,
+                        'gart_id' => $ab->gart_id,
+                        'gtyp' => $ab->gtyp,
+                        'created_at' => $ab->created_at,
+                        'updated_at' => $ab->updated_at,
+                    ]));
+                    $inserted++;
                 }
-            });
+            }
         });
 
         $abCount = DB::table('inv_ab_items')->count();
@@ -121,25 +75,6 @@ class BackfillInvAbItemsIntoInvItemsTable extends Migration
         echo "  inv_ab_items rows processed: matched/updated {$updated}, no match/inserted {$inserted}.\n";
         echo "  inv_ab_items total rows: {$abCount}. inv_items total rows now: {$itemsCount}.\n";
         echo "  inv_ab_items was NOT modified - please spot check the counts above before moving on.\n";
-
-        if (!empty($badLocations)) {
-            echo "\n  NOTE: " . count($badLocations) . " row(s) had a location_id with no matching row in locations - set to NULL on inv_items instead of crashing:\n";
-            foreach ($badLocations as $line) {
-                echo "    - {$line}\n";
-            }
-        }
-        if (!empty($badAmgs)) {
-            echo "\n  NOTE: " . count($badAmgs) . " row(s) had an amg_id with no matching row in amgs - set to NULL on inv_items instead of crashing:\n";
-            foreach ($badAmgs as $line) {
-                echo "    - {$line}\n";
-            }
-        }
-        if (!empty($badGarts)) {
-            echo "\n  NOTE: " . count($badGarts) . " newly-inserted row(s) had a gart_id with no matching row in garts - set to NULL on inv_items instead of crashing:\n";
-            foreach ($badGarts as $line) {
-                echo "    - {$line}\n";
-            }
-        }
     }
 
     /**
