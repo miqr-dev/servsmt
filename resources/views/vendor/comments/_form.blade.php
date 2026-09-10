@@ -9,7 +9,7 @@
     {{ $errors->first('commentable_id') }}
   </div>
   @endif
-  <form method="POST" action="{{ route('comments.store') }}">
+  <form method="POST" action="{{ route('comments.store') }}" enctype="multipart/form-data">
     @csrf
     @honeypot
     <input type="hidden" name="commentable_type" value="\{{ get_class($model) }}" />
@@ -41,6 +41,16 @@
       <label for="message">Tragen Sie Ihre Nachricht hier ein:</label>
       <textarea class="form-control @if($errors->has('message')) is-invalid @endif notizen" name="message" rows="3"
         height="100px" style="resize:none;"></textarea>
+      @error('attachments.*')
+      <div class="invalid-feedback d-block">
+        {{ $message }}
+      </div>
+      @enderror
+    </div>
+    <div class="form-group">
+      <label for="comment-attachments">Dateien anhängen (Bilder oder PDF):</label>
+      <input id="comment-attachments" type="file" class="form-control-file" name="attachments[]" accept="image/*,application/pdf,.pdf" multiple>
+      <small class="form-text text-muted">Erlaubt sind Bilder und PDF-Dateien bis 10 MB pro Datei.</small>
     </div>
     <button type="submit" class="btn btn-sm btn-outline-success">Einreichen</button>
     @else

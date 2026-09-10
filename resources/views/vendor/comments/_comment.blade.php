@@ -62,7 +62,7 @@
             <div class="modal fade" id="reply-modal-{{ $comment->getKey() }}" tabindex="-1" role="dialog">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
-                        <form method="POST" action="{{ route('comments.reply', $comment->getKey()) }}">
+                        <form method="POST" action="{{ route('comments.reply', $comment->getKey()) }}" enctype="multipart/form-data">
                             @csrf
                             <div class="modal-header">
                                 <h5 class="modal-title">Auf Kommentar antworten</h5>
@@ -74,6 +74,11 @@
                                 <div class="form-group">
                                     <label for="message">Ihr Kommentar</label>
                                     <textarea required class="form-control" name="message" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reply-attachments-{{ $comment->getKey() }}">Dateien anhängen (Bilder oder PDF):</label>
+                                    <input id="reply-attachments-{{ $comment->getKey() }}" type="file" class="form-control-file" name="attachments[]" accept="image/*,application/pdf,.pdf" multiple>
+                                    <small class="form-text text-muted">Erlaubt sind Bilder und PDF-Dateien bis 10 MB pro Datei.</small>
                                 </div>
                             </div>
                             <div class="modal-footer">
