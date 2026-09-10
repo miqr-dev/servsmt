@@ -9,6 +9,7 @@ use App\Place;
 use App\InvRoom;
 use App\InvItems;
 use App\Location;
+use App\InvAbItem;
 use Carbon\Carbon;
 use App\InvMoveItem;
 use App\InvSubRooms;
@@ -36,19 +37,21 @@ class InvAbItemController extends Controller
 public function search_rename(Request $request)
 {
   $search_text = strtoupper($_GET['search_rename']);
-  $items = InvItems::with(['garts','invroom.location'])->Where(function ($query) use ($search_text) {
+  $items = InvAbItem::with('garts')->Where(function ($query) use ($search_text) {
                                           $query->whereNull('ausdat')->where('invnr',$search_text);
                                           })->
                                           orWhere(function ($query) use ($search_text) {
                                               $query->whereNull('ausdat')->where('gname',strtoupper($search_text));
                                           })->first();
-  return ['items'=>$items,'room'=>$items];
+  $room = InvItems::with('invroom.location')->where('invnr',$items->invnr)->first();
+  return ['items'=>$items,'room'=>$room];
 }
 
 public function searchCheckRename(Request $request)
 {
   $data = $request->all();
-  $check = InvItems::Where(function ($query) use ($data) {
+  $check = InvAbItem::where('invnr',$data['search_rename'])->orwhere('gname',$data['search_rename'])->first();
+  $check = InvAbItem::Where(function ($query) use ($data) {
                             $query->whereNull('ausdat')->where('invnr',strtoupper($data['search_rename']));
                             })->
                             orWhere(function ($query) use ($data) {
@@ -66,10 +69,13 @@ public function searchCheckRename(Request $request)
  */
 public function updateRename(Request $request)
 {
-  $items = InvItems::where('invnr',$request->invnr)->first();
+  $items = InvAbItem::where('invnr',$request->invnr)->first();
   $items->gname = $request->gname;
-  $items->notes = $request->notes;
+  $items->notes = $request->notes; 
   $items->save();
+  $items2 = InvItems::where('invnr',$request->invnr)->first();
+  $items2->gname = $request->gname;
+  $items2->save();
   $sucMsg = array(
       'message' => 'Erfolgreich bearbeitet',
       'alert-type' => 'success'
@@ -83,20 +89,20 @@ public function updateRename(Request $request)
      */
     public function index()
     {
-        $computer = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id','2')->orwhere('gart_id','3');})->count();
-        $server = InvItems::whereNull('ausdat')->where('gart_id','1')->count();
-        $tablet = InvItems::whereNull('ausdat')->where('gart_id','4')->count();
-        $printer = InvItems::whereNull('ausdat')->where('gart_id','5')->count();
-        $monitor = InvItems::whereNull('ausdat')->where('gart_id','6')->count();
-        $switch = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id','7')->orwhere('gart_id','8')->orwhere('gart_id','9');})->count();
-        $router = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id','10')->orwhere('gart_id','11');})->count();
-        $nas = InvItems::whereNull('ausdat')->where('gart_id','12')->count();
-        $projector = InvItems::whereNull('ausdat')->where('gart_id','13')->count();
-        $tkanlage = InvItems::whereNull('ausdat')->where('gart_id','14')->count();
-        $telefon = InvItems::whereNull('ausdat')->where(function($q){$q->where('gart_id','15')->orwhere('gart_id','16');})->count();
-        $scanner = InvItems::whereNull('ausdat')->where('gart_id','18')->count();
-        $ausgemusterd = InvItems::whereNotNull('ausdat')->get();
-        $switchTable = InvItems::with('invroom.location.place')->with('garts')->whereNull('ausdat')->where(function($q){$q->where('gart_id','7')->orwhere('gart_id','8')->orwhere('gart_id','9');})->get();
+        $computer = InvItems::where('gart_id','2')->orwhere('gart_id','3')->count();
+        $server = InvItems::where('gart_id','1')->count();
+        $tablet = InvItems::where('gart_id','4')->count();
+        $printer = InvItems::where('gart_id','5')->count();
+        $monitor = InvItems::where('gart_id','6')->count();
+        $switch = InvItems::where('gart_id','7')->orwhere('gart_id','8')->orwhere('gart_id','9')->count();
+        $router = InvItems::where('gart_id','10')->orwhere('gart_id','11')->count();
+        $nas = InvItems::where('gart_id','12')->count();
+        $projector = InvItems::where('gart_id','13')->count();
+        $tkanlage = InvItems::where('gart_id','14')->count();
+        $telefon = InvItems::where('gart_id','15')->orwhere('gart_id','16')->count();
+        $scanner = InvItems::where('gart_id','18')->count();
+        $ausgemusterd = InvAbItem::whereNotNull('ausdat')->get();
+        $switchTable = InvItems::with('invroom.location.place')->with('garts')->where('gart_id','7')->orwhere('gart_id','8')->orwhere('gart_id','9')->get();
         $movements = InvMoveItem::orderBy('id','desc')->paginate(10);
         $unordereds = UnorderedComputer::All();
         
@@ -108,13 +114,13 @@ public function updateRename(Request $request)
      */
     public function machinelist() 
     {
-      $machines = InvItems::whereNull('ausdat')->get();
+      $machines = InvItems::all();
       return view ('inventory.computerlist',compact('machines'));
     }
 
     public function machinelistAll() 
     {
-      $machines = InvItems::whereNotNull('ausdat')->get();
+      $machines = InvAbItem::whereNotNull('ausdat')->get();
       return view ('inventory.computerlistAll',compact('machines'));
     }
 
@@ -151,7 +157,7 @@ public function updateRename(Request $request)
     
     public function items_in_room_listen(Request $request)
     {
-			$roomInventur = InvItems::with('invroom.location.place')->with('garts')->whereNull('ausdat')->where('room_id',$request->room_id)
+			$roomInventur = InvItems::with('invroom.location.place')->with('garts')->where('room_id',$request->room_id)
 																->whereHas('invroom', function ($query) use ($request) {
 																	return $query->where('location_id', '=', $request->location_id);
 																	})->get()->toArray();
@@ -175,7 +181,7 @@ public function updateRename(Request $request)
     }
     public function roomInventur(Request $request)
     {
-			$roomInventur = InvItems::with('invroom.location.place')->whereNull('ausdat')->where('room_id',$request->room_id)
+			$roomInventur = InvItems::with('invroom.location.place')->where('room_id',$request->room_id)
 																->whereHas('invroom', function ($query) use ($request) {
 																return $query->where('location_id', '=', $request->location_id);
 																})->get()->toArray();
@@ -184,7 +190,7 @@ public function updateRename(Request $request)
 
     public function getinvnr ($invnr)
     {
-      return InvItems::with('invroom.location.place')->whereNull('ausdat')->where('invnr',$invnr)->first();
+      return InvItems::with('invroom.location.place')->where('invnr',$invnr)->first();
     }
     public function inventurStoreFinal(Request $request)
     {
@@ -240,14 +246,14 @@ public function updateRename(Request $request)
         $move->save();
       }
 
-      $move = InvItems::whereNull('ausdat')->Where('gname',$request->gname)->first();
+      $move = InvItems::Where('gname',$request->gname)->first();
       $move->room_id = $request->room_id_new;
       $move->save();
       return $move->room_id;
     }
     public function sendUnorderedComputers(Request $request)
     {
-    $invnr = InvItems::with('invroom')->whereNull('ausdat')->where('invnr',$request->svg_id)->first();
+    $invnr = InvItems::with('invroom')->where('invnr',$request->svg_id)->first();
     $item = new UnorderedComputer;
     $item -> gname = $invnr -> gname;
     $item -> ad_ou = $invnr -> invroom->ad_ou;
@@ -263,9 +269,10 @@ public function updateRename(Request $request)
     public function search(Request $request)
     {
 			$search_text = strtoupper($_GET['search']);
-			$items = InvItems::with(['garts','invroom.location'])->where('invnr',$search_text)->orWhere('gname',strtoupper($search_text))->first();
+			$items = InvAbItem::with('garts')->where('invnr',$search_text)->orWhere('gname',strtoupper($search_text))->first();
+			$room = InvItems::with('invroom.location')->where('invnr',$items->invnr)->first();
 			$amgs = Amg::all();
-			return ['items'=>$items,'room'=>$items,'amgs'=>$amgs];
+			return ['items'=>$items,'room'=>$room,'amgs'=>$amgs];
     }
     /**
      * Searchcheck Method Ausmustern
@@ -273,7 +280,7 @@ public function updateRename(Request $request)
     public function searchCheck(Request $request)
     {
 			$data = $request->all();
-			$check = InvItems::where('invnr',$data['search'])->orwhere('gname',$data['search'])->first();
+			$check = InvAbItem::where('invnr',$data['search'])->orwhere('gname',$data['search'])->first();
 			if ($check && $data['search']!="") {
 					echo "true";
 			}else{
@@ -285,14 +292,15 @@ public function updateRename(Request $request)
      */
     public function invalid(Request $request)
     {
-			$items = InvItems::where('invnr',$request->invnr)->with(['garts','invroom'])->first();
+			$items = InvAbItem::where('invnr',$request->invnr)->with('garts')->first();
 			$items->notes = $request->notes;
 			$items->amg_id = $request->grund;
 			$items->ausdat = date('Y-m-d');
 			$items->save();
 
-			$room = $items->invroom ? $items->invroom->rname : null;
-			$items->room_id = null;
+			$delItem = InvItems::where('invnr',$request->invnr)->with('invroom')->first();
+			$room = $delItem->invroom->rname;
+			$delItem->delete();
 
 			$sucMsg = array(
 					'message' => 'Erfolgreich bearbeitet',
@@ -308,13 +316,14 @@ public function updateRename(Request $request)
     public function search_edit(Request $request)
     {
 			$search_text = strtoupper($_GET['search_edit']);
-			$items = InvItems::with(['garts','invroom.location'])->Where(function ($query) use ($search_text) {
+			$items = InvAbItem::with('garts')->Where(function ($query) use ($search_text) {
 																							$query->whereNull('ausdat')->where('invnr',$search_text);
 																							})->
 																							orWhere(function ($query) use ($search_text) {
 																									$query->whereNull('ausdat')->where('gname',strtoupper($search_text));
 																							})->first();
-			return ['items'=>$items,'room'=>$items];
+			$room = InvItems::with('invroom.location')->where('invnr',$items->invnr)->first();
+			return ['items'=>$items,'room'=>$room];
     }
     /**
      * 
@@ -324,7 +333,8 @@ public function updateRename(Request $request)
     public function searchCheckEdit(Request $request)
     {
 			$data = $request->all();
-			$check = InvItems::Where(function ($query) use ($data) {
+			$check = InvAbItem::where('invnr',$data['search_edit'])->orwhere('gname',$data['search_edit'])->first();
+			$check = InvAbItem::Where(function ($query) use ($data) {
 																$query->whereNull('ausdat')->where('invnr',strtoupper($data['search_edit']));
 																})->
 																orWhere(function ($query) use ($data) {
@@ -342,7 +352,7 @@ public function updateRename(Request $request)
      */
     public function update(Request $request)
     {
-			$items = InvItems::where('invnr',$request->invnr)->first();
+			$items = InvAbItem::where('invnr',$request->invnr)->first();
 			$items->notes = $request->notes;
 			$items->save();
 			$sucMsg = array(
@@ -409,8 +419,11 @@ public function updateRename(Request $request)
 
 
 
-			$move = InvItems::whereNull('ausdat')->Where('gname',$request->gname_move)->first();
+			$move = InvItems::Where('gname',$request->gname_move)->first();
 			$move -> room_id = $request->room_id_move;
+      $move->save();
+
+      $move = InvAbItem::Where('gname',$request->gname_move)->first();
 			$move -> location_id = $request->location_id_move;
       $move->save();
 
@@ -483,7 +496,7 @@ public function updateRename(Request $request)
 
     public function missing_search()
     {
-      $gerate = InvItems::all();
+      $gerate = InvAbItem::all();
       return ['gerate'=>$gerate];
     }
 
@@ -577,9 +590,8 @@ public function updateRename(Request $request)
      */
     public function store(Request $request)
     {
-			$item = New InvItems;
+			$item = New InvAbItem;
 			$item -> invnr = $request-> invnr;
-			$item -> dateupd = $request-> andat;
 			$item -> andat = $request-> andat;
 			$item -> location_id = $request-> location_id;
 			$item -> kp = str_replace(',','.',$request -> kp);
@@ -589,7 +601,10 @@ public function updateRename(Request $request)
 			$item -> sn = $request-> sn;
 			$item -> notes = $request-> notes;
 			$item -> path_to_rg = $request-> path_to_rg;
-			$item -> room_id = $request-> room_id;
+			$item->save();
+
+			$item = InvItems::Where('invnr',$request->invnr)->first();
+			$item->room_id = $request->room_id;
 			$item->save();
 
 			$item = New InvLastNumber;
@@ -609,10 +624,9 @@ public function updateRename(Request $request)
      */
     public function storeMan(Request $request)
     {
-			$item = New InvItems;
+			$item = New InvAbItem;
 			$invnr = $request->location_id.'-'.$request->invnr.'-IT';
 			$item -> invnr = $invnr;
-			$item -> dateupd = $request-> andat;
 			$item -> andat = $request-> andat;
 			$item -> location_id = $request-> location_id;
 			$item -> kp = str_replace(',','.',$request -> kp);
@@ -622,8 +636,11 @@ public function updateRename(Request $request)
 			$item -> sn = $request-> sn;
 			$item -> notes = $request-> notes;
 			$item -> path_to_rg = $request-> path_to_rg;
-			$item -> room_id = $request-> room_id;
 			$item->save();
+
+			$invitems = InvItems::Where('invnr',$invnr)->first();
+			$invitems->room_id = $request->room_id;
+			$invitems->save();
 
 			$item = New InvLastNumber;
 			$item->location_id = $request->location_id;
@@ -660,7 +677,7 @@ public function updateRename(Request $request)
     public function addressbook_edit($id)
     {
       $user = User::find($id);
-      $telephones = InvItems::whereNull('ausdat')->where('gart_id','15')->pluck('gname','id')->all();
+      $telephones = InvItems::where('gart_id','15')->pluck('gname','id')->all();
       $userTelephone = $user->telephones->pluck('name','name')->all();
       return view('settings.addressbook.addressbook_edit',compact('user','telephones','userTelephone'));
     }

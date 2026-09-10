@@ -44,7 +44,7 @@ class ContactController extends Controller
 
     public function contacts_phones_in_location(Request $request)
     {
-			$locationContacts = InvItems::with('invroom.location.place')->with('garts')->with('telUsers')->whereNull('ausdat')->where('gart_id',15)
+			$locationContacts = InvItems::with('invroom.location.place')->with('garts')->with('telUsers')->where('gart_id',15)
 																->whereHas('invroom', function ($query) use ($request) {
 																	return $query->where('location_id',$request->location_id);
 																	})->get()->toArray();
@@ -54,7 +54,7 @@ class ContactController extends Controller
     
     public function contacts_phones_in_room(Request $request)
     {
-			$locationContacts = InvItems::with('invroom.location.place')->with('garts')->with('telUsers')->whereNull('ausdat')->where('gart_id',15)
+			$locationContacts = InvItems::with('invroom.location.place')->with('garts')->with('telUsers')->where('gart_id',15)
 																->whereHas('invroom', function ($query) use ($request) {
 																	return $query->where('room_id',$request->room_id);
 																	})->get()->toArray();

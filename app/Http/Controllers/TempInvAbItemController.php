@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\TempInvAbItem;
-use App\InvItems;
+use App\InvAbItem;
 use Illuminate\Http\Request;
 
 class TempInvAbItemController extends Controller
@@ -27,19 +27,18 @@ class TempInvAbItemController extends Controller
         $reads = TempInvAbItem::get()->toArray();
         if ($reads) {
             foreach ($reads as $read) {
-                $member = InvItems::where('invnr',$read['invnr'])->first();
+                $member = InvAbItem::where('invnr',$read['invnr'])->first();
                 if ($member) {
                     \Log::channel('doublelog')->error($read);
                 } else {
-                InvItems::create([
+                InvAbItem::create([
                     'invnr' => $read['invnr'],
                     'location_id' => $read['location_id'],
                     'gname' => strtoupper($read['gname']),
                     'gart_id' => $read['gart_id'],
                     'gtyp' => $read['gtyp'],
                     'sn' => $read['sn'],
-                    'andat' => date('Y-m-d'), // current date
-                    'dateupd' => date('Y-m-d'),
+                    'andat' => date('Y-m-d') // current date
                 ]);
                 }
             }
