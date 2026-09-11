@@ -13,7 +13,7 @@ use App\HandwerkTodo;
 use App\TicketStatus;
 use App\TicketPriority;
 use Illuminate\Http\Request;
-use Laravelista\Comments\Comment;
+use App\Comment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\HandwerkNotification;

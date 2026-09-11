@@ -14,7 +14,7 @@ use App\KorsoAttachment;
 use App\ZertifizierungItem;
 use App\OnlinemarketingItem;
 use Illuminate\Http\Request;
-use Laravelista\Comments\Comment;
+use App\Comment;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;

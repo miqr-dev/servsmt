@@ -26,7 +26,7 @@ use App\TicketPriority;
 use App\EquipmentProblem;
 use Illuminate\Http\Request;
 use App\ParticipantTicketTable;
-use Laravelista\Comments\Comment;
+use App\Comment;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ParticipantTicketImport;

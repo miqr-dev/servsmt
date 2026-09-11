@@ -6,8 +6,6 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Auth;
 use LdapRecord\Laravel\Middleware\WindowsAuthenticate;
-use Laravelista\Comments\Comment;
-use Laravelista\Comments\CommentPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
