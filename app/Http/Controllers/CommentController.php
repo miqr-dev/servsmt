@@ -6,7 +6,7 @@ use App\User;
 use App\Korso;
 use App\Handwerk;
 use Illuminate\Http\Request;
-use Laravelista\Comments\Comment;
+use App\Comment;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Auth;
@@ -17,11 +17,10 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use App\Notifications\CommentNotification;
 use Illuminate\Support\Facades\Notification;
-use Laravelista\Comments\CommentControllerInterface;
 
 
 
-class CommentController extends Controller implements CommentControllerInterface
+class CommentController extends Controller
 {
   public function __construct()
   {

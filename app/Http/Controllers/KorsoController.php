@@ -40,7 +40,7 @@ class KorsoController extends Controller
       ->orderBy('vorname', 'asc')
       ->get();
 
-    Korso::whereNotIn('assignedTo', $korso_ma_users)
+    Korso::whereNotIn('assignedTo', $korso_ma_users->pluck('id'))
       ->update(['assignedTo' => null]);
 
     // Fetch unassigned tickets by default, sorted by priority
