@@ -60,3 +60,9 @@ iisexpress.log
 
 /.node14/
 /Claude outputs/
+build:                                   empty
+viteprintf:                              cannot open `viteprintf' (No such file or directory)
+\n# Vite build output\n/public/build/\n: cannot open `\n# Vite build output\n/public/build/\n' (No such file or directory)
+
+# Vite build output
+/public/build/

@@ -30,7 +30,7 @@
   <!-- Theme style -->
   <link rel="stylesheet" href="{{ url ('css/admin_css/adminlte.min.css') }}">
   <!-- app.css -->
-  <link rel="stylesheet" href="{{mix('css/app.css')}}">
+  ('resources/sass/app.scss')
   <!-- overlayScrollbars -->
   <link rel="stylesheet" href="{{ url ('plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
   <!-- Daterange picker -->
