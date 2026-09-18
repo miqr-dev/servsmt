@@ -107,6 +107,18 @@ class SettingController extends Controller
     
 		public function index()
 		{
+			return \Inertia\Inertia::render('Settings/Index');
+		}
+
+		/**
+		 * The "Inventur Einstellungen" quick-add (city/address/room) modals on
+		 * the old settings.index view aren't converted yet - that's inventory
+		 * location management, not Settings/Roles/Users. Rather than dropping
+		 * that functionality, it stays reachable here unchanged until its own
+		 * conversion pass.
+		 */
+		public function legacyIndex()
+		{
 			return view('settings.index');
 		}
 

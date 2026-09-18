@@ -28,9 +28,15 @@ $this->middleware('permission:role-delete', ['only' => ['destroy']]);
 */
 public function index(Request $request)
 {
-$roles = Role::orderBy('id','DESC')->paginate(10);
-return view('roles.index',compact('roles'))
-->with('i', ($request->input('page', 1) - 1) * 5);
+// Was Role::paginate(10) + a Pagination.vue footer - switched to the full
+// list per the 2026-09-17 "every table sortable/searchable/paginated,
+// client-side by default" retrofit; Roles/Index.vue now does its own
+// sort/search/15-per-page via useDataTable instead of a server round trip
+// per page.
+$roles = Role::orderBy('id','DESC')->get();
+return \Inertia\Inertia::render('Roles/Index', [
+  'roles' => $roles,
+]);
 }
 /**
 * Show the form for creating a new resource.
@@ -43,7 +49,9 @@ public function create()
     ->groupBy(function ($permission) {
       return optional($permission->category)->name ?? 'Sonstige';
     });
-return view('roles.create',compact('permissionsByCategory'));
+return \Inertia\Inertia::render('Roles/Create', [
+  'permissionsByCategory' => $permissionsByCategory,
+]);
 }
 /**
 * Store a newly created resource in storage.
@@ -94,10 +102,11 @@ $permissionsByCategory = Permission::with('category')->orderBy('name')->get()
   ->groupBy(function ($permission) {
     return optional($permission->category)->name ?? 'Sonstige';
   });
-$rolePermissions = DB::table("role_has_permissions")->where("role_has_permissions.role_id",$id)
-->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
-->all();
-return view('roles.edit',compact('role','permissionsByCategory','rolePermissions'));
+return \Inertia\Inertia::render('Roles/Edit', [
+  'role' => $role,
+  'permissionsByCategory' => $permissionsByCategory,
+  'checkedPermissionIds' => $role->permissions->pluck('id'),
+]);
 }
 /**
 * Update the specified resource in storage.

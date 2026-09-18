@@ -9,11 +9,11 @@ class Project extends Model
 {
   use SoftDeletes;
 
-  protected $dates = [
-    'created_at',
-    'updated_at',
-    'start_date',
-    'end_date',
+  protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'start_date' => 'datetime',
+    'end_date' => 'datetime',
   ];
 
   protected $fillable = [

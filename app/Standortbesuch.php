@@ -6,15 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Standortbesuch extends Model
 {
-  protected $dates = [
-    'created_at',
-    'updated_at',
-    'berlin',
-    'berlinii',
-    'chemnitz',
-    'dresden',
-    'leipzig',
-    'suhl',
+  protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'berlin' => 'datetime',
+    'berlinii' => 'datetime',
+    'chemnitz' => 'datetime',
+    'dresden' => 'datetime',
+    'leipzig' => 'datetime',
+    'suhl' => 'datetime',
   ];
 
 

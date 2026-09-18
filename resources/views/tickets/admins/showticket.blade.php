@@ -46,7 +46,7 @@
                         <h3 class="text-center" style="color: #661421;"><b>{{$ticket->done_by}}</b></h3>
                         @else
                         <p class="text-center lead">Zugewiesen an </p>
-                        <h3 class="text-center" style="color: #661421;"><b>{{$ticket->user['username']}}</b></h3>
+                        <h3 class="text-center" style="color: #661421;"><b>{{ $ticket->user->username ?? '' }}</b></h3>
                         @endif
                       </div>
                       @if($ticket->deleted_at)

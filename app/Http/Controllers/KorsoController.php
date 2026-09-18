@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use PDF;
 use App\User;
 use App\Korso;
-use App\Payer;
 use App\Kcourse;
 use App\KorsoItem;
 use App\Massnahme;
@@ -20,9 +19,15 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Notifications\DatabaseNotification;
+use Inertia\Inertia;
 
 class KorsoController extends Controller
 {
+  // Both dashboard() and filterTickets() paginate server-side with this -
+  // "Alle erledigten Tickets" in particular can hold a large number of rows,
+  // and the old page's DataTables client-side paging still loaded every
+  // matching row into the DOM/JSON payload up front.
+  protected const TICKETS_PER_PAGE = 30;
 
   public function dashboard()
   {
@@ -51,7 +56,7 @@ class KorsoController extends Controller
                           WHEN 2 THEN 2 
                           ELSE 3 END") // Hoch (3) → Normal (2) → Niedrig (1)
       ->orderBy('created_at', 'desc')
-      ->get();
+      ->paginate(self::TICKETS_PER_PAGE);
 
     // Get counts
     $assignedCount = Korso::where('assignedTo', $user->id)->count();
@@ -62,13 +67,25 @@ class KorsoController extends Controller
 
 
 
-    return view('korso.dashboard', compact('user', 'tickets', 'korso_ma_users', 'assignedCount', 'unassignedCount', 'openCount', 'myDoneCount', 'allDoneCount'));
+    return Inertia::render('Korso/Dashboard', [
+      'korso_ma_users' => $korso_ma_users,
+      'tickets' => $tickets,
+      'assignedCount' => $assignedCount,
+      'unassignedCount' => $unassignedCount,
+      'openCount' => $openCount,
+      'myDoneCount' => $myDoneCount,
+      'allDoneCount' => $allDoneCount,
+    ]);
   }
 
   //! sideslide
   public function getTicketDetails($id)
   {
-    $ticket = Korso::with([
+    // withTrashed() matters here: the "Alle erledigten Tickets" /
+    // "Erledigte" filters list soft-deleted (done) tickets, and without it
+    // this findOrFail() 404s for every one of them - same reason show()
+    // above already uses it.
+    $ticket = Korso::withTrashed()->with([
       'subUser',
       'assignedUser',
       'ticket_status',
@@ -78,9 +95,10 @@ class KorsoController extends Controller
       'kcourses.payer',
       'korsoItems',
       'korsoAttachments',
+      'location',
     ])->findOrFail($id);
 
-    return view('korso.partials.ticket_details', compact('ticket'));
+    return response()->json($ticket);
   }
 
 
@@ -111,16 +129,39 @@ class KorsoController extends Controller
       $query->where('assignedTo', $request->user_id);
     }
 
-    $korso_ma_users = User::role('Korso_ma')->get();
-    $tickets = $query
-      ->orderByRaw("CASE priority 
+    // Search by creator name, ticket id or Bereich. submitter_name is the
+    // name stored on the ticket at creation time - unlike the subUser
+    // relation (App\User, via the "submitter" column) it's always present,
+    // so it's also what the dashboard table falls back to display when
+    // subUser can't be resolved.
+    if ($request->filled('search')) {
+      $search = trim($request->input('search'));
+      $query->where(function ($q) use ($search) {
+        $q->where('submitter_name', 'like', "%{$search}%")
+          ->orWhere('problem_type', 'like', "%{$search}%");
+        if (is_numeric($search)) {
+          $q->orWhere('id', (int) $search);
+        }
+      });
+    }
+
+    // Default order is by priority (Hoch first, then newest); the
+    // dashboard's "Datum" column header can switch this to a plain
+    // created_at sort instead via sort=created_at&direction=asc|desc.
+    if ($request->input('sort') === 'created_at') {
+      $query->orderBy('created_at', $request->input('direction') === 'asc' ? 'asc' : 'desc');
+    } else {
+      $query
+        ->orderByRaw("CASE priority 
                           WHEN 3 THEN 1 
                           WHEN 2 THEN 2 
                           ELSE 3 END")
-      ->orderBy('created_at', 'desc')
-      ->get();
+        ->orderBy('created_at', 'desc');
+    }
 
-    return view('korso.partials.tickets_table', compact('tickets', 'korso_ma_users'))->render();
+    $tickets = $query->paginate(self::TICKETS_PER_PAGE)->withQueryString();
+
+    return response()->json($tickets);
   }
 
 
@@ -160,11 +201,7 @@ class KorsoController extends Controller
 
   public function index()
   {
-    $cityCounts = Korso::select('submitter_standort', DB::raw('count(*) as total'))
-      ->groupBy('submitter_standort')
-      ->pluck('total', 'submitter_standort');
-    $korso = User::role(['Korso', 'Korso_Admin'])->get();
-    return view('korso.index', compact('cityCounts'));
+    return Inertia::render('Korso/Index');
   }
 
   public function checkIfUserIsException()
@@ -176,24 +213,56 @@ class KorsoController extends Controller
   public function printmarketing()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $isException = $this->checkIfUserIsException();
-    $payers = Payer::with('kcourses')->get();
-    return view('korso.printmarketing.printmarketing', compact('user', 'now', 'isException', 'payers'));
+    $sekGroup = $user->sekGroups->first();
+
+    return Inertia::render('Korso/New/Printmarketing', [
+      'user' => [
+        'id' => $user->id,
+        'username' => $user->username,
+        'ort' => $user->ort,
+        'strasse' => $user->straße,
+        'tel' => $user->tel,
+      ],
+      'sekGroup' => $sekGroup ? ['id' => $sekGroup->id, 'name' => $sekGroup->name] : null,
+    ]);
   }
   public function onlinemarketing()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $isException = $this->checkIfUserIsException();
     $onlinemarketingItems = OnlinemarketingItem::all();
-    return view('korso.onlinemarketing.onlinemarketing', compact('user', 'now', 'isException', 'onlinemarketingItems'));
+    $sekGroup = $user->sekGroups->first();
+
+    return Inertia::render('Korso/New/Onlinemarketing', [
+      'user' => [
+        'id' => $user->id,
+        'username' => $user->username,
+        'ort' => $user->ort,
+        'strasse' => $user->straße,
+        'tel' => $user->tel,
+      ],
+      'onlinemarketingItems' => $onlinemarketingItems,
+      'sekGroup' => $sekGroup ? ['id' => $sekGroup->id, 'name' => $sekGroup->name] : null,
+    ]);
   }
   public function zertifizierung()
   {
     list($user, $now) = User::getCurrentAndNow();
-    $isException = $this->checkIfUserIsException();
     $massnahmes = Massnahme::orderBy('name', 'asc')->get();
     $zertifizierung_items = ZertifizierungItem::all();
-    return view('korso.zertifizierung.zertifizierung', compact('user', 'now', 'isException', 'massnahmes', 'zertifizierung_items'));
+    $sekGroup = $user->sekGroups->first();
+
+    return Inertia::render('Korso/New/Zertifizierung', [
+      'user' => [
+        'id' => $user->id,
+        'username' => $user->username,
+        'ort' => $user->ort,
+        'strasse' => $user->straße,
+        'tel' => $user->tel,
+      ],
+      'massnahmes' => $massnahmes,
+      'zertifizierung_items' => $zertifizierung_items,
+      'sekGroup' => $sekGroup ? ['id' => $sekGroup->id, 'name' => $sekGroup->name] : null,
+    ]);
   }
 
   public function create()
@@ -406,11 +475,17 @@ class KorsoController extends Controller
     $korso->load([
       'kcourses.payer',
       'korsoItems',
+      'korsoAttachments',
+      'comments', // First-party comments thread - see app/Concerns/Commentable.php
       'internalComments.user', // Load internal comments with the user who wrote them
       'onlinemarketingItem',
       'zertifizierungItem',
       'massnahme',
       'ticket_status',
+      'subUser',
+      'doneByUser',
+      'assignedUser',
+      'location.place',
     ]);
 
     auth()->user()->unreadNotifications()
@@ -426,7 +501,11 @@ class KorsoController extends Controller
       ->get();
     $ticket_statuses = TicketStatus::all();
 
-    return view('korso.show', compact('korso', 'korso_ma_users', 'ticket_statuses'));
+    return Inertia::render('Korso/Show', [
+      'korso' => $korso,
+      'korso_ma_users' => $korso_ma_users,
+      'ticket_statuses' => $ticket_statuses,
+    ]);
   }
 
   public function downloadPdf($id)
@@ -714,17 +793,27 @@ class KorsoController extends Controller
     }
   }
 
-  public function markAsDone(Korso $korso)
+  public function markAsDone($id)
   {
-    if (!$korso) {
-      return response()->json(['message' => 'Ticket not found'], 404);
+    // Don't type-hint $korso for implicit route-model-binding: the model's
+    // default query excludes soft-deleted rows, so any ticket that's already
+    // done would auto-404 here instead of hitting the "already done" guard
+    // below (this was the exact bug - the row action button was still shown
+    // for done tickets and clicking it 404'd). Same pattern as restore().
+    $korso = Korso::withTrashed()->findOrFail($id);
+
+    if ($korso->trashed()) {
+      return response()->json(['message' => 'Dieses Ticket ist bereits als erledigt markiert.'], 409);
     }
+
     $korso->korsoItems()->update(['ordered' => true]);
     $korso->done_by = auth()->id();
     $korso->ticket_status_id = 3; // Set ticket status to "Erledigt"
     $korso->save();
     $korso->delete(); // Soft delete the ticket
-    Comment::withTrashed()->where('commentable_id', $korso)->restore();
+    // Use $korso->id here, not $korso itself - same as the analogous line
+    // in restore() above.
+    Comment::withTrashed()->where('commentable_id', $korso->id)->restore();
 
     // Get the user who submitted the ticket using the subUser relationship
     $submitterUser = $korso->subUser;
@@ -737,14 +826,22 @@ class KorsoController extends Controller
         'problem_type' => $korso->problem_type,
       ];
 
-      if ($korso->sek_group_id && $korso->sekGroup) {
-        Notification::route('mail', $korso->sekGroup->email)
-          ->notify(new \App\Notifications\KorsoNotification($notificationData));
-      } else {
-        $submitterUser = $korso->subUser;
-        if ($submitterUser) {
-          $submitterUser->notify(new \App\Notifications\KorsoNotification($notificationData));
+      // The ticket is already saved/soft-deleted above at this point - a
+      // broken mail transport (e.g. no MAIL_FROM_ADDRESS, unreachable SMTP
+      // host) shouldn't turn a successful "mark as done" into a 500 for the
+      // person clicking the button. Log and move on instead.
+      try {
+        if ($korso->sek_group_id && $korso->sekGroup) {
+          Notification::route('mail', $korso->sekGroup->email)
+            ->notify(new \App\Notifications\KorsoNotification($notificationData));
+        } else {
+          $submitterUser = $korso->subUser;
+          if ($submitterUser) {
+            $submitterUser->notify(new \App\Notifications\KorsoNotification($notificationData));
+          }
         }
+      } catch (\Throwable $e) {
+        logger()->error('Korso markAsDone: failed to send "done" notification for ticket ' . $korso->id, ['exception' => $e]);
       }
     }
 
@@ -833,7 +930,10 @@ class KorsoController extends Controller
   {
     $users = User::all();
     $korsoMaUsers = User::role('Korso_ma')->get();
-    return view('korso.user-management', compact('users', 'korsoMaUsers'));
+    return Inertia::render('Korso/UserManagement', [
+      'users' => $users,
+      'korsoMaUsers' => $korsoMaUsers,
+    ]);
   }
   public function assignRole(Request $request)
   {

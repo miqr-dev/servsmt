@@ -9,6 +9,7 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
+    @auth
     <!-- Sidebar user panel (optional) -->
     <div class="user-panel text-center">
       <div class="info">
@@ -450,6 +451,7 @@
       </ul>
     </nav>
     <!-- /.sidebar-menu -->
+    @endauth
   </div>
   <!-- /.sidebar -->
 </aside>

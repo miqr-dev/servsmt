@@ -40,15 +40,12 @@ class LicenseController extends Controller
         return !empty($ticket->forward_removed_at);
       })->values();
 
-      return view('wilkommen', compact(
-        'user',
-        'licenses',
-        'month',
-        'week',
-        'terminations',
-        'activeEmailForwardingTickets',
-        'historyEmailForwardingTickets'
-      ));
+      return \Inertia\Inertia::render('Dashboard', [
+        'licenses' => $licenses,
+        'terminations' => $terminations,
+        'activeEmailForwardingTickets' => $activeEmailForwardingTickets,
+        'historyEmailForwardingTickets' => $historyEmailForwardingTickets,
+      ]);
     } else {
       return redirect('/');
     }

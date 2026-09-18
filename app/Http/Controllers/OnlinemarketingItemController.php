@@ -4,18 +4,21 @@ namespace App\Http\Controllers;
 
 use App\OnlinemarketingItem;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class OnlinemarketingItemController extends Controller
 {
   public function index()
   {
     $items = OnlinemarketingItem::all();
-    return view('korso.onlinemarketing_items.index', compact('items'));
+    return Inertia::render('Korso/OnlinemarketingItems/Index', [
+      'items' => $items,
+    ]);
   }
 
   public function create()
   {
-    return view('korso.onlinemarketing_items.create');
+    return Inertia::render('Korso/OnlinemarketingItems/Create');
   }
 
   public function store(Request $request)
@@ -33,7 +36,9 @@ class OnlinemarketingItemController extends Controller
   public function edit($id)
   {
     $item = OnlinemarketingItem::findOrFail($id);
-    return view('korso.onlinemarketing_items.edit', compact('item'));
+    return Inertia::render('Korso/OnlinemarketingItems/Edit', [
+      'item' => $item,
+    ]);
   }
 
   public function update(Request $request, $id)

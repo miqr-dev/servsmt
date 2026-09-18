@@ -12,10 +12,10 @@ use SoftDeletes;
 
     protected $guarded = [];
 
-    protected $dates = [
-    'created_at',
-    'updated_at',
-    'valid',
+    protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'valid' => 'datetime',
   ];
 
 }

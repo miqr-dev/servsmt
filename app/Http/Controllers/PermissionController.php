@@ -23,8 +23,13 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        $permissions = Permission::with('category')->orderBy('id', 'DESC')->paginate(15);
-        return view('permissions.index', compact('permissions'));
+        // Was ->paginate(15) + Pagination.vue - switched to the full list per
+        // the 2026-09-17 retrofit; Permissions/Index.vue now sorts/searches/
+        // paginates client-side via useDataTable instead.
+        $permissions = Permission::with('category')->orderBy('id', 'DESC')->get();
+        return \Inertia\Inertia::render('Permissions/Index', [
+            'permissions' => $permissions,
+        ]);
     }
 
     /**
@@ -35,7 +40,9 @@ class PermissionController extends Controller
     public function create()
     {
         $categories = Permissioncategory::pluck('name', 'id');
-        return view('permissions.create', compact('categories'));
+        return \Inertia\Inertia::render('Permissions/Create', [
+            'categories' => $categories,
+        ]);
     }
 
     /**
@@ -86,7 +93,10 @@ class PermissionController extends Controller
     {
         $permission = Permission::findOrFail($id);
         $categories = Permissioncategory::pluck('name', 'id');
-        return view('permissions.edit', compact('permission', 'categories'));
+        return \Inertia\Inertia::render('Permissions/Edit', [
+            'permission' => $permission,
+            'categories' => $categories,
+        ]);
     }
 
     /**

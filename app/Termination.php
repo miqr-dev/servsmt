@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Termination extends Model
 {
   use SoftDeletes;
-  protected $dates = ['created_at', 'updated_at', 'exit'];
   protected $guarded = [];
   protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'exit' => 'datetime',
     'is_active' => 'boolean',
   ];
 }

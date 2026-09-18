@@ -61,7 +61,7 @@
                   <td>{{@$participant->course}}</td>
                   <td>{{@$participant->location}}</td>
                   <td style="color: blue;">
-                    {{\Carbon\carbon::parse($participant->ticket['created_at'])->format('d-m-Y')}}</td>
+                    {{ $participant->ticket ? \Carbon\Carbon::parse($participant->ticket->created_at)->format('d-m-Y') : '' }}</td>
                   <td style="color: green;">{{$participant->created_at ? $participant->formatted_created_at : ''}}</td>
                   <td>{{@$participant->ticket['done_by']}}</td>
                   <td></td> <!-- Alter -->

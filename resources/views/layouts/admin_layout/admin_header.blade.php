@@ -22,6 +22,7 @@
       </a>
     </li>
 
+    @auth
     @if(auth()->user()->hasRole('Super_Admin'))
     <!-- Disable Logout for SSO (windows Authentication) -->
     <li class="nav-item d-none d-sm-inline-block">
@@ -53,6 +54,7 @@
       </a>
     </li>
     @endif
+    @endauth
   </ul>
   <!-- <ul class="navbar-nav ml-auto"> 
       @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('Super_Admin'))
@@ -64,6 +66,7 @@
       </li> 
       @endif
      </ul> -->
+  @auth
   <ul class="navbar-nav ml-auto">
     <li class="nav-item dropdown">
       <div id="notification_bell">
@@ -133,5 +136,6 @@
       </div>
     </li>
   </ul>
+  @endauth
 </nav>
 <!-- /.navbar -->

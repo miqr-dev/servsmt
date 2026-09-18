@@ -168,6 +168,14 @@ class CommentController extends Controller
     // Save and redirect back to the new comment anchor
     $comment->save();
 
+    // The Vue CommentThread component posts here via axios and expects
+    // the created comment back as JSON; the still-Blade Tickets admin
+    // page's plain <form> posts here too and expects the classic
+    // redirect - branch on what the caller actually wants.
+    if ($request->wantsJson()) {
+      return response()->json($comment);
+    }
+
     return Redirect::to(URL::previous() . '#comment-' . $comment->getKey());
   }
 
@@ -182,6 +190,10 @@ class CommentController extends Controller
     $comment->update([
       'comment' => $request->message
     ]);
+
+    if ($request->wantsJson()) {
+      return response()->json($comment);
+    }
 
     return Redirect::to(URL::previous() . '#comment-' . $comment->getKey());
   }
@@ -265,6 +277,10 @@ class CommentController extends Controller
     }
 
     $reply->save();
+
+    if ($request->wantsJson()) {
+      return response()->json($reply);
+    }
 
     return Redirect::to(URL::previous() . '#comment-' . $reply->getKey());
   }

@@ -25,10 +25,12 @@ class UserController extends Controller
   */
   public function index(Request $request)
   {
-  $data = User::all();
+  $data = User::with('roles')->get();
   $collectionOfRoles = Role::pluck('name')->toArray();
-  return view('users.index',compact('data','collectionOfRoles'))
-  ->with('i');
+  return \Inertia\Inertia::render('Users/Index', [
+    'users' => $data,
+    'collectionOfRoles' => $collectionOfRoles,
+  ]);
   }
   /**
   * Show the form for creating a new resource.
@@ -38,7 +40,9 @@ class UserController extends Controller
   public function create()
   {
   $roles = Role::pluck('name','name')->all();
-  return view('users.create',compact('roles'));
+  return \Inertia\Inertia::render('Users/Create', [
+    'roles' => $roles,
+  ]);
   }
   /**
   * Store a newly created resource in storage.
@@ -80,8 +84,12 @@ class UserController extends Controller
   {
   $user = User::find($id);
   $roles = Role::pluck('name','name')->all();
-  $userRole = $user->roles->pluck('name','name')->all();
-  return view('users.edit',compact('user','roles','userRole'));
+  $userRole = $user->roles->pluck('name')->values();
+  return \Inertia\Inertia::render('Users/Edit', [
+    'user' => $user,
+    'roles' => $roles,
+    'userRoles' => $userRole,
+  ]);
   }
   /**
   * Update the specified resource in storage.

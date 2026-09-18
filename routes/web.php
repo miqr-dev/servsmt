@@ -239,6 +239,7 @@ Route::get('/inventoryblade', 'InvAbItemController@inventoryblade')->name('inven
 
 //******************************************  Settings  ******************************************************/
 Route::get('/settings', 'SettingController@index')->name('setting_index');
+Route::get('/settings/legacy', 'SettingController@legacyIndex')->name('setting_index.legacy');
 /* Add City */
 Route::post('/create_city', 'PlaceController@addCity')->name('addCity');
 /* Add Location City list *AJAX* */
@@ -512,3 +513,10 @@ Route::get('/documents', 'DocumentController@index')->name('documents.index');
 Route::get('/documents/variables/{bundesland}', 'DocumentController@showVariables'); // New route
 Route::post('/documents/edit', 'DocumentController@edit');
 Route::post('/documents/update', 'DocumentController@update');
+
+//! comments (first-party replacement for the abandoned laravelista/comments package)
+Route::model('comment', \App\Comment::class);
+Route::post('comments', 'CommentController@store')->name('comments.store');
+Route::delete('comments/{comment}', 'CommentController@destroy')->name('comments.destroy');
+Route::put('comments/{comment}', 'CommentController@update')->name('comments.update');
+Route::post('comments/{comment}', 'CommentController@reply')->name('comments.reply');

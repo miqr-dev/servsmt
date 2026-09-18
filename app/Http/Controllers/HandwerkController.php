@@ -18,15 +18,29 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\HandwerkNotification;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Inertia;
 
 class HandwerkController extends Controller
 {
   public function index()
   {
-    $cityCounts = Handwerk::select('submitter_standort', DB::raw('count(*) as total'))
-      ->groupBy('submitter_standort')
-      ->pluck('total', 'submitter_standort');
-    return view('handwerk.index', compact('cityCounts'));
+    $cityCounts = collect();
+    $citySlugs = [];
+
+    if (auth()->user()->hasAnyRole('Super_Admin', 'handwerk_admin')) {
+      $cityCounts = Handwerk::select('submitter_standort', DB::raw('count(*) as total'))
+        ->groupBy('submitter_standort')
+        ->pluck('total', 'submitter_standort');
+
+      foreach ($cityCounts as $city => $count) {
+        $citySlugs[$city] = str_replace('Döbeln', 'doebeln', mb_strtolower($city, 'UTF-8'));
+      }
+    }
+
+    return Inertia::render('Handwerk/Index', [
+      'cityCounts' => $cityCounts,
+      'citySlugs' => $citySlugs,
+    ]);
   }
 
   public function openTicketsPDF($city)
@@ -42,15 +56,22 @@ class HandwerkController extends Controller
 
   public function showCity($city)
   {
-    $handwerks = Handwerk::where('submitter_standort', $city)->get();
-    $todos = HandwerkTodo::where('standort', $city)->get()->map(function ($todo) {
+    $handwerks = Handwerk::where('submitter_standort', $city)
+      ->with('room', 'location', 'subUser')
+      ->orderByDesc('created_at')
+      ->get();
+    $todos = HandwerkTodo::where('standort', $city)->with('submitter')->get()->map(function ($todo) {
       $todo->updated_at_german = $todo->updated_at->format('d') . '.' .
         $todo->updated_at->locale('de')->monthName . '.' .
         $todo->updated_at->format('y H:i');
       return $todo;
     });
 
-    return view('handwerk.city', ['city' => $city, 'handwerks' => $handwerks, 'todos' => $todos]);
+    return Inertia::render('Handwerk/City', [
+      'city' => $city,
+      'handwerks' => $handwerks,
+      'todos' => $todos,
+    ]);
   }
   public function storeTodo(Request $request, $city)
   {
@@ -86,37 +107,103 @@ class HandwerkController extends Controller
   {
     list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
-    return view('handwerk.new.einrichtungsgegenstände', compact('user', 'now', 'isException'));
+    return Inertia::render('Handwerk/New/Einrichtungsgegenstaende', [
+    'user' => [
+      'id' => $user->id,
+      'username' => $user->username,
+      'ort' => $user->ort,
+      'strasse' => $user->straße,
+      'tel' => $user->tel,
+    ],
+    'now' => $now,
+    'isException' => $isException,
+  ]);
   }
   public function elektro()
   {
     list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
-    return view('handwerk.new.elektro', compact('user', 'now', 'isException'));
+    return Inertia::render('Handwerk/New/Elektro', [
+    'user' => [
+      'id' => $user->id,
+      'username' => $user->username,
+      'ort' => $user->ort,
+      'strasse' => $user->straße,
+      'tel' => $user->tel,
+    ],
+    'now' => $now,
+    'isException' => $isException,
+  ]);
   }
   public function neustandort()
   {
     list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
-    return view('handwerk.new.neustandort', compact('user', 'now', 'isException'));
+    return Inertia::render('Handwerk/New/Neustandort', [
+    'user' => [
+      'id' => $user->id,
+      'username' => $user->username,
+      'ort' => $user->ort,
+      'strasse' => $user->straße,
+      'tel' => $user->tel,
+    ],
+    'now' => $now,
+    'isException' => $isException,
+  ]);
   }
   public function reparatur_elektro()
   {
     list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
-    return view('handwerk.reparatur.elektro', compact('user', 'now', 'isException'));
+    return Inertia::render('Handwerk/New/SimpleTicket', [
+    'user' => [
+      'id' => $user->id,
+      'username' => $user->username,
+      'ort' => $user->ort,
+      'strasse' => $user->straße,
+      'tel' => $user->tel,
+    ],
+    'now' => $now,
+    'isException' => $isException,
+    'problemType' => 'Reparatur - Elektro',
+    'pageTitle' => 'Reparatur - Elektro',
+  ]);
   }
   public function reparatur_mobiliar()
   {
     list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
-    return view('handwerk.reparatur.mobiliar', compact('user', 'now', 'isException'));
+    return Inertia::render('Handwerk/New/SimpleTicket', [
+    'user' => [
+      'id' => $user->id,
+      'username' => $user->username,
+      'ort' => $user->ort,
+      'strasse' => $user->straße,
+      'tel' => $user->tel,
+    ],
+    'now' => $now,
+    'isException' => $isException,
+    'problemType' => 'Reparatur - Mobiliar',
+    'pageTitle' => 'Reparatur - Mobiliar',
+  ]);
   }
   public function modifikation()
   {
     list($user, $now) = User::getCurrentAndNow();
     $isException = $this->checkIfUserIsException();
-    return view('handwerk.modification.modifikation', compact('user', 'now', 'isException'));
+    return Inertia::render('Handwerk/New/SimpleTicket', [
+    'user' => [
+      'id' => $user->id,
+      'username' => $user->username,
+      'ort' => $user->ort,
+      'strasse' => $user->straße,
+      'tel' => $user->tel,
+    ],
+    'now' => $now,
+    'isException' => $isException,
+    'problemType' => 'Modifikation',
+    'pageTitle' => 'Modifikation / Bauliche Veränderungen',
+  ]);
   }
 
 
@@ -299,9 +386,14 @@ class HandwerkController extends Controller
       return redirect()->route('login');
     }
 
-    $handwerks = Handwerk::where('submitter', $user->id)->get();
+    $handwerks = Handwerk::where('submitter', $user->id)
+      ->with('room', 'location')
+      ->orderByDesc('created_at')
+      ->get();
 
-    return view('handwerk.my_handwerks', compact('handwerks'));
+    return Inertia::render('Handwerk/MyTickets', [
+      'handwerks' => $handwerks,
+    ]);
   }
 
   // public function hUserTicket()
@@ -337,24 +429,16 @@ class HandwerkController extends Controller
   {
     $user = Auth()->user();
     $admins = User::role('handwerk_admin')->get();
-    $handwerk_status = TicketStatus::all();
-    $handwerk_priority = TicketPriority::all();
-    $handwerk = Handwerk::with('room.location.place')->with('subUser')->withTrashed()->findorFail($id);
-    $blade_name = 'handwerk.layout.views.' . str_replace(' ', '', strtolower($handwerk->problem_type)) . 'ticket';
+    $handwerk = Handwerk::with('room.location.place')->with('subUser')->with('comments')->withTrashed()->findorFail($id);
     $not = $user->unreadNotifications()->where('data->id', $id)->first();
     if ($not) {
       $not->markAsRead();
     }
 
-    $createdAt = Carbon::parse($handwerk->created_at);
-    return view('handwerk.show', compact(
-      'handwerk',
-      'createdAt',
-      'handwerk_status',
-      'handwerk_priority',
-      'blade_name',
-      'admins'
-    ));
+    return Inertia::render('Handwerk/Show', [
+      'handwerk' => $handwerk,
+      'admins' => $admins,
+    ]);
   }
 
   // public function admin_notes(Request $request)
@@ -429,7 +513,7 @@ class HandwerkController extends Controller
   public function userhandwerkticketshistory()
   {
     $user = Auth()->user();
-    $handwerkticketsdone = Handwerk::onlyTrashed()->with('room.location.place')->with('subUser')
+    $handwerkticketsdone = Handwerk::onlyTrashed()->with('room', 'location', 'subUser')
       ->where(function ($query) use ($user) {
         $query->where('submitter', $user->id)
           ->orWhere('assignedTo', $user->id)
@@ -444,7 +528,14 @@ class HandwerkController extends Controller
       $query->where('submitter_standort', $user->ort);
     })->count();
     $myhandwerkTicketsCount = Handwerk::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    return view('handwerk.handwerkHistory', compact('user', 'handwerkticketsdone', 'handwerkticketsdone', 'myhandwerkTicketsCountCity', 'myhandwerkTicketsCount', 'handwerkticketsdoneCount'));
+
+    return Inertia::render('Handwerk/History', [
+      'user' => ['ort' => $user->ort],
+      'handwerkticketsdone' => $handwerkticketsdone,
+      'myhandwerkTicketsCountCity' => $myhandwerkTicketsCountCity,
+      'myhandwerkTicketsCount' => $myhandwerkTicketsCount,
+      'handwerkticketsdoneCount' => $handwerkticketsdoneCount,
+    ]);
   }
 
   public function destroy(Request $request, $id)

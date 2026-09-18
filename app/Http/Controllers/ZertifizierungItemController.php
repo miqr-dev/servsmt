@@ -4,18 +4,21 @@ namespace App\Http\Controllers;
 
 use App\ZertifizierungItem;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ZertifizierungItemController extends Controller
 {
   public function index()
   {
     $items = ZertifizierungItem::all();
-    return view('korso.zertifizierung_items.index', compact('items'));
+    return Inertia::render('Korso/ZertifizierungItems/Index', [
+      'items' => $items,
+    ]);
   }
 
   public function create()
   {
-    return view('korso.zertifizierung_items.create');
+    return Inertia::render('Korso/ZertifizierungItems/Create');
   }
 
   public function store(Request $request)
@@ -36,7 +39,9 @@ class ZertifizierungItemController extends Controller
   public function edit($id)
   {
     $item = ZertifizierungItem::findOrFail($id);
-    return view('korso.zertifizierung_items.edit', compact('item'));
+    return Inertia::render('Korso/ZertifizierungItems/Edit', [
+      'item' => $item,
+    ]);
   }
 
   public function update(Request $request, ZertifizierungItem $zertifizierung_item)

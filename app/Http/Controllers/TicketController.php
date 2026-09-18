@@ -34,6 +34,7 @@ use App\Notifications\TicketNotification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Validators\ValidationException;
+use Inertia\Inertia;
 
 class TicketController extends Controller
 {
@@ -167,65 +168,119 @@ class TicketController extends Controller
   //! index Ticketanfrage main page//
   public function index()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $datum = Standortbesuch::find(1);
-    return view('tickets.index', compact('user', 'now', 'datum'));
+    // $user/$now used to be computed here too, but neither tickets.index nor
+    // its header partial ever reads them - dropped rather than sent for
+    // nothing, same call as $cityCounts on Korso/Index.vue.
+    //
+    // The "Vor Ort Termin" card (Standortbesuch-backed next-visit dates per
+    // city) was removed from Tickets/Index.vue at your request - this
+    // method no longer queries Standortbesuch or computes visitDates. The
+    // Standortbesuch model/table and its other usages elsewhere in this
+    // controller are untouched; only this page's own feature was dropped.
+    return Inertia::render('Tickets/Index');
   }
   //! Ticket computer //
+  // Shared submitter-card payload for the new Inertia creation forms
+  // (converted from resources/views/tickets/layout_ticket/submitter.blade.php,
+  // which every one of the ~30 old Blade creation forms @include'd). Every
+  // Tickets/Computer/* page consumes this via components/tickets/SubmitterCard.vue.
+  private function submitterUserPayload($u)
+  {
+    return [
+      'id' => $u->id,
+      'vorname' => $u->vorname,
+      'name' => $u->name,
+      'username' => $u->username,
+      'ort' => $u->ort,
+      'strasse' => $u->straße,
+      'tel' => $u->tel,
+    ];
+  }
+
+  private function ticketFormProps()
+  {
+    list($user, $now) = User::getCurrentAndNow();
+    $isSuperAdmin = $user->hasRole('Super_Admin');
+    // Matches submitter.blade.php's $availableSubmitterUsers fallback query -
+    // only fetched for Super_Admin, who alone can override the submitter.
+    $availableSubmitterUsers = $isSuperAdmin
+      ? User::select('id', 'vorname', 'name', 'username', 'ort', 'straße', 'tel')->get()
+        ->map(function ($u) {
+          return $this->submitterUserPayload($u);
+        })->values()->all()
+      : [];
+
+    return [
+      'user' => $this->submitterUserPayload($user),
+      'now' => $now,
+      'isSuperAdmin' => $isSuperAdmin,
+      'availableSubmitterUsers' => $availableSubmitterUsers,
+    ];
+  }
+
   public function computer_all()
   {
     return view('tickets.computer.all');
   }
   public function softwareRequest()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.softwareRequest', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Computer/SoftwareForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'request',
+      'title' => 'Softwareanfrage',
+      'computers' => $computers,
+    ]));
   }
   public function softwareInstall()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.softwareinstall', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Computer/SoftwareForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'install',
+      'title' => 'Softwareanfrage',
+      'computers' => $computers,
+    ]));
   }
   public function softwareError()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.softwareerror', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Computer/SoftwareForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'error',
+      'title' => 'Softwareanfrage',
+      'computers' => $computers,
+    ]));
   }
   public function peripheralRequest()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.peripheralRequest', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Computer/PeripheralRequest', array_merge($this->ticketFormProps(), [
+      'computers' => $computers,
+    ]));
   }
   public function hardwareRequest()
   {
-    list($user, $now) = User::getCurrentAndNow();
     $machines = Gart::where('id', '2')->orwhere('id', '3')->orwhere('id', '4')->orwhere('id', '5')
-      ->orwhere('id', '13')->orwhere('id', '15')->orwhere('id', '18')->orwhere('id', '17')->orwhere('id', '6')->get();
-    return view('tickets.computer.hardwareRequest', compact('user', 'now', 'machines'));
+      ->orwhere('id', '13')->orwhere('id', '15')->orwhere('id', '18')->orwhere('id', '17')->orwhere('id', '6')->get(['id', 'name']);
+    return Inertia::render('Tickets/Computer/HardwareRequest', array_merge($this->ticketFormProps(), [
+      'machines' => $machines,
+    ]));
   }
   public function pc_problems()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.pc_problems', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Computer/PcProblems', array_merge($this->ticketFormProps(), [
+      'computers' => $computers,
+    ]));
   }
   public function printer_in_out()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.printer_in_out', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Computer/PrinterInOut', array_merge($this->ticketFormProps(), [
+      'computers' => $computers,
+    ]));
   }
   public function other()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.computer.other', compact('user', 'now', 'computers'));
+    return Inertia::render('Tickets/Computer/Other', $this->ticketFormProps());
   }
 
   //! Ticket printer //
@@ -236,31 +291,35 @@ class TicketController extends Controller
 
   public function scanner()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.scanner', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'scanner',
+      'computers' => $computers,
+    ]));
   }
   public function scannerNew()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.scanner_new', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'scannerNew',
+      'computers' => $computers,
+    ]));
   }
   public function functuality()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.functuality', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'functuality',
+      'computers' => $computers,
+    ]));
   }
   public function errors()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    $rooms = InvRoom::with('location')->get();
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    return view('tickets.printer.errors', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'errors',
+      'computers' => $computers,
+    ]));
   }
 
   //! Ticket users //
@@ -317,48 +376,42 @@ class TicketController extends Controller
   }
   public function tel_changes()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.telephone.tel_changes', compact('user', 'now'));
+    return Inertia::render('Tickets/Telephone/TelChangeForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'request',
+    ]));
   }
   public function tel_changes_location()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.telephone.telChangeLocation', compact('user', 'now'));
+    return Inertia::render('Tickets/Telephone/TelChangeForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'location',
+    ]));
   }
   public function tel_changes_name()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.telephone.telChangeName', compact('user', 'now'));
+    return Inertia::render('Tickets/Telephone/TelChangeForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'name',
+    ]));
   }
   public function tel_changes_number()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.telephone.telChangeNumber', compact('user', 'now'));
+    return Inertia::render('Tickets/Telephone/TelChangeForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'number',
+    ]));
   }
 
   public function pc_changes_location()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.computer.pcChangeLocation', compact('user', 'now'));
+    return Inertia::render('Tickets/Computer/PcChangeLocation', $this->ticketFormProps());
   }
 
   public function printer_changes_location()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.printer.printerChangeLocation', compact('user', 'now'));
+    return Inertia::render('Tickets/Printer/PrinterChangeLocation', $this->ticketFormProps());
   }
 
   public function tel_problems()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.telephone.tel_problems', compact('user', 'now'));
+    return Inertia::render('Tickets/Telephone/TelProblems', $this->ticketFormProps());
   }
   public function projectorProblems()
   {
@@ -813,8 +866,15 @@ class TicketController extends Controller
 
     $myhandwerkTicketsCount = Handwerk::where('submitter', $user->id)->count();
 
-    return view('tickets.usertickets', compact(
-      'user',
+    // 'user' isn't passed to the page - HandleInertiaRequests already shares
+    // the full authenticated user (including 'ort') as auth.user on every
+    // page, matching how every other converted page reads it. 'korso_ma_users'
+    // was computed but never actually used by the old Blade view either -
+    // confirmed by grepping usertickets.blade.php - dropped rather than sent
+    // for nothing, same call as $cityCounts on Korso/Index.vue and $payers on
+    // Printmarketing.vue. 'city' is newly added - the old view read it via
+    // Blade's global request()->city helper, which isn't available client-side.
+    return Inertia::render('Tickets/UserTickets', compact(
       'myTickets',
       'myTicketsCount',
       'ticketsdone',
@@ -825,9 +885,9 @@ class TicketController extends Controller
       'userCities',
       'cityHandwerkCounts',
       'korsoTicket',
-      'korso_ma_users',
       'assignedCount',
-      'myDoneCount'
+      'myDoneCount',
+      'city'
     ));
   }
 
@@ -894,8 +954,8 @@ class TicketController extends Controller
       ->orWhere('assignedTo', $user->id)
       ->count();
 
-    return view('tickets.userticketsdone', compact(
-      'user',
+    // 'user' dropped here too - same reasoning as usertickets() above.
+    return Inertia::render('Tickets/UserTicketsHistory', compact(
       'oldTickets',
       'myTicketsCount',
       'ticketsdone',
@@ -910,7 +970,12 @@ class TicketController extends Controller
   {
     $user = Auth()->user();
     $admins = User::role('Super_Admin')->get();
-    $myTickets = Ticket::with('subUser')->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
+    // subUser was already eager-loaded here; invitem wasn't - under Blade
+    // that just meant a lazy per-row query, but Inertia JSON-encodes this
+    // collection as a prop, so a relation that isn't eager-loaded is simply
+    // missing from the payload (Tickets/AdminList.vue reads
+    // ticket.invitem.gname for the "Das Gerät" column).
+    $myTickets = Ticket::with(['subUser', 'invitem'])->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
     $AllTicketsCount = Ticket::whereNull('on_location')->count();
     $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
     $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
@@ -924,8 +989,9 @@ class TicketController extends Controller
     $dueForwardingCount = $this->getDueForwardingCountForHeader();
     $dueTerminationCount = $this->getDueTerminationCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
+    $mode = 'open';
 
-    return view('tickets.admins.open', compact(
+    return Inertia::render('Tickets/AdminList', compact(
       'user',
       'myTickets',
       'AllTicketsCount',
@@ -936,7 +1002,8 @@ class TicketController extends Controller
       'cityTicketCounts',
       'activeForwardingCount',
       'dueForwardingCount',
-      'dueTerminationCount'
+      'dueTerminationCount',
+      'mode'
     ));
   }
 
@@ -946,7 +1013,7 @@ class TicketController extends Controller
     $admins = User::role('Super_Admin')->get();
     $AllTicketsCount = Ticket::whereNull('on_location')->count();
     $userId = $userId ?? $user->id; // Use provided userId or authenticated user's ID
-    $myTickets = Ticket::with('subUser')->where('assignedTo', $userId)->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
+    $myTickets = Ticket::with(['subUser', 'invitem'])->where('assignedTo', $userId)->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
     $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
     $ticketCounts = [];
     foreach ($admins as $admin) {
@@ -954,7 +1021,8 @@ class TicketController extends Controller
       $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     }
     $cityTicketCounts = $this->getCityTicketCounts();
-    return view('tickets.admins.admins', compact(
+    $mode = 'admin';
+    return Inertia::render('Tickets/AdminList', compact(
       'user',
       'myTickets',
       'admins',
@@ -962,7 +1030,9 @@ class TicketController extends Controller
       'AllTicketsCount',
       'UnassignedTicketsCount',
       'myTicketsCount',
-      'cityTicketCounts'
+      'cityTicketCounts',
+      'userId',
+      'mode'
     ));
   }
 
@@ -971,7 +1041,9 @@ class TicketController extends Controller
     $name = 'unassigned';
     $user = Auth()->user();
     $admins = User::role('Super_Admin')->get();
-    $myTickets = Ticket::whereNull('assignedTo')->whereNull('on_location')->orderBy('updated_at', 'DESC')->get();
+    // Eager-loaded for the same reason as opentickets() above - required by
+    // the Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
+    $myTickets = Ticket::with(['subUser', 'invitem'])->whereNull('assignedTo')->whereNull('on_location')->orderBy('updated_at', 'DESC')->get();
     $AllTicketsCount = Ticket::whereNull('on_location')->count();
     $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
     $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
@@ -984,7 +1056,8 @@ class TicketController extends Controller
     $dueForwardingCount = $this->getDueForwardingCountForHeader();
     $dueTerminationCount = $this->getDueTerminationCountForHeader();
     $cityTicketCounts = $this->getCityTicketCounts();
-    return view('tickets.admins.unassigned', compact(
+    $mode = 'unassigned';
+    return Inertia::render('Tickets/AdminList', compact(
       'user',
       'myTickets',
       'UnassignedTicketsCount',
@@ -995,7 +1068,8 @@ class TicketController extends Controller
       'cityTicketCounts',
       'activeForwardingCount',
       'dueForwardingCount',
-      'dueTerminationCount'
+      'dueTerminationCount',
+      'mode'
 
     ));
   }
@@ -1052,7 +1126,10 @@ class TicketController extends Controller
     $user = Auth()->user();
     $admins = User::role('Super_Admin')->get();
 
-    $myTickets = Ticket::whereHas('subUser', function ($query) use ($cityName) {
+    // Eager-loaded for the same reason as opentickets() above - required by
+    // the Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
+    // whereHas() alone only filters by the relation, it doesn't eager-load it.
+    $myTickets = Ticket::with(['subUser', 'invitem'])->whereHas('subUser', function ($query) use ($cityName) {
       return $query->where('ort', '=', $cityName);
     })->whereNotNull('on_location')->get();
 
@@ -1070,8 +1147,9 @@ class TicketController extends Controller
 
     // City ticket counts
     $cityTicketCounts = $this->getCityTicketCounts();
+    $mode = 'city';
 
-    return view('tickets.admins.city', compact(
+    return Inertia::render('Tickets/AdminList', compact(
       'user',
       'myTickets',
       'AllTicketsCount',
@@ -1080,7 +1158,8 @@ class TicketController extends Controller
       'myTicketsCount',
       'ticketCounts',
       'cityTicketCounts',
-      'city'
+      'city',
+      'mode'
     ));
   }
 
@@ -1102,11 +1181,14 @@ class TicketController extends Controller
     $name = 'ticket history';
     $user = Auth()->user();
     $admins = User::role('Super_Admin')->get();
-    $myTickets = Ticket::onlyTrashed()->take(200)->orderBy('created_at', 'DESC')->get();
+    // Eager-loaded for the same reason as opentickets() above - required by
+    // the Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
+    $myTickets = Ticket::with(['subUser', 'invitem'])->onlyTrashed()->take(200)->orderBy('created_at', 'DESC')->get();
     $done = Ticket::onlyTrashed()->count();
     $AllTicketsCount = Ticket::all()->count();
     $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    return view('tickets.admins.tickethistory', compact('user', 'myTickets', 'done', 'admins', 'myTicketsCount', 'AllTicketsCount'));
+    $mode = 'history';
+    return Inertia::render('Tickets/AdminList', compact('user', 'myTickets', 'done', 'admins', 'myTicketsCount', 'AllTicketsCount', 'mode'));
   }
 
   public function show($id)
@@ -1115,8 +1197,37 @@ class TicketController extends Controller
     $admins = User::role('Super_Admin')->get();
     $ticket_status = TicketStatus::all();
     $ticket_priority = TicketPriority::all();
-    $ticket = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with('subUser')->with('pcs.invroom.location.place')->withTrashed()->findorFail($id);
-    $blade_name = 'tickets.admins.view_ticket_blades.' . str_replace(' ', '', strtolower($ticket->problem_type)) . 'ticket';
+    // Eager-load list extended for the Inertia conversion (2026-09-17) - the
+    // old Blade page read every one of these relations too, just via
+    // lazy-loading during render (fine for Blade, but the ticket is now
+    // JSON-encoded straight to a page prop, so an un-eager-loaded relation
+    // is simply absent instead of being lazily resolved - same class of
+    // required fix as every other page conversion in this migration).
+    // "user" (assignedTo) in particular was missing entirely before, which
+    // would have silently blanked the "Zugewiesen an" name at the top of
+    // the page - the same bug already found and fixed on Handwerk/Show.vue.
+    $ticket = Ticket::with([
+      'subUser',
+      'user',
+      'invitem.invroom.location.place',
+      'printer.invroom.location.place',
+      'pcs.invroom.location.place',
+      'location.place',
+      'room',
+      'gart',
+      'replication',
+      'forwardOnUser',
+      'forwardFromUser',
+      'ticket_status',
+      'ticket_priority',
+      'comments',
+    ])->withTrashed()->findOrFail($id);
+    // Same derivation the old $blade_name used, minus the view-path prefix -
+    // see resources/js/lib/ticketViewFields.ts's doc comment for how this
+    // key drives the Vue side (33 of the 35 old per-type partials collapsed
+    // into one data table there, same approach as Handwerk's
+    // ITEM_GROUPS_BY_TYPE).
+    $viewKey = str_replace(' ', '', strtolower($ticket->problem_type)) . 'ticket';
     $not = $user->unreadNotifications()->where('data->id', $id)->first();
     if ($not) {
       $not->markAsRead();
@@ -1126,16 +1237,25 @@ class TicketController extends Controller
     $telNewRoom = InvRoom::where('id', $ticket->tel_target_room)->first();
     $telNewAddress = Location::where('id', $ticket->tel_target_place)->first();
     $teilnehmers = ParticipantTicketTable::where('ticket_id', $ticket->id)->get();
-    return view('tickets.admins.showticket', compact(
+    // Ticket::formatted_participant_required_at is an accessor that calls
+    // ->format() on participant_required_at with no null guard, and isn't in
+    // Ticket::$appends anyway, so it wouldn't be in the ticket's JSON at all
+    // - computed safely here instead and passed as its own prop.
+    $participantRequiredAtFormatted = $ticket->participant_required_at
+      ? $ticket->participant_required_at->format('d-m-Y')
+      : null;
+
+    return Inertia::render('Tickets/Show', compact(
       'ticket',
       'createdAt',
       'ticket_status',
       'ticket_priority',
       'telNewRoom',
       'telNewAddress',
-      'blade_name',
+      'viewKey',
       'teilnehmers',
-      'admins'
+      'admins',
+      'participantRequiredAtFormatted'
     ));
   }
 

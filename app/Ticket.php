@@ -4,21 +4,35 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Concerns\Commentable;
 
 class Ticket extends Model
 {
   use SoftDeletes;
+  use Commentable;
 
-  protected $dates = [
-    'created_at',
-    'updated_at',
-    'deleted_at',
-    'participant_required_at',
-    'forward_required_at',
-    'forward_to_at',
-    'forward_removed_at',
-    'employee_required_at',
-    'employee_finish_at'
+  // Eloquent snake_cases relation keys by default when a model is
+  // serialized to array/JSON (Model::$snakeAttributes, inherited as true) -
+  // e.g. the subUser() relation below would come back as "sub_user" in the
+  // Inertia props, not "subUser". Every Vue page for this module (Tickets/
+  // AdminList.vue, Tickets/UserTickets.vue, Tickets/UserTicketsHistory.vue,
+  // Dashboard.vue's forwarding tables) was written expecting the relation
+  // methods' own camelCase names (subUser, forwardOnUser, forwardFromUser,
+  // forwardRemovedByUser, specialComments), so without this override those
+  // props were silently always undefined - same bug, same fix as
+  // App\Korso's $snakeAttributes override (see that model's comment).
+  public static $snakeAttributes = false;
+
+  protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'deleted_at' => 'datetime',
+    'participant_required_at' => 'datetime',
+    'forward_required_at' => 'datetime',
+    'forward_to_at' => 'datetime',
+    'forward_removed_at' => 'datetime',
+    'employee_required_at' => 'datetime',
+    'employee_finish_at' => 'datetime',
   ];
 
   public $fillable = ['name_participant', 'vorname_participant', 'course_participant', 'notes_participant'];

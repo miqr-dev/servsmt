@@ -11,6 +11,12 @@ class Comment extends Model
 
     protected $table = 'comments';
 
+    // Eager-load the commenter by default, matching the original
+    // laravelista/comments package's Comment model - _comment.blade.php
+    // reads $comment->commenter->name/->username/->vorname directly, so
+    // without this every comment list would N+1 query the commenter.
+    protected $with = ['commenter'];
+
     protected $casts = [
         'approved' => 'boolean',
     ];

@@ -4,7 +4,7 @@ namespace App;
 
 use App\KorsoItem;
 use App\KorsoAttachment;
-use Laravelista\Comments\Comment;
+use App\Concerns\Commentable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -12,12 +12,26 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Korso extends Model
 {
   use SoftDeletes;
+  use Commentable;
 
-  protected $dates = [
-    'created_at',
-    'updated_at',
-    'deleted_at',
-    'submit_date',
+  // Eloquent snake_cases relation keys by default when a model is
+  // serialized to array/JSON (Model::$snakeAttributes, inherited as true) -
+  // e.g. the subUser() relation below would come back as "sub_user" in the
+  // Inertia props, not "subUser". Every Vue page for this module was
+  // written expecting the relation methods' own camelCase names (subUser,
+  // korsoItems, korsoAttachments, internalComments, onlinemarketingItem,
+  // zertifizierungItem, assignedUser, doneByUser, sekGroup), so without
+  // this override those props were silently always undefined - masked
+  // elsewhere by fallbacks (submitter_name) or defensive "?? []" guards
+  // rather than actually fixed. This only affects relation *keys*; plain
+  // column attributes below are already snake_case in the DB either way.
+  public static $snakeAttributes = false;
+
+  protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+    'deleted_at' => 'datetime',
+    'submit_date' => 'datetime',
   ];
   protected $guarded = [];
 
@@ -79,10 +93,6 @@ class Korso extends Model
   public function massnahme()
   {
     return $this->belongsTo(Massnahme::class);
-  }
-  public function comments()
-  {
-    return $this->morphMany(Comment::class, 'commentable')->withTrashed();
   }
   public function sekGroup()
   {
