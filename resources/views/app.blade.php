@@ -27,7 +27,7 @@
 
         <link rel="icon" href="/favicon.ico" sizes="any">
 
-        @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+        @vite(['resources/css/app.css', 'resources/js/app.ts'])
         <x-inertia::head>
             <title>{{ config('app.name', 'servsmt') }}</title>
         </x-inertia::head>

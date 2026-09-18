@@ -7,7 +7,7 @@ use LdapRecord\Models\ActiveDirectory\User as BaseModel;
 
 class User extends BaseModel
 {
-    protected static function boot()
+    protected static function boot(): void
     {
         parent::boot();
 
