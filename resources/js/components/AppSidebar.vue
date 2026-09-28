@@ -11,6 +11,7 @@ import {
     FolderKanban,
     HardHat,
     LayoutDashboard,
+    ListChecks,
     LayoutGrid,
     Settings,
     ShieldCheck,
@@ -56,16 +57,27 @@ const generalItems: NavItem[] = [
     { title: 'MIQR Mitarbeiter', href: '/contacts', icon: Contact, roles: ['admin', 'Super_Admin'] },
 ];
 
+// Two layouts (2026-09-28, your request):
+// - IT admins (Super_Admin, admin): the "Ticket" group with Offen / Erledigt /
+//   Meine Tickets, plus "Handwerkaufgaben".
+// - Everyone else: flat "Meine Tickets", "IT Ticket", "Korso Ticket",
+//   "Handwerk Ticket" - nothing hidden in a sub-menu.
+// Super_Admin counts as having every role (App\User::hasRole), so
+// hideForRoles: ['Super_Admin', 'admin'] always hides the flat variants for them.
+const IT_ADMIN_ROLES = ['Super_Admin', 'admin'];
+
 const ticketItems: NavItem[] = [
     {
         title: 'Ticket',
         icon: TicketIcon,
+        roles: IT_ADMIN_ROLES,
         children: [
-            { title: 'Offen', href: '/opentickets', roles: ['admin', 'Super_Admin'] },
-            { title: 'Erledigt', href: '/tickethistory', roles: ['admin', 'Super_Admin'] },
+            { title: 'Offen', href: '/opentickets' },
+            { title: 'Erledigt', href: '/tickethistory' },
             { title: 'Meine Tickets', href: '/usertickets' },
         ],
     },
+    { title: 'Meine Tickets', href: '/usertickets', icon: ListChecks, hideForRoles: IT_ADMIN_ROLES },
     { title: 'IT Ticket', href: '/ticket.index', icon: TicketIcon },
     { title: 'Korso Ticket', href: '/korso', icon: Users },
     // The Korso ticket queue. The old app reached it via a "K" icon in the top
@@ -81,7 +93,14 @@ const ticketItems: NavItem[] = [
         title: 'Handwerkaufgaben',
         href: '/handwerk',
         icon: HardHat,
-        roles: ['Super_Admin', 'Verwaltung', 'handwerk_admin', 'handwerk'],
+        roles: IT_ADMIN_ROLES,
+    },
+    {
+        title: 'Handwerk Ticket',
+        href: '/handwerk',
+        icon: HardHat,
+        roles: ['Verwaltung', 'handwerk_admin', 'handwerk'],
+        hideForRoles: IT_ADMIN_ROLES,
     },
 ];
 

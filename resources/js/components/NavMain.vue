@@ -33,6 +33,9 @@ const userRoles = computed<string[]>(
 );
 
 function isVisible(item: NavItem): boolean {
+    if (item.hideForRoles?.some((role) => userRoles.value.includes(role))) {
+        return false;
+    }
     if (!item.roles || item.roles.length === 0) {
         return true;
     }
