@@ -1175,20 +1175,87 @@ class TicketController extends Controller
     return $counts;
   }
 
-  public function tickethistory()
+  public function tickethistory(Request $request)
   {
 
     $name = 'ticket history';
     $user = Auth()->user();
     $admins = User::role('Super_Admin')->get();
-    // Eager-loaded for the same reason as opentickets() above - required by
-    // the Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
-    $myTickets = Ticket::with(['subUser', 'invitem'])->onlyTrashed()->take(200)->orderBy('created_at', 'DESC')->get();
+
+    // Server-side paginated (2026-09-28). This used to be ->take(200)->get(),
+    // a cap carried over unchanged from the old Blade page, so only the
+    // latest 200 of 10k+ done tickets were ever reachable. Shipping all of
+    // them as one Inertia prop isn't viable either, so search/sort/paging
+    // run here instead of in useDataTable - same approach as
+    // KorsoController@filterTickets. Eager-loads kept for the
+    // Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
+    $query = Ticket::with(['subUser', 'invitem'])->onlyTrashed();
+
+    $search = trim((string) $request->input('search', ''));
+    if ($search !== '') {
+      $query->where(function ($q) use ($search) {
+        $like = "%{$search}%";
+        $q->where('problem_type', 'like', $like)
+          ->orWhere('tel_number', 'like', $like)
+          ->orWhere('custom_tel_number', 'like', $like)
+          ->orWhere('notizen', 'like', $like)
+          ->orWhereHas('subUser', function ($u) use ($like) {
+            $u->where('username', 'like', $like)->orWhere('ort', 'like', $like);
+          })
+          ->orWhereHas('invitem', function ($i) use ($like) {
+            $i->where('gname', 'like', $like);
+          });
+        if (ctype_digit($search)) {
+          $q->orWhere('id', (int) $search);
+        }
+      });
+    }
+
+    // Allowlisted sort keys (UI column key => DB column). Columns that
+    // live on a relation (Erstellt von, Gerät, Standort) aren't sortable
+    // server-side in this mode.
+    $sortable = [
+      'created_at' => 'created_at',
+      'problem_type' => 'problem_type',
+      'priority' => 'priority_id',
+      'status' => 'ticket_status_id',
+      'tel' => 'tel_number',
+    ];
+    $sort = $request->input('sort');
+    $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
+    if (isset($sortable[$sort])) {
+      $query->orderBy($sortable[$sort], $direction)->orderBy('id', 'desc');
+    } else {
+      $sort = null;
+      $query->orderBy('created_at', 'desc')->orderBy('id', 'desc');
+    }
+
+    $perPage = (int) $request->input('per_page', 15);
+    if (! in_array($perPage, [15, 25, 50, 100], true)) {
+      $perPage = 15;
+    }
+
+    $paginator = $query->paginate($perPage)->withQueryString();
+    $myTickets = $paginator->items();
+    $pagination = [
+      'page' => $paginator->currentPage(),
+      'pageCount' => $paginator->lastPage(),
+      'total' => $paginator->total(),
+      'from' => $paginator->firstItem() ?? 0,
+      'to' => $paginator->lastItem() ?? 0,
+    ];
+    $filters = [
+      'search' => $search,
+      'sort' => $sort,
+      'direction' => $direction,
+      'per_page' => $perPage,
+    ];
+
     $done = Ticket::onlyTrashed()->count();
     $AllTicketsCount = Ticket::all()->count();
     $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     $mode = 'history';
-    return Inertia::render('Tickets/AdminList', compact('user', 'myTickets', 'done', 'admins', 'myTicketsCount', 'AllTicketsCount', 'mode'));
+    return Inertia::render('Tickets/AdminList', compact('user', 'myTickets', 'done', 'admins', 'myTicketsCount', 'AllTicketsCount', 'mode', 'pagination', 'filters'));
   }
 
   public function show($id)

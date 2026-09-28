@@ -9,8 +9,11 @@ withDefaults(
         pageSize: number;
         pageSizeOptions?: number[];
         searchPlaceholder?: string;
+        /** Show the "Alle" option - off for server-paginated tables. */
+        allowAll?: boolean;
     }>(),
     {
+        allowAll: true,
         pageSizeOptions: () => [15, 25, 50, 100],
         searchPlaceholder: 'Suchen...',
     },
@@ -36,7 +39,7 @@ const emit = defineEmits<{ 'update:search': [string]; 'update:pageSize': [number
                 @change="emit('update:pageSize', Number(($event.target as HTMLSelectElement).value))"
             >
                 <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
-                <option :value="0">Alle</option>
+                <option v-if="allowAll" :value="0">Alle</option>
             </select>
         </label>
     </div>

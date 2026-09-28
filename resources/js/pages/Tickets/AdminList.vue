@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
-import { computed, h, ref } from 'vue';
+import { computed, h, ref, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { X } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
@@ -52,8 +53,15 @@ import { ticketStatusMeta, ticketPriorityLabel, ticketPriorityBadgeClass } from 
  *
  * DataTables search/paging dropped, matching every other converted list
  * page in this migration - the underlying queries already return the full
- * result set unpaginated (tickethistory caps itself at the latest 200 via
- * `->take(200)`, same as before).
+ * result set unpaginated. Exception: mode "history" (Erledigt). It used
+ * to cap itself at the latest 200 via `->take(200)` (carried over from the
+ * old Blade page), hiding the other 10k+ done tickets. Since 2026-09-28
+ * TicketController@tickethistory paginates server-side instead and sends
+ * `pagination` + `filters` props; when those are present this page drives
+ * search/sort/page-size/page through Inertia partial reloads instead of
+ * useDataTable (same idea as Korso/Dashboard.vue's filterTickets). Only
+ * DB-column sorts are offered there (status, Anfrage, Tel, Priorität,
+ * Erstellt am) - relation columns aren't sortable in that mode.
  *
  * The old page's "assign ticket" <select> AJAX-posted straight to
  * TicketController@assignedTo without any visible feedback; a toast was
@@ -120,6 +128,8 @@ const props = defineProps<{
     city?: City;
     userId?: number | null;
     done?: number;
+    pagination?: { page: number; pageCount: number; total: number; from: number; to: number };
+    filters?: { search: string; sort: string | null; direction: 'asc' | 'desc'; per_page: number };
 }>();
 
 const page = usePage<{ auth: Auth }>();
@@ -189,6 +199,14 @@ function onPdfCityChange() {
 // --- per-row ticket assignment ---
 
 const myTickets = ref<TicketRow[]>(props.myTickets.map((t) => ({ ...t })));
+// Server-paginated mode (history) swaps in a new page of rows on every
+// partial reload, so the local copy has to follow the prop.
+watch(
+    () => props.myTickets,
+    (rows) => {
+        myTickets.value = rows.map((t) => ({ ...t }));
+    },
+);
 
 async function onAssignChange(ticket: TicketRow) {
     try {
@@ -248,19 +266,116 @@ const TICKET_COLUMNS: DataTableColumn<TicketRow>[] = [
     { key: 'created_at', searchable: false },
     { key: 'notizen', value: (t) => stripHtml(t.notizen), sortable: false },
 ];
-const {
-    search,
-    sortKey,
-    sortDir,
-    toggleSort,
-    pageSize,
-    page: tablePage,
-    pagedRows,
-    total,
-    pageCount,
-    rangeFrom,
-    rangeTo,
-} = useDataTable(myTickets, TICKET_COLUMNS);
+const client = useDataTable(myTickets, TICKET_COLUMNS);
+
+// --- server-side mode (history / Erledigt) ---
+
+const serverMode = computed(() => !!props.pagination);
+const SERVER_SORTABLE = new Set(['status', 'problem_type', 'tel', 'priority', 'created_at']);
+
+const sSearch = ref(props.filters?.search ?? '');
+const sSortKey = ref<string | null>(props.filters?.sort ?? null);
+const sSortDir = ref<'asc' | 'desc'>(props.filters?.direction ?? 'desc');
+const sPageSize = ref(props.filters?.per_page ?? 15);
+const sPage = ref(props.pagination?.page ?? 1);
+const loading = ref(false);
+
+watch(
+    () => props.pagination?.page,
+    (p) => {
+        if (p) sPage.value = p;
+    },
+);
+
+function reload() {
+    router.get(
+        window.location.pathname,
+        {
+            search: sSearch.value.trim() || undefined,
+            sort: sSortKey.value ?? undefined,
+            direction: sSortKey.value ? sSortDir.value : undefined,
+            per_page: sPageSize.value !== 15 ? sPageSize.value : undefined,
+            page: sPage.value > 1 ? sPage.value : undefined,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['myTickets', 'pagination', 'filters'],
+            onStart: () => (loading.value = true),
+            onFinish: () => (loading.value = false),
+        },
+    );
+}
+const reloadDebounced = useDebounceFn(reload, 400);
+
+// Unified bindings the template uses, routed to either useDataTable or the
+// server-side state above.
+const search = computed({
+    get: () => (serverMode.value ? sSearch.value : client.search.value),
+    set: (v: string) => {
+        if (!serverMode.value) {
+            client.search.value = v;
+            return;
+        }
+        sSearch.value = v;
+        sPage.value = 1;
+        reloadDebounced();
+    },
+});
+const pageSize = computed({
+    get: () => (serverMode.value ? sPageSize.value : client.pageSize.value),
+    set: (v: number) => {
+        if (!serverMode.value) {
+            client.pageSize.value = v;
+            return;
+        }
+        sPageSize.value = v > 0 ? v : 15;
+        sPage.value = 1;
+        reload();
+    },
+});
+const tablePage = computed({
+    get: () => (serverMode.value ? sPage.value : client.page.value),
+    set: (v: number) => {
+        if (!serverMode.value) {
+            client.page.value = v;
+            return;
+        }
+        sPage.value = Math.min(Math.max(1, v), props.pagination?.pageCount ?? 1);
+        reload();
+    },
+});
+const sortKey = computed(() => (serverMode.value ? sSortKey.value : client.sortKey.value));
+const sortDir = computed(() => (serverMode.value ? sSortDir.value : client.sortDir.value));
+function toggleSort(key: string) {
+    if (!serverMode.value) {
+        client.toggleSort(key);
+        return;
+    }
+    if (!SERVER_SORTABLE.has(key)) return;
+    if (sSortKey.value !== key) {
+        sSortKey.value = key;
+        sSortDir.value = 'asc';
+    } else if (sSortDir.value === 'asc') {
+        sSortDir.value = 'desc';
+    } else {
+        sSortKey.value = null;
+        sSortDir.value = 'desc';
+    }
+    sPage.value = 1;
+    reload();
+}
+/** Hides the sort affordance on relation columns while in server mode. */
+function sk(key: string): string | undefined {
+    return !serverMode.value || SERVER_SORTABLE.has(key) ? key : undefined;
+}
+
+const pagedRows = computed(() => (serverMode.value ? myTickets.value : client.pagedRows.value));
+const total = computed(() => (serverMode.value ? (props.pagination?.total ?? 0) : client.total.value));
+const pageCount = computed(() => (serverMode.value ? (props.pagination?.pageCount ?? 1) : client.pageCount.value));
+const rangeFrom = computed(() => (serverMode.value ? (props.pagination?.from ?? 0) : client.rangeFrom.value));
+const rangeTo = computed(() => (serverMode.value ? (props.pagination?.to ?? 0) : client.rangeTo.value));
 
 // --- city-mode notes footer (add / inline edit / delete) ---
 // The old delete button only ever worked on a *double*-click (no confirm
@@ -407,22 +522,22 @@ async function deleteNote(note: CityNote) {
             </div>
 
             <div class="p-3">
-                <TableToolbar v-model:search="search" v-model:page-size="pageSize" search-placeholder="Suchen..." />
+                <TableToolbar v-model:search="search" v-model:page-size="pageSize" :allow-all="!serverMode" search-placeholder="Suchen..." />
             </div>
 
-            <div class="overflow-x-auto p-1">
+            <div class="overflow-x-auto p-1 transition-opacity" :class="loading ? 'opacity-50' : ''">
                 <table class="w-full text-sm">
                     <thead class="text-muted-foreground text-left">
                         <tr>
-                            <TableHeadCell label="" sort-key="status" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('status')" />
+                            <TableHeadCell label="" :sort-key="sk('status')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('status')" />
                             <TableHeadCell label="Zuweisen" />
-                            <TableHeadCell label="Erstellt von" sort-key="creator" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('creator')" />
-                            <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('problem_type')" />
-                            <TableHeadCell label="Das Gerät" sort-key="device" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('device')" />
-                            <TableHeadCell label="Tel" sort-key="tel" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('tel')" />
-                            <TableHeadCell label="Standort" sort-key="standort" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('standort')" />
-                            <TableHeadCell label="Priorität" sort-key="priority" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('priority')" />
-                            <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('created_at')" />
+                            <TableHeadCell label="Erstellt von" :sort-key="sk('creator')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('creator')" />
+                            <TableHeadCell label="Anfrage" :sort-key="sk('problem_type')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('problem_type')" />
+                            <TableHeadCell label="Das Gerät" :sort-key="sk('device')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('device')" />
+                            <TableHeadCell label="Tel" :sort-key="sk('tel')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('tel')" />
+                            <TableHeadCell label="Standort" :sort-key="sk('standort')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('standort')" />
+                            <TableHeadCell label="Priorität" :sort-key="sk('priority')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('priority')" />
+                            <TableHeadCell label="Erstellt am" :sort-key="sk('created_at')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('created_at')" />
                             <TableHeadCell label="Beschreibung" />
                         </tr>
                     </thead>
