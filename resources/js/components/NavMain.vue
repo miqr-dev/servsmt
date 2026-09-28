@@ -40,7 +40,10 @@ function isVisible(item: NavItem): boolean {
     return item.roles.some((role) => userRoles.value.includes(role));
 }
 
-const visibleItems = computed(() => props.items.filter(isVisible));
+// A group item with children is only shown if at least one child is visible.
+const visibleItems = computed(() =>
+    props.items.filter((item) => isVisible(item) && (!item.children?.length || visibleChildren(item).length > 0)),
+);
 
 function visibleChildren(item: NavItem): NavItem[] {
     return (item.children ?? []).filter(isVisible);
@@ -48,7 +51,8 @@ function visibleChildren(item: NavItem): NavItem[] {
 </script>
 
 <template>
-    <SidebarGroup class="px-2 py-0">
+    <!-- Whole group (incl. its label, e.g. "Verwaltung") is hidden when the user can't see any of its items. -->
+    <SidebarGroup v-if="visibleItems.length" class="px-2 py-0">
         <SidebarGroupLabel v-if="label">{{ label }}</SidebarGroupLabel>
         <SidebarMenu>
             <template v-for="item in visibleItems" :key="item.title">

@@ -47,10 +47,12 @@ import type { NavItem } from '@/types';
 
 const generalItems: NavItem[] = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-    { title: 'Evaluationen', href: '/umfrages', icon: ClipboardList },
+    // Roles below match what the server allows (2026-09-28): Verwaltung - the
+    // default role of every employee - no longer sees these three.
+    { title: 'Evaluationen', href: '/umfrages', icon: ClipboardList, roles: ['Super_Admin', 'Teilnehmer_Info'] },
     { title: 'Dokumente', href: '/documents', icon: FileText, roles: ['Super_Admin'] },
-    { title: 'Einstellungen', href: '/settings', icon: Settings },
-    { title: 'Inventar', href: '/inventory', icon: Boxes },
+    { title: 'Einstellungen', href: '/settings', icon: Settings, roles: ['Super_Admin'] },
+    { title: 'Inventar', href: '/inventory', icon: Boxes, roles: ['Super_Admin', 'INV'] },
     { title: 'MIQR Mitarbeiter', href: '/contacts', icon: Contact, roles: ['admin', 'Super_Admin'] },
 ];
 

@@ -9,6 +9,14 @@ use Illuminate\Http\Request;
 
 class UmfrageController extends Controller
 {
+  // Evaluationen management: Super_Admin + Teilnehmer_Info only (2026-09-28).
+  // Verwaltung - every employee's default role - used to reach it by URL.
+  // show() stays open (single Umfrage view).
+  public function __construct()
+  {
+    $this->middleware('role:Super_Admin|Teilnehmer_Info')->except('show');
+  }
+
 
   public function index()
   {
