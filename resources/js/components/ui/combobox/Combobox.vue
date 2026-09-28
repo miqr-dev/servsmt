@@ -11,7 +11,7 @@ import {
     ComboboxTrigger,
     ComboboxViewport,
 } from 'reka-ui';
-import { Check, ChevronsUpDown } from '@lucide/vue';
+import { Check, ChevronsUpDown, X } from '@lucide/vue';
 import { cn } from '@/lib/utils';
 
 // Shared searchable single-select, replacing the plain <select> every
@@ -43,8 +43,10 @@ const props = withDefaults(
         emptyText?: string;
         disabled?: boolean;
         required?: boolean;
+        /** Show an "x" button that clears the current selection (off by default). */
+        clearable?: boolean;
     }>(),
-    { placeholder: 'Bitte Wählen', emptyText: 'Keine Treffer', disabled: false, required: false },
+    { placeholder: 'Bitte Wählen', emptyText: 'Keine Treffer', disabled: false, required: false, clearable: false },
 );
 
 const model = defineModel<string | number | null>({ default: '' });
@@ -62,6 +64,11 @@ const displayValue = (val: unknown) => labelFor(val as string | number);
 // input isn't a real form control the browser's constraint validation can
 // check against.
 const hiddenRequiredValue = computed(() => (model.value ? 'x' : ''));
+
+const hasValue = computed(() => model.value !== null && model.value !== undefined && model.value !== '');
+function clear() {
+    model.value = '';
+}
 </script>
 
 <template>
@@ -74,6 +81,17 @@ const hiddenRequiredValue = computed(() => (model.value ? 'x' : ''));
                 :placeholder="placeholder"
                 :display-value="displayValue"
             />
+            <button
+                v-if="clearable && hasValue && !disabled"
+                type="button"
+                title="Auswahl entfernen"
+                aria-label="Auswahl entfernen"
+                class="text-muted-foreground hover:text-foreground shrink-0 rounded-sm"
+                @mousedown.prevent
+                @click.stop="clear"
+            >
+                <X class="h-4 w-4" />
+            </button>
             <ComboboxTrigger class="text-muted-foreground shrink-0">
                 <ChevronsUpDown class="h-4 w-4" />
             </ComboboxTrigger>

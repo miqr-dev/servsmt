@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Inertia\Inertia;
+use App\Support\NotificationLookup;
 
 class TicketController extends Controller
 {
@@ -330,42 +331,79 @@ class TicketController extends Controller
 
   public function employee()
   {
-    list($user, $users, $now) = User::getAll();
-    return view('tickets.users.employee', compact('user', 'now', 'users'));
+    // Only id + "Name, Vorname" are needed for the "Berechtigungen wie bei"
+    // picker - the old User::getAll() shipped every column of every user
+    // into the Blade view, which would now be JSON-encoded to the browser.
+    $replicationUsers = User::select('id', 'name', 'vorname')->get()
+      ->map(function ($u) {
+        return ['id' => $u->id, 'label' => $u->name . ', ' . $u->vorname];
+      })->values()->all();
+
+    return Inertia::render('Tickets/Users/Employee', array_merge($this->ticketFormProps(), [
+      'replicationUsers' => $replicationUsers,
+    ]));
   }
 
   public function participant()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.users.participant', compact('user', 'now'));
+    return Inertia::render('Tickets/Users/Participant', $this->ticketFormProps());
   }
   public function emailForward()
   {
-    list($user, $users, $now) = User::getAll();
     $forwardingMailboxLabels = collect(config('forwarding.mailboxes', []))
       ->mapWithKeys(function ($label, $email) {
         return [strtolower($email) => $label];
       });
 
-    return view('tickets.users.emailForward', compact('user', 'now', 'users', 'forwardingMailboxLabels'));
+    // Same label rule the old Blade used per <option>: the configured
+    // shared-mailbox label when the user's email is one of them, otherwise
+    // "Name, Vorname" (trimmed of stray ", ").
+    $forwardUsers = User::select('id', 'name', 'vorname', 'email')->get()
+      ->map(function ($u) use ($forwardingMailboxLabels) {
+        $label = $forwardingMailboxLabels->get(strtolower($u->email ?? ''))
+          ?? trim(($u->name ?? '') . ', ' . ($u->vorname ?? ''), ', ');
+        return ['id' => $u->id, 'label' => $label];
+      })->values()->all();
+
+    return Inertia::render('Tickets/Users/EmailForward', array_merge($this->ticketFormProps(), [
+      'forwardUsers' => $forwardUsers,
+      'currentUserId' => (int) auth()->id(),
+    ]));
   }
   public function users_others()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.users.usersOthers', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Users/UsersForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'others',
+      'computers' => $computers,
+      'nameUsers' => $this->nameChangeUsers(),
+    ]));
   }
   public function users_namechange()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.users.nameChange', compact('user', 'now', 'computers'));
+    // Fixed 2026-09-28 (your request): used to render the Anmeldeprobleme
+    // form under the Namensänderung title (old-app copy-paste). Now the real
+    // name-change form ("Wechsel Name") - see Tickets/Users/UsersForm.vue.
+    return Inertia::render('Tickets/Users/UsersForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'nameChange',
+      'nameUsers' => $this->nameChangeUsers(),
+    ]));
+  }
+  // "Name, Vorname" list for the Namensänderung "current name" picker.
+  private function nameChangeUsers()
+  {
+    return User::select('id', 'name', 'vorname')->orderBy('name')->orderBy('vorname')->get()
+      ->map(function ($u) {
+        return ['id' => $u->id, 'label' => trim(($u->name ?? '') . ', ' . ($u->vorname ?? ''), ', ')];
+      })->values()->all();
   }
   public function users_loginProblem()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.users.loginProblem', compact('user', 'now', 'computers'));
+    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
+    return Inertia::render('Tickets/Users/UsersForm', array_merge($this->ticketFormProps(), [
+      'variant' => 'loginProblem',
+      'computers' => $computers,
+    ]));
   }
 
   //! Ticket telephone //
@@ -415,9 +453,9 @@ class TicketController extends Controller
   }
   public function projectorProblems()
   {
-    $rooms = InvRoom::with('location')->get();
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.projector.projector_problem', compact('user', 'now'));
+    // The old method also loaded every InvRoom with its location into an
+    // unused $rooms variable (never passed to the view) - dropped.
+    return Inertia::render('Tickets/Projector/ProjectorProblems', $this->ticketFormProps());
   }
   //! Ticket Web //
   public function web_all()
@@ -427,28 +465,26 @@ class TicketController extends Controller
   }
   public function terminal_tn()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.web.terminal_tn', compact('user', 'now'));
+    return Inertia::render('Tickets/Web/TerminalTn', $this->ticketFormProps());
   }
+  // bbb / vtiger / smt / firmenvz: one shared page, Tickets/Web/WebAppForm.vue,
+  // told apart by `app` (the four old Blade pages only differed in title,
+  // tab set and field-name prefix).
   public function bbb()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.web.bbb', compact('user', 'now'));
+    return Inertia::render('Tickets/Web/WebAppForm', array_merge($this->ticketFormProps(), ['app' => 'bbb']));
   }
   public function vtiger()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.web.vtiger', compact('user', 'now'));
+    return Inertia::render('Tickets/Web/WebAppForm', array_merge($this->ticketFormProps(), ['app' => 'vtiger']));
   }
   public function smt()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.web.smt', compact('user', 'now'));
+    return Inertia::render('Tickets/Web/WebAppForm', array_merge($this->ticketFormProps(), ['app' => 'smt']));
   }
   public function firmenvz()
   {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.web.firmenvz', compact('user', 'now'));
+    return Inertia::render('Tickets/Web/WebAppForm', array_merge($this->ticketFormProps(), ['app' => 'firmenvz']));
   }
   //! Ajax requests //
   public function tel_in_room(Request $request)
@@ -1295,7 +1331,7 @@ class TicketController extends Controller
     // into one data table there, same approach as Handwerk's
     // ITEM_GROUPS_BY_TYPE).
     $viewKey = str_replace(' ', '', strtolower($ticket->problem_type)) . 'ticket';
-    $not = $user->unreadNotifications()->where('data->id', $id)->first();
+    $not = NotificationLookup::byDataId($user->unreadNotifications(), $id)->first();
     if ($not) {
       $not->markAsRead();
     }
@@ -1341,7 +1377,7 @@ class TicketController extends Controller
 
     $admins = User::role('Super_Admin')->get();
     foreach ($admins as $admin) {
-      $not = $admin->Notifications()->where('data->id', $request->ticket_id)->first();
+      $not = NotificationLookup::byDataId($admin->Notifications(), $request->ticket_id)->first();
       if ($not) {
         $not->markAsRead();
       }
@@ -1453,7 +1489,7 @@ class TicketController extends Controller
     $ticket->done_by = $user->username;
     $ticket->save();
     foreach ($admins as $admin) {
-      $not = $admin->Notifications()->where('data->id', $id)->first();
+      $not = NotificationLookup::byDataId($admin->Notifications(), $id)->first();
       if ($not) {
         $not->markAsRead();
       }
@@ -1484,7 +1520,7 @@ class TicketController extends Controller
     $ticket->done_by = $user->username;
     $ticket->save();
     foreach ($admins as $admin) {
-      $not = $admin->Notifications()->where('data->id', $id)->first();
+      $not = NotificationLookup::byDataId($admin->Notifications(), $id)->first();
       if ($not) {
         $not->markAsRead();
       }
@@ -1593,7 +1629,7 @@ class TicketController extends Controller
     $ticket = Ticket::findOrFail($id);
 
     foreach ($admins as $admin) {
-      $not = $admin->Notifications()->where('data->id', $id)->first();
+      $not = NotificationLookup::byDataId($admin->Notifications(), $id)->first();
       if ($not) {
         $not->delete();
       }

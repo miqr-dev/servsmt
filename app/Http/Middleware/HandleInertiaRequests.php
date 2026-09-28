@@ -57,6 +57,9 @@ class HandleInertiaRequests extends Middleware
                 // Share both keys rather than touching every controller.
                 'message' => fn () => $request->session()->get('message'),
                 'alertType' => fn () => $request->session()->get('alert-type'),
+                // TicketController@store_participant flashes row-level Excel
+                // import failures as an array under 'import_errors'.
+                'importErrors' => fn () => $request->session()->get('import_errors'),
             ],
         ];
     }

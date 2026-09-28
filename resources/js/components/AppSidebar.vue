@@ -107,7 +107,7 @@ const adminItems: NavItem[] = [
             { title: 'Benutzer', href: '/users' },
         ],
     },
-    { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Verwaltung'] },
+    { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Teilnehmer_Info'] },
     { title: 'Mitarbeiter Liste', href: '/employees', icon: Briefcase, roles: ['Super_Admin', 'HR'] },
 ];
 </script>

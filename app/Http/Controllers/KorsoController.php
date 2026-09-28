@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Notifications\DatabaseNotification;
 use Inertia\Inertia;
+use App\Support\NotificationLookup;
 
 class KorsoController extends Controller
 {
@@ -488,9 +489,7 @@ class KorsoController extends Controller
       'location.place',
     ]);
 
-    auth()->user()->unreadNotifications()
-      ->where('data->id', $korso->id)
-      ->get()
+    NotificationLookup::byDataId(auth()->user()->unreadNotifications(), $korso->id)
       ->each(function ($notification) {
         $notification->markAsRead();
       });
@@ -862,9 +861,10 @@ class KorsoController extends Controller
 
     $korso->delete();
 
-    DatabaseNotification::where('data->id', $korso->id)
-      ->whereNull('read_at')
-      ->update(['read_at' => now()]);
+    NotificationLookup::byDataId(DatabaseNotification::whereNull('read_at'), $korso->id)
+      ->each(function ($notification) {
+        $notification->markAsRead();
+      });
 
     return response()->json(['message' => 'Ticket deleted successfully']);
   }

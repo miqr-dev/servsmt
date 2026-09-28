@@ -431,6 +431,9 @@ Route::get('/ticket.smt', 'TicketController@smt')->name('smt');
 
 //! Participant table
 Route::get('participants/test', 'ParticipantTicketTableController@index2');
+// Must stay above Route::resource('participants') so they aren't caught by participants/{participant}.
+Route::get('participants/export-rows', 'ParticipantTicketTableController@exportRows')->name('participants.exportRows');
+Route::get('participants/export/{type}', 'ParticipantTicketTableController@export')->name('participants.export');
 Route::resource('participants', 'ParticipantTicketTableController');
 
 //****************************************  Tasks  *************************************************/
