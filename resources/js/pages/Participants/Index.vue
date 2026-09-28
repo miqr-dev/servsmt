@@ -9,7 +9,6 @@ import {
     FileDown,
     IdCard,
     Printer,
-    CirclePlay,
     Search,
     X,
 } from '@lucide/vue';
@@ -334,15 +333,6 @@ function printPcAccess() {
     );
 }
 
-// --- video ---
-
-const showVideo = ref(false);
-const videoEl = ref<HTMLVideoElement | null>(null);
-function closeVideo() {
-    videoEl.value?.pause();
-    showVideo.value = false;
-}
-
 const btn = 'border-input hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm disabled:opacity-50';
 </script>
 
@@ -357,9 +347,6 @@ const btn = 'border-input hover:bg-accent inline-flex h-9 items-center gap-1.5 r
                     {{ pagination.total }} Teilnehmer<template v-if="scopeLabel"> · Standort {{ scopeLabel }}</template>
                 </p>
             </div>
-            <button type="button" :class="btn" @click="showVideo = true">
-                <CirclePlay class="h-4 w-4" /> Video Anschauen
-            </button>
         </div>
 
         <div class="bg-card text-card-foreground rounded-xl border shadow-sm">
@@ -468,16 +455,5 @@ const btn = 'border-input hover:bg-accent inline-flex h-9 items-center gap-1.5 r
             />
         </div>
 
-        <!-- video modal -->
-        <Transition enter-active-class="transition-opacity" leave-active-class="transition-opacity" enter-from-class="opacity-0" leave-to-class="opacity-0">
-            <div v-if="showVideo" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="closeVideo">
-                <div class="bg-card relative w-full max-w-4xl rounded-xl p-4 shadow-lg">
-                    <button type="button" class="text-muted-foreground hover:text-foreground absolute top-2 right-3 text-xl" @click="closeVideo">&times;</button>
-                    <video ref="videoEl" controls autoplay preload="auto" class="w-full rounded-md">
-                        <source src="/images/admin_images/Teilnehmer_liste.mp4" type="video/mp4" />
-                    </video>
-                </div>
-            </div>
-        </Transition>
     </div>
 </template>

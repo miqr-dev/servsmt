@@ -13,7 +13,7 @@ class Job extends Model
   
   public function workerId()
   {
-    return $this->belongsTo('App\User','worker_id','id');
+    return $this->belongsTo('App\User','worker_id','id')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
 
   function getFormattedCreatedAtAttribute()

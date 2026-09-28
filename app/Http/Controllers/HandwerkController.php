@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Notifications\HandwerkNotification;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
+use App\Support\Notify;
 use App\Support\NotificationLookup;
 
 class HandwerkController extends Controller
@@ -217,6 +218,17 @@ class HandwerkController extends Controller
 
   public function form_store_handwerk(Request $request)
   {
+    // Vue forms post checkboxes as JSON true/false into string columns -
+    // false would be stored as "0" and shown as ticked. Normalize to the old
+    // Blade values: true -> "on", false -> null (same fix as TicketController@store).
+    $request->merge(collect($request->all())
+      ->filter(function ($v) {
+        return is_bool($v);
+      })
+      ->map(function ($v) {
+        return $v ? 'on' : null;
+      })
+      ->all());
 
     $handwerk = new Handwerk();
     $handwerk->submitter_name = $request->submitter_name;
@@ -349,7 +361,7 @@ class HandwerkController extends Controller
 
     // $furr = User::find(1);
     $furr = User::find(327);
-    Notification::send($furr, new HandwerkNotification($notifications));
+    Notify::send($furr, new HandwerkNotification($notifications));
 
     $sucMsg = array(
       'message' => 'Ticket erfolgreich hinzugefügt',
@@ -465,7 +477,7 @@ class HandwerkController extends Controller
   //     'submitter' => $handwerk->subUser->username,
   //     'problem_type' => $handwerk->problem_type,
   //   ];
-  //   Notification::send($assignedTo, new HandwerkNotification($notifications));
+  //   Notify::send($assignedTo, new HandwerkNotification($notifications));
   //   return $assigned;
   // }
 
@@ -485,7 +497,7 @@ class HandwerkController extends Controller
         'problem_type' => $handwerk->problem_type,
     ];
 
-    if ($assignedTo->id == 1473 || $assignedTo->id == 14441 || $assignedTo->id == 1 || $assignedTo->id == 23192) {
+    if ($assignedTo && ($assignedTo->id == 1473 || $assignedTo->id == 14441 || $assignedTo->id == 1 || $assignedTo->id == 23192)) {
         // Generate PDF
         $pdf = PDF::loadView('handwerk.ticket_details', compact('handwerk'));
         $pdfPath = storage_path('app/public/ticket_' . $handwerk->id . '.pdf');
@@ -495,7 +507,7 @@ class HandwerkController extends Controller
         $notifications['pdf_path'] = $pdfPath;
     }
 
-    Notification::send($assignedTo, new HandwerkNotification($notifications));
+    Notify::send($assignedTo, new HandwerkNotification($notifications));
 
     return $assigned;
 }
@@ -555,7 +567,7 @@ class HandwerkController extends Controller
       'problem_type' => $handwerk->problem_type,
     ];
     $submitter = $handwerk->subUser;
-    Notification::send($submitter, new HandwerkNotification($notifications));
+    Notify::send($submitter, new HandwerkNotification($notifications));
 
     $handwerk->delete();
     Comment::withTrashed()->where('commentable_id', $id)->restore();
@@ -580,7 +592,7 @@ class HandwerkController extends Controller
       'problem_type' => $handwerk->problem_type,
     ];
     Comment::withTrashed()->where('commentable_id', $id)->restore();
-    Notification::send($admin, new HandwerkNotification($notifications));
+    Notify::send($admin, new HandwerkNotification($notifications));
     $handwerk->restore();
     return redirect()->route('ticket.usertickets');
   }
@@ -604,7 +616,7 @@ class HandwerkController extends Controller
         ];
 
         $submitter = $handwerk->subUser;
-        Notification::send($submitter, new HandwerkNotification($notifications));
+        Notify::send($submitter, new HandwerkNotification($notifications));
 
         // Delete the handwerk and restore related comments
         $handwerk->delete();

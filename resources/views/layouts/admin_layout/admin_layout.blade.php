@@ -47,9 +47,6 @@
   <!-- toastr -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
 
-  <!-- video.js -->
-  <link href="https://vjs.zencdn.net/7.15.4/video-js.css" rel="stylesheet" />
-  <link href="https://unpkg.com/@videojs/themes@1/dist/city/index.css" rel="stylesheet" />
   <!-- custom.css -->
   <link rel="stylesheet" href="{{url ('css/custom.css')}}">
 
@@ -252,8 +249,6 @@
     </script>
 
 
-    <!-- Video js -->
-    <script src="https://vjs.zencdn.net/7.18.1/video.min.js"></script>
     @yield('script')
 </body>
 

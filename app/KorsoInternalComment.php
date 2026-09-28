@@ -10,7 +10,7 @@ class KorsoInternalComment extends Model
 
   public function user()
   {
-    return $this->belongsTo(User::class);
+    return $this->belongsTo(User::class)->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
 
   public function korso()

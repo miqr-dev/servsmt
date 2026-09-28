@@ -43,7 +43,15 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? [
                     ...$user->toArray(),
-                    'roles' => $user->getRoleNames(),
+                    // Effective roles - a Super_Admin gets EVERY role name, so all
+                    // frontend checks (sidebar, roles.includes('Korso_Admin'), …)
+                    // treat them as holding every role. See App\User::hasRole().
+                    'roles' => $user->isSuperAdmin()
+                        ? \Spatie\Permission\Models\Role::query()->pluck('name')->unique()->values()
+                        : $user->getRoleNames(),
+                    // Roles actually assigned (for display, e.g. a profile page).
+                    'assignedRoles' => $user->getRoleNames(),
+                    'isSuperAdmin' => $user->isSuperAdmin(),
                 ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

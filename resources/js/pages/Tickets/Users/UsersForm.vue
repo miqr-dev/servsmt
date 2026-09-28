@@ -8,19 +8,19 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
 /**
- * Converted from three resources/views/tickets/users/* Blade forms, all
+ * Converted from two resources/views/tickets/users/* Blade forms, both
  * posting to TicketController@store (/form_store):
- *   - loginProblem.blade.php (/ticket.users_loginProblem, variant "loginProblem")
- *   - nameChange.blade.php   (/ticket.users_namechange,   variant "nameChange")
- *   - usersOthers.blade.php  (/ticket.users_others,       variant "others")
+ *   - loginProblem.blade.php (/ticket.users_loginProblem, variant "loginProblem",
+ *     problem_type "Anmelde Probleme")
+ *   - nameChange.blade.php   (/ticket.users_namechange,   variant "nameChange",
+ *     problem_type "Wechsel Name")
  *
- * usersOthers.blade.php is the jQuery-tabbed page (Anmeldeprobleme /
- * Namensänderung / Sonstiges, nothing selected until a tab is clicked);
- * its "Anmeldeprobleme" tab is byte-identical to loginProblem.blade.php -
- * same `variant` pattern as SoftwareForm.vue / TelChangeForm.vue: the two
- * solo variants force the "login" tab with no switcher, "others" shows all
- * three. usersOthers is only linked from the old (unconverted, unlinked)
- * tickets/users/all.blade.php sub-landing page, not from Tickets/Index.vue.
+ * A third page, usersOthers.blade.php (/ticket.users_others, a tabbed
+ * Anmeldeprobleme / Namensänderung / "Benutzer sonstiges" page), was removed
+ * 2026-09-28 at your request - the first two tabs duplicated these two
+ * pages, and it was only reachable from the also-removed users/all
+ * sub-landing page. Existing "Benutzer sonstiges" tickets still display
+ * (Tickets/Show.vue's ticketViewFields entry is kept).
  *
  * Namensänderung (fixed 2026-09-28, at your request): in the old app
  * nameChange.blade.php - the "Namensänderung" link on the ticket picker -
@@ -30,8 +30,7 @@ import type { BreadcrumbItem } from '@/types';
  * Tickets/Show.vue already displays as Alter Name / Neuer Name): the
  * current name is picked from the user list (searchable Combobox, stored
  * as its "Name, Vorname" label in user_oldname) and the new name is typed
- * into user_newname. The "others" page's Namensänderung tab uses the same
- * picker, so both paths create identical tickets.
+ * into user_newname.
  *
  * "Konto Abgelaufen": the old page opened a SweetAlert2 prompt asking for
  * a freelancer end date (free text, required) - confirming stored it in the
@@ -45,10 +44,8 @@ import type { BreadcrumbItem } from '@/types';
  * other converted Tickets form.
  */
 
-type Tab = 'login' | 'rename' | 'other';
-
 const props = defineProps<{
-    variant: 'loginProblem' | 'nameChange' | 'others';
+    variant: 'loginProblem' | 'nameChange';
     user: SubmitterUser;
     now: string;
     isSuperAdmin: boolean;
@@ -60,11 +57,11 @@ const props = defineProps<{
 const TITLES = {
     loginProblem: 'Benutzer - Anmeldeprobleme',
     nameChange: 'Benutzer - Namensänderung',
-    others: 'Benutzer - Sonstiges',
 } as const;
-
-const TAB_LABELS: Record<Tab, string> = { login: 'Anmeldeprobleme', rename: 'Namensänderung', other: 'Sonstiges' };
-const PROBLEM_TYPES: Record<Tab, string> = { login: 'Anmelde Probleme', rename: 'Wechsel Name', other: 'Benutzer sonstiges' };
+const PROBLEM_TYPES = {
+    loginProblem: 'Anmelde Probleme',
+    nameChange: 'Wechsel Name',
+} as const;
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -77,8 +74,7 @@ defineOptions({
     },
 });
 
-const showTabs = props.variant === 'others';
-const activeTab = ref<Tab | null>(showTabs ? null : props.variant === 'nameChange' ? 'rename' : 'login');
+const isRename = props.variant === 'nameChange';
 const title = TITLES[props.variant];
 
 const form = useForm({
@@ -88,8 +84,8 @@ const form = useForm({
     priority: '2',
     tel_number: props.user.tel ?? '',
     custom_tel_number: '',
-    problem_type: activeTab.value ? PROBLEM_TYPES[activeTab.value] : '',
-    // login tab
+    problem_type: PROBLEM_TYPES[props.variant],
+    // Anmeldeprobleme
     password_name: '',
     searchcomputer: '' as string | number,
     expiring_date: '',
@@ -97,36 +93,11 @@ const form = useForm({
     inaktiv: false,
     forgotten: false,
     other_error_participant: false,
-    // rename tab
+    // Namensänderung
     user_oldname: '',
     user_newname: '',
-    // other tab
-    user_other_username: '',
     notizen: '',
 });
-
-const TAB_FIELDS = [
-    'password_name',
-    'searchcomputer',
-    'expiring_date',
-    'abgelaufen',
-    'inaktiv',
-    'forgotten',
-    'other_error_participant',
-    'user_oldname',
-    'user_newname',
-    'user_other_username',
-    'notizen',
-] as const;
-
-function selectTab(tab: Tab) {
-    // The old page removed and re-inserted the tab markup on every click,
-    // so switching tabs always started from empty fields - same here.
-    form.reset(...TAB_FIELDS);
-    oldNameUserId.value = '';
-    activeTab.value = tab;
-    form.problem_type = PROBLEM_TYPES[tab];
-}
 
 // --- Namensänderung: pick the current name from the user list ---
 
@@ -135,8 +106,6 @@ const nameUserOptions = computed(() => (props.nameUsers ?? []).map((u) => ({ val
 watch(oldNameUserId, (id) => {
     form.user_oldname = nameUserOptions.value.find((o) => String(o.value) === String(id))?.label ?? '';
 });
-
-const pageTitle = computed(() => (showTabs && activeTab.value ? `${title} — ${TAB_LABELS[activeTab.value]}` : title));
 
 // --- "Konto Abgelaufen" freelancer end-date prompt ---
 
@@ -181,25 +150,12 @@ function submit() {
 </script>
 
 <template>
-    <Head :title="pageTitle" />
+    <Head :title="title" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
         <h2 class="text-xl font-semibold">{{ title }}</h2>
 
-        <div v-if="showTabs" class="flex flex-wrap justify-center gap-3">
-            <button
-                v-for="tab in (['login', 'rename', 'other'] as Tab[])"
-                :key="tab"
-                type="button"
-                class="rounded-md border px-4 py-2 text-sm"
-                :class="activeTab === tab ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/40'"
-                @click="selectTab(tab)"
-            >
-                {{ TAB_LABELS[tab] }}
-            </button>
-        </div>
-
-        <form v-if="activeTab" class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
+        <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
             <SubmitterCard
                 :user="user"
                 :now="now"
@@ -209,7 +165,7 @@ function submit() {
             />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
-                <template v-if="activeTab === 'login'">
+                <template v-if="!isRename">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="flex flex-col gap-1">
                             <label class="text-sm font-medium">Vollständiger Name <span class="text-muted-foreground">*</span></label>
@@ -231,7 +187,7 @@ function submit() {
                     </div>
                 </template>
 
-                <div v-else-if="activeTab === 'rename'" class="grid gap-4 sm:grid-cols-2">
+                <div v-else class="grid gap-4 sm:grid-cols-2">
                     <div class="flex flex-col gap-1">
                         <label class="text-sm font-medium">Mitarbeiter (aktueller Name) <span class="text-muted-foreground">*</span></label>
                         <Combobox v-model="oldNameUserId" :options="nameUserOptions" placeholder="Mitarbeiter wählen" required clearable />
@@ -242,15 +198,8 @@ function submit() {
                     </div>
                 </div>
 
-                <div v-else class="grid gap-4 sm:grid-cols-2">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-medium">Vollständiger Name <span class="text-muted-foreground">*</span></label>
-                        <input v-model="form.user_other_username" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
-                    </div>
-                </div>
-
                 <div class="flex flex-col gap-1">
-                    <label class="text-sm font-medium">{{ activeTab === 'other' ? 'Fehler Beschreibung' : 'Beschreibung' }}</label>
+                    <label class="text-sm font-medium">Beschreibung</label>
                     <textarea v-model="form.notizen" rows="5" class="border-input bg-background rounded-md border px-3 py-2 text-sm"></textarea>
                 </div>
 

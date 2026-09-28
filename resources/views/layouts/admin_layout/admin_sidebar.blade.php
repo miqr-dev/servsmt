@@ -385,15 +385,6 @@
           </a>
         </li>
         @endcan
-        <li class="nav-item has-treeview">
-          <a href="{{route('video')}}" class="nav-link">
-            <img src="/images/admin_images/help3.gif" class="nav-icon"
-              style="height: 100 !important; width: 100 !important;" alt="" />
-            <p>
-              Hilfe
-            </p>
-          </a>
-        </li>
 
 
         <!-- <li class="nav-item has-treeview">

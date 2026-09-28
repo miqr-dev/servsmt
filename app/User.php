@@ -13,7 +13,61 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends Authenticatable implements LdapAuthenticatable
 {
   use Notifiable, AuthenticatesWithLdap;
-  use HasRoles;
+  // Spatie's own hasRole / hasAllRoles stay available as the *strict* checks
+  // (hasAssignedRole / hasAllAssignedRoles below); the public ones are
+  // overridden so Super_Admin implicitly holds every role.
+  use HasRoles {
+    hasRole as protected spatieHasRole;
+    hasAllRoles as protected spatieHasAllRoles;
+  }
+
+  public const SUPER_ADMIN = 'Super_Admin';
+
+  /**
+   * Super_Admin can do everything (2026-09-28, your rule): a Super_Admin
+   * counts as having EVERY role - Korso_Admin, Korso_ma, handwerk_admin,
+   * Teilnehmer_Info, HR, … - without being assigned them.
+   *
+   * Because this lives in hasRole(), it covers every way the app checks a
+   * role: hasRole / hasAnyRole / hasAllRoles in controllers and Blade,
+   * @role / @hasanyrole, and the `role:...` route middleware. Permission
+   * checks (@can, ->can()) were already covered by Gate::before in
+   * AuthServiceProvider. The frontend gets the same effect through
+   * HandleInertiaRequests, which shares every role name for a Super_Admin.
+   *
+   * NOT affected (on purpose): User::role('X') queries. "All Korso_ma users"
+   * still means users actually assigned Korso_ma, so a Super_Admin doesn't
+   * suddenly show up in assignee lists / per-admin buttons.
+   *
+   * Use hasAssignedRole() when you really need "is this role assigned to
+   * the user" (e.g. before assigning it).
+   */
+  public function isSuperAdmin(): bool
+  {
+    return $this->spatieHasRole(self::SUPER_ADMIN);
+  }
+
+  public function hasRole($roles, ?string $guard = null): bool
+  {
+    return $this->isSuperAdmin() || $this->spatieHasRole($roles, $guard);
+  }
+
+  public function hasAllRoles($roles, ?string $guard = null): bool
+  {
+    return $this->isSuperAdmin() || $this->spatieHasAllRoles($roles, $guard);
+  }
+
+  /** Strict check: only roles actually assigned to this user. */
+  public function hasAssignedRole($roles, ?string $guard = null): bool
+  {
+    return $this->spatieHasRole($roles, $guard);
+  }
+
+  /** Strict check: all of these roles are actually assigned to this user. */
+  public function hasAllAssignedRoles($roles, ?string $guard = null): bool
+  {
+    return $this->spatieHasAllRoles($roles, $guard);
+  }
   use SoftDeletes;
 
   protected $guard_name = 'web';

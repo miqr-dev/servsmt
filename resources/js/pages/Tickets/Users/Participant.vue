@@ -37,10 +37,8 @@ import type { BreadcrumbItem } from '@/types';
  *     Standort at page load, not re-asked if a Super_Admin switches submitter.
  *   - "Muster Herunterladen" (/donwload_muster - the route's own typo) and the
  *     template-changed notice (23.10.2023) kept verbatim.
- *   - "Video Anschauen" modal (/images/admin_images/Ticket_Erstellen.mp4),
- *     same plain <Transition> overlay pattern as Tickets/Index.vue's video.
- *     Note: that .mp4 isn't in this checkout (same as Index.vue's inbox3.mp4)
- *     - presumably only present on the production server.
+ *   - The old "Video Anschauen" help video was removed 2026-09-28 (your
+ *     request - all video links in the app were dropped).
  */
 
 const props = defineProps<{
@@ -106,19 +104,6 @@ function confirmBerlin() {
     berlinDialogOpen.value = false;
 }
 
-// --- video modal ---
-
-const showVideo = ref(false);
-const videoEl = ref<HTMLVideoElement | null>(null);
-function openVideo() {
-    showVideo.value = true;
-    setTimeout(() => videoEl.value?.play().catch(() => {}), 0);
-}
-function closeVideo() {
-    videoEl.value?.pause();
-    showVideo.value = false;
-}
-
 function submit() {
     form
         .transform((data) => ({ ...data, participant_required_at: isoToDmy(data.participant_required_at) }))
@@ -152,12 +137,6 @@ function submit() {
                     Das Muster wurde <span class="text-destructive font-bold">am 23.10.2023</span> erneut geändert, bitte verwenden Sie das
                     Alte nicht mehr und laden Sie das Muster neu herunter.<br />
                     Wenn der Teilnehmer kein Talentlms erhalten soll, können Sie das zusätzliche Feld ignorieren.
-                </div>
-
-                <div>
-                    <button type="button" class="border-primary text-primary hover:bg-primary/5 h-9 rounded-md border px-3 text-sm" @click="openVideo">
-                        Video Anschauen
-                    </button>
                 </div>
 
                 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -228,16 +207,5 @@ function submit() {
             </div>
         </div>
 
-        <!-- Video modal -->
-        <Transition enter-active-class="transition-opacity" leave-active-class="transition-opacity" enter-from-class="opacity-0" leave-to-class="opacity-0">
-            <div v-if="showVideo" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="closeVideo">
-                <div class="bg-card relative w-full max-w-4xl rounded-xl p-4 shadow-lg">
-                    <button type="button" class="text-muted-foreground hover:text-foreground absolute top-2 right-3 text-xl" @click="closeVideo">&times;</button>
-                    <video ref="videoEl" controls preload="auto" class="w-full rounded-md">
-                        <source src="/images/admin_images/Ticket_Erstellen.mp4" type="video/mp4" />
-                    </video>
-                </div>
-            </div>
-        </Transition>
     </div>
 </template>

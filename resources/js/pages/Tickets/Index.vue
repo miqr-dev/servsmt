@@ -31,7 +31,7 @@ import type { BreadcrumbItem } from '@/types';
  * The news popup + scrolling news bar (news.popup.checks / newsbar.check)
  * are a real, narrow feature of this one page (grepped the old app - the
  * only other place they appear is the separate, out-of-scope
- * video_index.blade.php) - reproduced via plain axios against the existing
+ * video_index.blade.php, removed 2026-09-28) - reproduced via plain axios against the existing
  * JSON endpoints, matching this app's "no useForm for non-CRUD AJAX"
  * convention. Worth noting for whoever touches NewsController next:
  * news_check()'s `News::find(1)->get()` doesn't do what it looks like -
@@ -41,10 +41,9 @@ import type { BreadcrumbItem } from '@/types';
  * as-is (reading result[0], same as the old jQuery) - not this page's bug
  * to fix.
  *
- * The video modal for "Ticket-Erstellung Video Anschauen" (inbox3.mp4) is
- * reproduced. A second modal (id="overall", smt3.mp4) existed in the old
- * markup with no button or link anywhere that ever opened it - dropped as
- * dead markup rather than ported.
+ * The old page's help videos ("Ticket-Erstellung Video Anschauen" /
+ * inbox3.mp4, plus an unreachable smt3.mp4 modal) were removed 2026-09-28
+ * at your request, together with every other video link in the app.
  */
 
 type LinkItem = { lines: string[]; href: string };
@@ -187,14 +186,6 @@ onMounted(async () => {
         //
     }
 });
-
-const showVideo = ref(false);
-const videoEl = ref<HTMLVideoElement | null>(null);
-
-function closeVideo() {
-    showVideo.value = false;
-    videoEl.value?.pause();
-}
 </script>
 
 <template>
@@ -206,16 +197,6 @@ function closeVideo() {
         </div>
 
         <h2 class="text-center text-xl font-semibold">Ticketanfrage</h2>
-
-        <div class="flex justify-center">
-            <button
-                type="button"
-                class="border-input hover:bg-muted/40 rounded-md border px-4 py-2 text-sm"
-                @click="showVideo = true"
-            >
-                Ticket-Erstellung Video Anschauen
-            </button>
-        </div>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div v-for="(card, i) in CARDS" :key="i" class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm">
@@ -237,19 +218,6 @@ function closeVideo() {
                 </div>
             </div>
         </div>
-
-        <Transition enter-active-class="transition-opacity" leave-active-class="transition-opacity" enter-from-class="opacity-0" leave-to-class="opacity-0">
-            <div v-if="showVideo" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="closeVideo">
-                <div class="bg-card w-full max-w-3xl rounded-xl border p-4 shadow-lg">
-                    <div class="mb-2 flex justify-end">
-                        <button type="button" class="text-muted-foreground hover:text-foreground text-sm" @click="closeVideo">Schließen ✕</button>
-                    </div>
-                    <video ref="videoEl" controls preload="auto" class="w-full rounded-md">
-                        <source src="/images/admin_images/inbox3.mp4" type="video/mp4" />
-                    </video>
-                </div>
-            </div>
-        </Transition>
 
         <Transition enter-active-class="transition-opacity" leave-active-class="transition-opacity" enter-from-class="opacity-0" leave-to-class="opacity-0">
             <div v-if="newsPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="newsPopup = null">

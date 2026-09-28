@@ -60,6 +60,8 @@ Route::get('printmarketing-management', 'KorsoController@printmarketingManagemen
   ->name('printmarketing.management');
 Route::post('korso-item/{korsoItem}/toggle-ordered', 'KorsoController@toggleOrdered')
   ->name('korso-item.toggleOrdered');
+Route::post('korso-items/set-ordered', 'KorsoController@setOrdered')
+  ->name('korso-items.setOrdered');
 
 //! Korso Internal Comments //
 Route::post('/korso/comments/store', 'KorsoInternalCommentController@store')->name('korso.comments.store');
@@ -145,9 +147,6 @@ Route::get('/dashboard', 'LicenseController@index')->name('dashboard');
 Route::get('/korso-dashboard', 'KorsoController@dashboard')->name('korso.dashboard');
 
 
-//! video //
-Route::get('/video', 'TicketController@video')->name('video');
-Route::get('/video_index', 'TicketController@video_index')->name('video_index');
 
 Route::group(['middleware' => ['auth', 'role:Super_Admin']], function () {
   Route::resource('roles', 'RoleController');
@@ -349,7 +348,6 @@ Route::get('/getCityTicketsDetails/{cityName}','StandortbesuchController@getCity
 
 
 //****************************************  Ticket Computer  *************************************************/
-Route::get('/ticket.computer_all', 'TicketController@computer_all')->name('computer_all');
 Route::get('/ticket.software_request', 'TicketController@softwareRequest')->name('softwareRequest');
 Route::get('/ticket.software_error', 'TicketController@softwareError')->name('softwareError');
 Route::get('/ticket.software_install', 'TicketController@softwareInstall')->name('softwareInstall');
@@ -361,7 +359,6 @@ Route::get('/ticket.other', 'TicketController@other')->name('other');
 //****************************************  Ticket Printer  *************************************************/
 Route::get('/ticket.printer', 'TicketController@printer_in_out')->name('printer_in_out');
 Route::post('/ticket.printer_search_inroom', 'TicketController@printer_in_room')->name('printer_in_room'); //! AJAX find the printer  
-Route::get('/ticket.printer_all', 'TicketController@printer_all')->name('printer_all');
 Route::get('/ticket.scanner', 'TicketController@scanner')->name('scanner');
 Route::get('/ticket.scanner.new', 'TicketController@scannerNew')->name('scannerNew');
 Route::get('/ticket.function', 'TicketController@functuality')->name('functuality');
@@ -372,7 +369,6 @@ Route::get('/ticket.projector_problems', 'TicketController@projectorProblems')->
 Route::post('/ticket.pro_search_inroom', 'TicketController@pro_in_room')->name('pro_in_room');      //! find the Projector 
 
 //****************************************  Ticket Telephone  *************************************************/
-Route::get('/ticket.telephone_all', 'TicketController@telephone_all')->name('telephone_all');
 Route::get('/ticket.tel_problems', 'TicketController@tel_problems')->name('tel_problems');
 Route::get('/ticket.tel_changes', 'TicketController@tel_changes')->name('tel_changes');
 Route::get('/ticket.tel_changes_location', 'TicketController@tel_changes_location')->name('tel_changes_location');
@@ -384,9 +380,7 @@ Route::post('/ticket.tel_search_inroom', 'TicketController@tel_in_room')->name('
 Route::post('/ticket.pc_search_inroom', 'TicketController@pc_in_room')->name('pc_in_room');      //! find PCs and Laptops
 
 //****************************************  Ticket Users  *************************************************/
-Route::get('/ticket.users_all', 'TicketController@users_all')->name('users_all');
 Route::get('/ticket.employee', 'TicketController@employee')->name('users_employee');
-Route::get('/ticket.users_others', 'TicketController@users_others')->name('users_others');
 Route::get('/ticket.users_namechange', 'TicketController@users_namechange')->name('users_namechange');
 Route::get('/ticket.users_loginProblem', 'TicketController@users_loginProblem')->name('users_loginProblem');
 Route::get('/ticket.participant', 'TicketController@participant')->name('users_participant');
@@ -422,7 +416,6 @@ Route::post('/ticket/on_location_reverse', 'TicketController@on_location_reverse
 
 
 //****************************************  Ticket Web  *************************************************/
-Route::get('/ticket.web_all', 'TicketController@web_all')->name('web_all');
 Route::get('/ticket.terminal_tn', 'TicketController@terminal_tn')->name('terminal_tn');
 Route::get('/ticket.bbb', 'TicketController@bbb')->name('bbb');
 Route::get('/ticket.vtiger', 'TicketController@vtiger')->name('vtiger');

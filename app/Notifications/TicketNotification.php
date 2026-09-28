@@ -26,6 +26,10 @@ class TicketNotification extends Notification
 
     public function via($notifiable)
     {
+        // No mails/notifications to users removed from AD (soft-deleted).
+        if (\App\Support\Notify::isRemoved($notifiable)) {
+          return [];
+        }
         return ['mail','database'];
     }
     public function toMail($notifiable)

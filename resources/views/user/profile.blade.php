@@ -72,9 +72,6 @@
               <h3 class="profile-username text-center">{{$user->vorname}} {{ $user->name }}
               </h3>
                 <p class="text-muted text-center">{{$user->email}}</p>
-                <a href="#" class="btn btn-outline-primary mb-3 ml-3" data-toggle="modal" data-target="#profil_video">
-                  Video Anschauen
-                </a>
                 <!-- child cards -->
                 <div class="row mx-auto">
                   <!-- first card -->
@@ -212,31 +209,6 @@
   <!-- /.content-wrapper -->
 
     <!-- Modal -->
-    <div class="modal fade" id="profil_video" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-backdrop="false">
-      <div class="modal-dialog" style="max-width: 1200px !important;" >
-        <div class="modal-content container">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-              <video
-              fluid="true"
-              id="my-video"
-              class="video-js vjs-theme-city"
-              controls
-              preload="auto"
-              width="600"
-              height="400"
-              data-setup="{}"
-            >
-              <source src="/images/admin_images/profile.mp4" type="video/mp4" />
-            </video>
-          </div>
-        </div>
-      </div>
-    </div>
 
 
 @endsection
@@ -247,8 +219,5 @@ $(document).ready(function() {
     $('.select2').select2();
 });
 
-$('body').on('hidden.bs.modal', '.modal', function () {
-  $('video').trigger('pause');
-  });
 </script>
 @endsection

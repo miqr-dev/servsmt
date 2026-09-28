@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isChecked } from '@/lib/checkbox';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
@@ -184,7 +185,7 @@ const viewContext = computed<TicketViewContext>(() => ({
 }));
 const viewGroup = computed(() => TICKET_VIEW_GROUPS[props.viewKey] ?? null);
 const groupHeading = computed(() => viewGroup.value?.heading?.(viewContext.value) ?? props.ticket.problem_type);
-const visibleFlags = computed(() => (viewGroup.value?.flags ?? []).filter((f) => !!props.ticket[f.key]));
+const visibleFlags = computed(() => (viewGroup.value?.flags ?? []).filter((f) => isChecked(props.ticket[f.key])));
 
 // --- neuermitarbeiterticket (editable username/password/email, one-off layout) ---
 
@@ -462,10 +463,10 @@ async function deleteParticipant(participant: Participant) {
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <span v-if="ticket.isplus" class="inline-flex items-center gap-1 text-sm font-semibold">
+                        <span v-if="isChecked(ticket.isplus)" class="inline-flex items-center gap-1 text-sm font-semibold">
                             IS+ <Check class="h-4 w-4 text-green-600" />
                         </span>
-                        <span v-if="ticket.outlook" class="inline-flex items-center gap-1 text-sm font-semibold">
+                        <span v-if="isChecked(ticket.outlook)" class="inline-flex items-center gap-1 text-sm font-semibold">
                             Outlook <Check class="h-4 w-4 text-green-600" />
                         </span>
                     </div>

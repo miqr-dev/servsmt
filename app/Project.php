@@ -23,11 +23,11 @@ class Project extends Model
 
   public function createdby()
   {
-    return $this->belongsTo('App\User', 'who_created', 'id');
+    return $this->belongsTo('App\User', 'who_created', 'id')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
   public function assignedTo()
   {
-    return $this->belongsTo('App\User', 'assignedTo', 'id');
+    return $this->belongsTo('App\User', 'assignedTo', 'id')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
 
   public function tickets()

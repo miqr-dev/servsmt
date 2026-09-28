@@ -39,7 +39,7 @@ class Ticket extends Model
 
   public function user()
   {
-    return $this->belongsTo('App\User', 'assignedTo', 'id');
+    return $this->belongsTo('App\User', 'assignedTo', 'id')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
   public function subUser()
   {
@@ -75,7 +75,7 @@ class Ticket extends Model
   }
   public function replication()
   {
-    return $this->belongsTo('App\User', 'replication_id', 'id');
+    return $this->belongsTo('App\User', 'replication_id', 'id')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
 
   public function pcs()

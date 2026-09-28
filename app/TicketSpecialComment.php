@@ -16,6 +16,6 @@ class TicketSpecialComment extends Model
 
     public function author()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
     }
 }

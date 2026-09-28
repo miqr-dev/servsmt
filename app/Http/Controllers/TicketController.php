@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Inertia\Inertia;
+use App\Support\Notify;
 use App\Support\NotificationLookup;
 
 class TicketController extends Controller
@@ -52,7 +53,9 @@ class TicketController extends Controller
       return redirect()->route('login');
     }
 
-    if ($user->hasRole('Korso_Admin')) {
+    // Strict check: a Super_Admin implicitly "has" Korso_Admin too (see
+    // App\User::hasRole) but should land on the admin dashboard, not Korso's.
+    if (! $user->isSuperAdmin() && $user->hasAssignedRole('Korso_Admin')) {
       return redirect()->route('korso.dashboard');
     }
 
@@ -219,10 +222,6 @@ class TicketController extends Controller
     ];
   }
 
-  public function computer_all()
-  {
-    return view('tickets.computer.all');
-  }
   public function softwareRequest()
   {
     $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
@@ -285,10 +284,6 @@ class TicketController extends Controller
   }
 
   //! Ticket printer //
-  public function printer_all()
-  {
-    return view('tickets.printer.all');
-  }
 
   public function scanner()
   {
@@ -324,10 +319,6 @@ class TicketController extends Controller
   }
 
   //! Ticket users //
-  public function users_all()
-  {
-    return view('tickets.users.all');
-  }
 
   public function employee()
   {
@@ -370,15 +361,6 @@ class TicketController extends Controller
       'currentUserId' => (int) auth()->id(),
     ]));
   }
-  public function users_others()
-  {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
-    return Inertia::render('Tickets/Users/UsersForm', array_merge($this->ticketFormProps(), [
-      'variant' => 'others',
-      'computers' => $computers,
-      'nameUsers' => $this->nameChangeUsers(),
-    ]));
-  }
   public function users_namechange()
   {
     // Fixed 2026-09-28 (your request): used to render the Anmeldeprobleme
@@ -407,11 +389,6 @@ class TicketController extends Controller
   }
 
   //! Ticket telephone //
-  public function telephone_all()
-  {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.telephone.all', compact('user', 'now'));
-  }
   public function tel_changes()
   {
     return Inertia::render('Tickets/Telephone/TelChangeForm', array_merge($this->ticketFormProps(), [
@@ -458,11 +435,6 @@ class TicketController extends Controller
     return Inertia::render('Tickets/Projector/ProjectorProblems', $this->ticketFormProps());
   }
   //! Ticket Web //
-  public function web_all()
-  {
-    list($user, $now) = User::getCurrentAndNow();
-    return view('tickets.web.all', compact('user', 'now'));
-  }
   public function terminal_tn()
   {
     return Inertia::render('Tickets/Web/TerminalTn', $this->ticketFormProps());
@@ -577,6 +549,18 @@ class TicketController extends Controller
   public function store(Request $request)
   {
     $user = Auth()->user();
+    // Vue forms post checkboxes as JSON true/false. The ticket columns are
+    // strings, and the old Blade forms stored "on" (ticked) or nothing (NULL)
+    // - so false would land as "0", which the admin view read as ticked.
+    // Normalize to the old values: true -> "on", false -> null.
+    $request->merge(collect($request->all())
+      ->filter(function ($v) {
+        return is_bool($v);
+      })
+      ->map(function ($v) {
+        return $v ? 'on' : null;
+      })
+      ->all());
     $request->validate([
       'submitter' => 'nullable|integer|exists:users,id',
     ]);
@@ -751,7 +735,7 @@ class TicketController extends Controller
       'problem_type' => $ticket->problem_type,
     ];
 
-    Notification::send($admins, new TicketNotification($notifications));
+    Notify::send($admins, new TicketNotification($notifications));
     return redirect()->route('ticket.usertickets');
   }
 
@@ -803,7 +787,7 @@ class TicketController extends Controller
         'submitter' => $ticket->subUser->username,
         'problem_type' => $ticket->problem_type,
       ];
-      Notification::send($admins, new TicketNotification($notifications));
+      Notify::send($admins, new TicketNotification($notifications));
       return redirect()->route('ticket.usertickets');
     } catch (ValidationException $e) {
       // Deleting the saved ticket since the import failed
@@ -1391,7 +1375,7 @@ class TicketController extends Controller
       'submitter' => $ticket->subUser->username,
       'problem_type' => $ticket->problem_type,
     ];
-    Notification::send($assignedTo, new TicketNotification($notifications));
+    Notify::send($assignedTo, new TicketNotification($notifications));
     return $assigned;
   }
   public function ticketPriority(Request $request)
@@ -1502,7 +1486,7 @@ class TicketController extends Controller
       'problem_type' => $ticket->problem_type,
     ];
     $submitter = $ticket->subUser;
-    Notification::send($submitter, new TicketNotification($notifications));
+    Notify::send($submitter, new TicketNotification($notifications));
 
     $ticket->delete();
     Comment::withTrashed()->where('commentable_id', $id)->restore();
@@ -1618,7 +1602,7 @@ class TicketController extends Controller
       'problem_type' => $ticket->problem_type,
     ];
     Comment::withTrashed()->where('commentable_id', $id)->restore();
-    Notification::send($admins, new TicketNotification($notifications));
+    Notify::send($admins, new TicketNotification($notifications));
     $ticket->restore();
     return redirect()->route('ticket.opentickets');
   }
@@ -1640,17 +1624,7 @@ class TicketController extends Controller
 
 
 
-  //! video //
-  public function video()
-  {
-    return view('video');
-  }
 
-  public function video_index()
-  {
-    $datum = Standortbesuch::find(1);
-    return view('tickets.video_index', compact('datum'));
-  }
 
   public function setReminder(Request $request)
   {

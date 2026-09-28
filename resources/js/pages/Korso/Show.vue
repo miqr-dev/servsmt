@@ -32,7 +32,9 @@ import type { CommentItem } from '@/components/CommentThread.vue';
 
 type NamedUser = { id: number; name: string; vorname: string | null } | null;
 type SubUser = { vorname: string | null; name: string | null; ort: string | null; position: string | null; abteilung: string | null } | null;
-type KorsoItem = { id: number; item_name: string; quantity: number; details: string | null };
+// `ordered` = ticked as "schon bestellt" in Printmarketing Verwaltung
+// (Korso/PrintmarketingManagement.vue) - shown struck through here.
+type KorsoItem = { id: number; item_name: string; quantity: number; details: string | null; ordered?: boolean | number };
 type Attachment = { id: number; file_path: string; file_type: string; context: string | null };
 type InternalComment = {
     id: number;
@@ -518,10 +520,22 @@ function commentTimeAgo(value: string): string {
                 <div v-if="korso.korsoItems?.length" class="mt-4">
                     <h5 class="mb-2 text-sm font-semibold" style="color: #65a30d">Bestellte Artikel</h5>
                     <ul class="divide-y text-sm">
-                        <li v-for="item in korso.korsoItems" :key="item.id" class="py-1.5">
-                            <div class="flex items-center justify-between">
-                                <span>{{ formatItemName(item.item_name) }}</span>
-                                <span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs font-semibold">
+                        <li
+                            v-for="item in korso.korsoItems"
+                            :key="item.id"
+                            class="py-1.5"
+                            :class="item.ordered ? 'text-muted-foreground' : ''"
+                            :title="item.ordered ? 'Bereits bestellt' : undefined"
+                        >
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="inline-flex items-center gap-2">
+                                    <span :class="item.ordered ? 'line-through' : ''">{{ formatItemName(item.item_name) }}</span>
+                                    <span v-if="item.ordered" class="rounded-full bg-green-600/10 px-2 py-0.5 text-xs font-medium text-green-700">bestellt</span>
+                                </span>
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                                    :class="item.ordered ? 'bg-muted text-muted-foreground line-through' : 'bg-primary text-primary-foreground'"
+                                >
                                     {{ item.quantity }}
                                 </span>
                             </div>

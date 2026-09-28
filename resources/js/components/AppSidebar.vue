@@ -10,7 +10,7 @@ import {
     FileText,
     FolderKanban,
     HardHat,
-    HelpCircle,
+    LayoutDashboard,
     LayoutGrid,
     Settings,
     ShieldCheck,
@@ -52,7 +52,6 @@ const generalItems: NavItem[] = [
     { title: 'Einstellungen', href: '/settings', icon: Settings },
     { title: 'Inventar', href: '/inventory', icon: Boxes },
     { title: 'MIQR Mitarbeiter', href: '/contacts', icon: Contact, roles: ['admin', 'Super_Admin'] },
-    { title: 'Hilfe', href: '/video', icon: HelpCircle },
 ];
 
 const ticketItems: NavItem[] = [
@@ -67,6 +66,15 @@ const ticketItems: NavItem[] = [
     },
     { title: 'IT Ticket', href: '/ticket.index', icon: TicketIcon },
     { title: 'Korso Ticket', href: '/korso', icon: Users },
+    // The Korso ticket queue. The old app reached it via a "K" icon in the top
+    // header bar (admin_header.blade.php), which converted pages don't have -
+    // so it's a sidebar entry now, for the same roles the old icon used.
+    {
+        title: 'Korso Dashboard',
+        href: '/korso-dashboard',
+        icon: LayoutDashboard,
+        roles: ['Korso_ma', 'Korso_Admin', 'Super_Admin'],
+    },
     {
         title: 'Handwerkaufgaben',
         href: '/handwerk',

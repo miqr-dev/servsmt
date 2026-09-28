@@ -67,7 +67,7 @@
                 <th>Zugewiesen an</th>
                 <td>
                     @if($korso->assignedUser)
-                        {{ $korso->assignedUser->name }}
+                        {{ $korso->assignedUser?->name }}
                     @else
                         Nicht zugewiesen
                     @endif

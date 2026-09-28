@@ -67,7 +67,7 @@ class Korso extends Model
 
   public function assignedUser()
   {
-    return $this->belongsTo(User::class, 'assignedTo');
+    return $this->belongsTo(User::class, 'assignedTo')->withTrashed(); // include removed (soft-deleted) users - see app/Support/Notify.php
   }
   public function internalComments()
   {

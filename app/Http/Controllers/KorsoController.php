@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Notifications\DatabaseNotification;
 use Inertia\Inertia;
+use App\Support\Notify;
 use App\Support\NotificationLookup;
 
 class KorsoController extends Controller
@@ -190,7 +191,7 @@ class KorsoController extends Controller
             'submitter' => $ticket->submitter_name,
             'problem_type' => $ticket->problem_type,
           ];
-          Notification::send($assignedUser, new \App\Notifications\KorsoNotification($notifications));
+          Notify::send($assignedUser, new \App\Notifications\KorsoNotification($notifications));
         }
       }
       return response()->json(['message' => 'Benutzer erfolgreich zugewiesen.']);
@@ -541,6 +542,8 @@ class KorsoController extends Controller
    */
   public function exportPrintmarketingPdf(Request $request)
   {
+    $this->authorizePrintmarketingManagement();
+
     $tab = $request->input('tab', 'all');
 
     // 1) Define your category-key arrays (same as in management)
@@ -941,7 +944,8 @@ class KorsoController extends Controller
 
     foreach ($userIds as $id) {
       $user = User::find($id);
-      if ($user && !$user->hasRole('Korso_ma')) {
+      // Strict: really assign it (Super_Admin would otherwise "already have" it).
+      if ($user && !$user->hasAssignedRole('Korso_ma')) {
         $user->assignRole('Korso_ma');
       }
     }
@@ -956,36 +960,87 @@ class KorsoController extends Controller
     return redirect()->route('user.management')->with('success', 'Rolle erfolgreich entfernt.');
   }
 
+  // The only two users allowed into Printmarketing Verwaltung (1 = admin,
+  // 312 = Frau Dreyße). The old app only hid the dashboard link for everyone
+  // else - the page, the PDF export and the "ordered" toggle themselves were
+  // reachable by any logged-in user who knew the URL. Now enforced here too.
+  const PRINTMARKETING_MANAGERS = [1, 312];
+
+  private function authorizePrintmarketingManagement()
+  {
+    abort_unless(in_array((int) auth()->id(), self::PRINTMARKETING_MANAGERS, true), 403);
+  }
+
+  /**
+   * Printmarketing Verwaltung (Korso/PrintmarketingManagement.vue).
+   *
+   * Sends one flat row per ordered item of every OPEN Printmarketing ticket
+   * (done = soft-deleted tickets are excluded, same as the old summary
+   * query - whereHas() skips soft-deleted korsos). The Summary tab's
+   * per-item / per-Standort totals and "remaining" counts are computed from
+   * these rows on the page, so they update live when items are ticked.
+   */
   public function printmarketingManagement()
   {
-    // Grouped summary by item and location (using address column)
-    $summary = DB::table('korso_items')
-      ->join('korsos', 'korso_items.korso_id', '=', 'korsos.id')
-      ->join('locations', 'korsos.location_id', '=', 'locations.id')
-      ->where('korsos.problem_type', 'Printmarketing')
-      ->whereNull('korsos.deleted_at') // <-- THIS LINE EXCLUDES DONE TICKETS
-      ->select(
-        'korso_items.item_name',
-        'locations.address as location_name',
-        DB::raw('SUM(korso_items.quantity) as total')
-      )
-      ->groupBy('korso_items.item_name', 'locations.address')
-      ->get();
+    $this->authorizePrintmarketingManagement();
 
-    // Detailed list of all KorsoItems for Printmarketing tickets
-    $details = KorsoItem::with(['korso.location'])
+    $items = KorsoItem::with(['korso' => function ($q) {
+      $q->select('id', 'location_id');
+    }, 'korso.location'])
       ->whereHas('korso', function ($query) {
         $query->where('problem_type', 'Printmarketing');
       })
-      ->get();
+      ->orderBy('id')
+      ->get()
+      ->map(function ($item) {
+        return [
+          'id' => $item->id,
+          'korso_id' => $item->korso_id,
+          'item_name' => $item->item_name,
+          'quantity' => (int) $item->quantity,
+          'ordered' => (bool) $item->ordered,
+          'location' => $item->korso->location->address ?? null,
+        ];
+      })
+      ->values();
 
-    return view('korso.Printmarketing.management', compact('summary', 'details'));
+    return Inertia::render('Korso/PrintmarketingManagement', [
+      'items' => $items,
+    ]);
   }
 
+  // Kept for compatibility (old Blade page used it); the Vue page uses setOrdered().
   public function toggleOrdered(KorsoItem $korsoItem)
   {
+    $this->authorizePrintmarketingManagement();
+
     $korsoItem->ordered = !$korsoItem->ordered;
     $korsoItem->save();
     return response()->json(['ordered' => $korsoItem->ordered]);
+  }
+
+  /**
+   * Set (not toggle) "schon bestellt" for one or many items at once - used
+   * by both the per-row checkbox and the per-article "alle" checkbox. The
+   * old page toggled each row with its own request, which could flip rows
+   * the wrong way when clicked quickly; an explicit target state can't.
+   */
+  public function setOrdered(Request $request)
+  {
+    $this->authorizePrintmarketingManagement();
+
+    $data = $request->validate([
+      'ids' => 'required|array|min:1',
+      'ids.*' => 'integer',
+      'ordered' => 'required|boolean',
+    ]);
+
+    KorsoItem::whereIn('id', $data['ids'])
+      ->whereHas('korso', function ($q) {
+        $q->where('problem_type', 'Printmarketing');
+      })
+      ->update(['ordered' => $data['ordered']]);
+
+    return response()->json(['ids' => $data['ids'], 'ordered' => $data['ordered']]);
   }
 }

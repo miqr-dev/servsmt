@@ -5,6 +5,7 @@ import { ArrowLeft, FileDown } from '@lucide/vue';
 import { computed, h, ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CommentThread from '@/components/CommentThread.vue';
+import { isChecked } from '@/lib/checkbox';
 import { ITEM_GROUPS_BY_TYPE, SUBJECT_TYPES } from '@/lib/handwerkItems';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type { CommentItem } from '@/components/CommentThread.vue';
@@ -87,7 +88,7 @@ function formatDate(value: string): string {
 
 const itemGroups = computed(() =>
     (ITEM_GROUPS_BY_TYPE[props.handwerk.problem_type] ?? []).filter((group) =>
-        group.items.some((item) => props.handwerk[item.key]),
+        group.items.some((item) => isChecked(props.handwerk[item.key])),
     ),
 );
 const showSubject = computed(() => SUBJECT_TYPES.includes(props.handwerk.problem_type));
@@ -284,7 +285,7 @@ function restore() {
                         <h4 class="font-semibold" style="color: #004873">{{ group.title }}</h4>
                         <div class="mt-1 grid gap-x-4 gap-y-1 sm:grid-cols-3">
                             <p
-                                v-for="item in group.items.filter((i) => handwerk[i.key])"
+                                v-for="item in group.items.filter((i) => isChecked(handwerk[i.key]))"
                                 :key="item.key"
                                 class="text-sm font-medium"
                             >

@@ -30,7 +30,9 @@ class Comment extends Model
 
     public function commenter()
     {
-        return $this->morphTo();
+        // withTrashed(): a comment by someone who has since left (user
+        // soft-deleted by the AD import) must still show its author.
+        return $this->morphTo()->withTrashed();
     }
 
     public function commentable()

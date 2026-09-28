@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Notification;
 
 
 
+use App\Support\Notify;
+
 class CommentController extends Controller
 {
   public function __construct()
@@ -92,16 +94,16 @@ class CommentController extends Controller
         if (! $model->assignedTo) {
           // No one assigned → send to fallback user 327
           $user327 = User::find(327);
-          Notification::send($user327, new CommentNotification($notifications));
+          Notify::send($user327, new CommentNotification($notifications));
         } else {
           // Assigned → send only to assigned
           $assigned = User::find($model->assignedTo);
-          Notification::send($assigned, new CommentNotification($notifications));
+          Notify::send($assigned, new CommentNotification($notifications));
         }
       } else {
         // Someone else commented → notify submitter
         $submitter = User::find($model->submitter);
-        Notification::send($submitter, new CommentNotification($notifications));
+        Notify::send($submitter, new CommentNotification($notifications));
       }
 
       //
@@ -118,7 +120,7 @@ class CommentController extends Controller
           ->where('id', '!=', $commenterId)
           ->get();
 
-        Notification::send($korsoMAs, new CommentNotification($notifications));
+        Notify::send($korsoMAs, new CommentNotification($notifications));
       } else {
 
         if ($commenterId == $assignedId) {
@@ -130,14 +132,14 @@ class CommentController extends Controller
                 ->notify(new CommentNotification($notifications));
             } else {
               // fallback: the original user
-              Notification::send($submitter, new CommentNotification($notifications));
+              Notify::send($submitter, new CommentNotification($notifications));
             }
           }
         } else {
           // CASE 2b: Someone else commented → notify only the assigned user
           $assignedUser = User::find($assignedId);
           if ($assignedUser) {
-            Notification::send($assignedUser, new CommentNotification($notifications));
+            Notify::send($assignedUser, new CommentNotification($notifications));
           }
         }
       }
@@ -152,16 +154,16 @@ class CommentController extends Controller
         if (! $model->assignedTo) {
           // No one assigned → notify all Super_Admins
           $admins = User::role('Super_Admin')->get();
-          Notification::send($admins, new CommentNotification($notifications));
+          Notify::send($admins, new CommentNotification($notifications));
         } else {
           // Assigned → notify only assigned
           $assigned = User::find($model->assignedTo);
-          Notification::send($assigned, new CommentNotification($notifications));
+          Notify::send($assigned, new CommentNotification($notifications));
         }
       } else {
         // Someone else commented → notify submitter
         $submitter = User::find($model->submitter);
-        Notification::send($submitter, new CommentNotification($notifications));
+        Notify::send($submitter, new CommentNotification($notifications));
       }
     }
 
@@ -264,7 +266,7 @@ class CommentController extends Controller
         // Fallback: send to that single user
         $reply_to = User::find($parentCommenterId);
         if ($reply_to) {
-          Notification::send($reply_to, new CommentNotification($notifications));
+          Notify::send($reply_to, new CommentNotification($notifications));
         }
       }
 
@@ -272,7 +274,7 @@ class CommentController extends Controller
     } else {
       $reply_to = User::where('id', $reply->parent->commenter_id)->first();
       if ($reply_to) {
-        Notification::send($reply_to, new CommentNotification($notifications));
+        Notify::send($reply_to, new CommentNotification($notifications));
       }
     }
 
