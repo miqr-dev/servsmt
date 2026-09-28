@@ -21,7 +21,9 @@ class ParticipantTicketTableController extends Controller
   // too, but Verwaltung is the default role every new LDAP user gets on first
   // login - i.e. practically every employee could read participant
   // passwords for their Standort. Removed on purpose.
-  const ACCESS_ROLES = 'role:Super_Admin|Teilnehmer_Info';
+  // + Sekretariat (2026-09-28): secretaries get the Teilnehmer Liste of their
+  // own Standort too, same scoping as Teilnehmer_Info (ownLocation()).
+  const ACCESS_ROLES = 'role:Super_Admin|Teilnehmer_Info|Sekretariat';
   const PER_PAGE = 50;
 
   function __construct()

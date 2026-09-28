@@ -50,7 +50,7 @@ const generalItems: NavItem[] = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
     // Roles below match what the server allows (2026-09-28): Verwaltung - the
     // default role of every employee - no longer sees these three.
-    { title: 'Evaluationen', href: '/umfrages', icon: ClipboardList, roles: ['Super_Admin', 'Teilnehmer_Info'] },
+    { title: 'Evaluationen', href: '/umfrages', icon: ClipboardList, roles: ['Super_Admin'] },
     { title: 'Dokumente', href: '/documents', icon: FileText, roles: ['Super_Admin'] },
     { title: 'Einstellungen', href: '/settings', icon: Settings, roles: ['Super_Admin'] },
     { title: 'Inventar', href: '/inventory', icon: Boxes, roles: ['Super_Admin', 'INV'] },
@@ -136,7 +136,7 @@ const adminItems: NavItem[] = [
             { title: 'Benutzer', href: '/users' },
         ],
     },
-    { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Teilnehmer_Info'] },
+    { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Teilnehmer_Info', 'Sekretariat'] },
     { title: 'Mitarbeiter Liste', href: '/employees', icon: Briefcase, roles: ['Super_Admin', 'HR'] },
 ];
 </script>
