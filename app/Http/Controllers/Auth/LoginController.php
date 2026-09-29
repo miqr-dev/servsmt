@@ -37,11 +37,8 @@ class LoginController extends Controller
 
     protected function authenticated(Request $request, $user)
     {
-      if ($user -> hasAnyRole(['Super_Admin', 'HR'])) {
-      return redirect('/dashboard');
-      }else{
+      // Everyone lands on the unified Dashboard ("/"), role boxes are built there.
       return redirect('/');
-      }
     }
 
     /**

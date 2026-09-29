@@ -39,6 +39,8 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \LdapRecord\Laravel\Middleware\WindowsAuthenticate::class,
             \App\Http\Middleware\LocalDevAuthBypass::class,
+            // Role check per URL - config/route_access.php (2026-09-28).
+            \App\Http\Middleware\EnforceRouteAccess::class,
             \App\Http\Middleware\HandleAppearance::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
         ],

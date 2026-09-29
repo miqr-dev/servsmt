@@ -4,35 +4,23 @@ use Illuminate\Database\Seeder;
 use App\Permissioncategory;
 
 /**
- * The 19 permission categories used to group checkboxes in
- * roles.create / roles.edit, mapped 1:1 from the route file's own
- * section comments (see servsmt_permission_taxonomy_proposal.md).
- * idempotent - safe to re-run.
+ * Permission categories used to group checkboxes in roles.create / roles.edit.
+ *
+ * 2026-09-28: trimmed to the categories whose permissions the code actually
+ * checks - Inventory only (Geräte / Erfassen / Drucken). Everything else is
+ * controlled by ROLES (config/route_access.php + App\User::hasRole). Old
+ * category rows already in the DB are left untouched (no data deleted).
+ *
+ * Idempotent - safe to re-run.
  */
 class PermissioncategoryTableSeeder extends Seeder
 {
     public function run()
     {
         $categories = [
-            'Rollen',
-            'Berechtigungen',
-            'Benutzer',
-            'Einstellungen',
-            'Ticket',
-            'Korso',
-            'Korso Marketing',
-            'Handwerk',
             'Geräte',
             'Erfassen',
             'Drucken',
-            'Standort',
-            'Teil_info',
-            'Personal',
-            'Sekretariat',
-            'Content',
-            'Aufgaben',
-            'Lizenzen',
-            'Matrix',
         ];
 
         foreach ($categories as $name) {

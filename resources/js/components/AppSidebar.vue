@@ -47,7 +47,11 @@ import type { NavItem } from '@/types';
 // and made a standalone top-level item directly above "Korso Ticket".
 
 const generalItems: NavItem[] = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+    // "/" is the unified Dashboard for everyone (DashboardController). The old
+    // HR page (licenses, terminations, forwardings) stays at /dashboard until
+    // its boxes move into the unified Dashboard.
+    { title: 'Dashboard', href: '/', icon: LayoutGrid },
+    { title: 'Lizenzen & Austritte', href: '/dashboard', icon: FileText, roles: ['Super_Admin', 'HR'] },
     // Roles below match what the server allows (2026-09-28): Verwaltung - the
     // default role of every employee - no longer sees these three.
     { title: 'Evaluationen', href: '/umfrages', icon: ClipboardList, roles: ['Super_Admin'] },

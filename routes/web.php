@@ -142,7 +142,7 @@ Route::get('/room/lists', 'HandwerkController@roomsList')->name('rooms.lists');
 
 
 // Route::get('/', 'TicketController@index')->name('home');
-Route::get('/', 'TicketController@landing')->name('home');
+Route::get('/', 'DashboardController@index')->name('home'); // unified Dashboard (was TicketController@landing)
 Route::get('/dashboard', 'LicenseController@index')->name('dashboard');
 Route::get('/korso-dashboard', 'KorsoController@dashboard')->name('korso.dashboard');
 

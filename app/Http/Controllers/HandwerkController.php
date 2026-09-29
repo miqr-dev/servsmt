@@ -20,6 +20,7 @@ use App\Notifications\HandwerkNotification;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use App\Support\Notify;
+use App\Support\TicketAccess;
 use App\Support\NotificationLookup;
 
 class HandwerkController extends Controller
@@ -443,6 +444,8 @@ class HandwerkController extends Controller
     $user = Auth()->user();
     $admins = User::role('handwerk_admin')->get();
     $handwerk = Handwerk::with('room.location.place')->with('subUser')->with('comments')->withTrashed()->findorFail($id);
+    // Handwerk staff (+ Sekretariat, who see the submitter panel) or the submitter.
+    TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
     $not = NotificationLookup::byDataId($user->unreadNotifications(), $id)->first();
     if ($not) {
       $not->markAsRead();
@@ -583,7 +586,8 @@ class HandwerkController extends Controller
   {
     $admin = User::find(327)->first();
 
-    $handwerk = Handwerk::withTrashed()->find($id);
+    $handwerk = Handwerk::withTrashed()->findOrFail($id);
+    TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
     $notifications = [
       'title' => 'Wiederhergestellt',
       'ticket_id' => $handwerk->id,

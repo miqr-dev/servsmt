@@ -7,18 +7,9 @@ use App\Permission;
 use DB;
 class RoleController extends Controller
 {
-/**
-* Display a listing of the resource.
-*
-* @return \Illuminate\Http\Response
-*/
-function __construct()
-{
-$this->middleware('permission:role-list|role-create|role-edit|role-delete', ['only' => ['index','store']]);
-$this->middleware('permission:role-create', ['only' => ['create','store']]);
-$this->middleware('permission:role-edit', ['only' => ['edit','update']]);
-$this->middleware('permission:role-delete', ['only' => ['destroy']]);
-}
+  // Access: this controller's routes are in the role:Super_Admin group in
+  // routes/web.php. The old permission:role-* middleware was removed
+  // (2026-09-28) - it only ever applied to Super_Admin, who passes every check.
 
 
 /**

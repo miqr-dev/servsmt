@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Notifications\DatabaseNotification;
 use Inertia\Inertia;
 use App\Support\Notify;
+use App\Support\TicketAccess;
 use App\Support\NotificationLookup;
 
 class KorsoController extends Controller
@@ -473,6 +474,8 @@ class KorsoController extends Controller
   public function show($id)
   {
     $korso = Korso::withTrashed()->findOrFail($id);
+    // Korso staff, the submitter, or members of the Sekretariat group it was sent as.
+    TicketAccess::authorize($korso, TicketAccess::KORSO_STAFF);
     // Eager load internal comments along with their authors
     $korso->load([
       'kcourses.payer',
@@ -875,6 +878,7 @@ class KorsoController extends Controller
   public function restore($id)
   {
     $korso = Korso::withTrashed()->findOrFail($id);
+    TicketAccess::authorize($korso, TicketAccess::KORSO_STAFF);
     // Restore Laravelista Comments linked to this Korso
     Comment::withTrashed()->where('commentable_id', $id)->restore();
 

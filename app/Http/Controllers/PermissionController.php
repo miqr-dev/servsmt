@@ -8,13 +8,9 @@ use Illuminate\Http\Request;
 
 class PermissionController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('permission:permission-list|permission-create|permission-edit|permission-delete', ['only' => ['index']]);
-        $this->middleware('permission:permission-create', ['only' => ['create', 'store']]);
-        $this->middleware('permission:permission-edit', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:permission-delete', ['only' => ['destroy']]);
-    }
+  // Access: this controller's routes are in the role:Super_Admin group in
+  // routes/web.php. The old permission:permission-* middleware was removed
+  // (2026-09-28) - it only ever applied to Super_Admin, who passes every check.
 
     /**
      * Display a listing of the resource.

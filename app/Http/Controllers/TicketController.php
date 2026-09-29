@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Inertia\Inertia;
 use App\Support\Notify;
+use App\Support\TicketAccess;
 use App\Support\NotificationLookup;
 
 class TicketController extends Controller
@@ -1280,6 +1281,8 @@ class TicketController extends Controller
 
   public function show($id)
   {
+    // IT staff or the ticket's own submitter ("Meine Tickets" links here).
+    TicketAccess::authorize(Ticket::withTrashed()->findOrFail($id), TicketAccess::IT_STAFF);
     $user = Auth()->user();
     $admins = User::role('Super_Admin')->get();
     $ticket_status = TicketStatus::all();
@@ -1593,7 +1596,9 @@ class TicketController extends Controller
   public function restore($id)
   {
     $admins = User::role('Super_Admin')->get();
-    $ticket = Ticket::withTrashed()->find($id);
+    $ticket = Ticket::withTrashed()->findOrFail($id);
+    // IT staff or the submitter (the "Erledigt" mail invites them to restore).
+    TicketAccess::authorize($ticket, TicketAccess::IT_STAFF);
     $notifications = [
       'title' => 'Wiederhergestellt',
       'ticket_id' => $ticket->id,
