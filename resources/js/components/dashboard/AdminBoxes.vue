@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Pencil, Trash2 } from '@lucide/vue';
+import { Pencil, Plus, Trash2 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import RowActions, { type RowAction } from '@/components/RowActions.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
 import TablePagination from '@/components/table/TablePagination.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
+import { Button } from '@/components/ui/button';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
 
 /**
@@ -163,12 +164,12 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
             <div class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b p-4">
                     <h3 class="font-semibold">Lizenzen</h3>
-                    <Link
-                        href="/licenses/create"
-                        class="border-primary text-primary hover:bg-primary hover:text-primary-foreground inline-flex h-8 items-center rounded-md border px-3 text-sm"
-                    >
-                        + Neu
-                    </Link>
+                    <Button as-child size="sm">
+                        <Link href="/licenses/create">
+                            <Plus class="size-4" />
+                            Neue Lizenz
+                        </Link>
+                    </Button>
                 </div>
                 <div class="p-3">
                     <TableToolbar

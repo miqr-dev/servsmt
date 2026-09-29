@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\User;
 use App\Termination;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use App\Imports\TerminationsImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -19,14 +21,20 @@ class TerminationController extends Controller
 
 
 
+  // Own page for the Kündigungen table (sidebar "Kündigungen", HR).
+  // Same component as the Dashboard box, just without the height limit.
   public function index()
   {
-    //
+    return Inertia::render('Terminations/Index', [
+      'terminations' => Termination::orderBy('exit', 'ASC')->get(),
+    ]);
   }
 
+  // Neu / Bearbeiten are dialogs on the Dashboard now (TerminationsBox.vue);
+  // the old Blade pages are no longer used.
   public function create()
   {
-    return view('termination.create');
+    return redirect()->route('home');
   }
 
   public function createUpload()
@@ -36,23 +44,9 @@ class TerminationController extends Controller
 
   public function store(Request $request)
   {
-    $request->validate([
-      'name' => 'required',
-      'location' => 'required',
-      'exit' => 'required',
-      'is_active' => 'nullable|boolean',
-    ]);
+    Termination::create($this->validated($request));
 
-    $payload = $request->except('is_active');
-    $payload['is_active'] = $request->boolean('is_active', true);
-
-    Termination::create($payload);
-    $sucMsg = array(
-      'message' => 'Erfolgreich hinzugefügt ',
-      'alert-type' => 'success'
-    );
-
-    return redirect()->route('dashboard')->with($sucMsg);
+    return back()->with('success', 'Kündigung hinzugefügt.');
   }
 
 
@@ -78,28 +72,58 @@ class TerminationController extends Controller
 
   public function edit(Termination $termination)
   {
-    return view('termination.edit', compact('termination'));
+    return redirect()->route('home');
   }
 
   public function update(Request $request, Termination $termination)
   {
-    $request->validate([
-      'name' => 'required',
-      'location' => 'required',
-      'exit' => 'required',
+    $termination->update($this->validated($request));
+
+    return back()->with('success', 'Kündigung gespeichert.');
+  }
+
+  /** Shared rules for Neu / Bearbeiten (dialog on the Dashboard). */
+  private function validated(Request $request): array
+  {
+    $data = $request->validate([
+      'name' => 'required|string|max:255',
+      'location' => 'required|string|max:255',
+      'occupation' => 'nullable|string|max:255',
+      'exit' => 'required|date',
       'is_active' => 'nullable|boolean',
     ]);
+    $data['is_active'] = $request->boolean('is_active', true);
 
-    $payload = $request->except('is_active');
-    $payload['is_active'] = $request->boolean('is_active', true);
+    return $data;
+  }
 
-    $termination->update($payload);
-    $sucMsg = array(
-      'message' => 'Erfolgreich bearbeitet ',
-      'alert-type' => 'success'
-    );
+  /**
+   * "Entfernen": the Kündigung is no longer needed (withdrawn, contract
+   * renewed, ...). Leaves the list like a delete, but keeps reason / who /
+   * when for the Verlauf, and says so in the mail.
+   */
+  public function remove(Request $request, $id)
+  {
+    $termination = Termination::findOrFail($id);
+    $data = $request->validate([
+      'reason' => ['required', Rule::in(array_keys(Termination::REMOVAL_REASONS))],
+      'note' => 'nullable|string|max:1000|required_if:reason,other',
+    ], [
+      'note.required_if' => 'Bitte eine Begründung angeben.',
+    ]);
 
-    return redirect()->route('dashboard')->with($sucMsg);
+    $termination->removal_reason = $data['reason'];
+    $termination->removal_note = $data['note'] ?? null;
+    $termination->removed_by = auth()->id();
+    $termination->removed_at = now();
+    $termination->save();
+
+    $mail = $this->buildNotificationData($termination, 'removed');
+    \App\Support\Notify::one(Notification::route('mail', $this->notificationRecipients()), new \App\Notifications\TerminationDeletedNotification($mail));
+
+    $termination->delete();
+
+    return back()->with('success', $termination->name.' wurde aus der Liste entfernt.');
   }
 
   public function destroyed(Termination $termination, $id)
@@ -142,14 +166,45 @@ class TerminationController extends Controller
   }
   public function history()
   {
-    $terminations = Termination::onlyTrashed()->get();
-    return view('termination.history', compact('terminations'));
+    $rows = Termination::onlyTrashed()
+      ->with('removedByUser')
+      ->orderByDesc('deleted_at')
+      ->get()
+      ->map(function (Termination $t) {
+        $by = $t->removedByUser;
+
+        return [
+          'id' => $t->id,
+          'name' => $t->name,
+          'location' => $t->location,
+          'occupation' => $t->occupation,
+          'exit' => optional($t->exit)->toDateString(),
+          'deleted_at' => optional($t->deleted_at)->toIso8601String(),
+          // "removed" = Entfernt (with reason), otherwise a plain Löschen.
+          'kind' => $t->removal_reason ? 'removed' : 'deleted',
+          'reason' => $t->removal_reason ? (Termination::REMOVAL_REASONS[$t->removal_reason] ?? $t->removal_reason) : null,
+          'note' => $t->removal_note,
+          'removed_by' => $by ? trim($by->vorname.' '.$by->name) : null,
+        ];
+      })
+      ->values();
+
+    return Inertia::render('Terminations/History', ['terminations' => $rows]);
   }
 
   public function restore($id)
   {
-    Termination::withTrashed()->find($id)->restore();
-    return back();
+    $termination = Termination::withTrashed()->findOrFail($id);
+    $termination->restore();
+    // Back on the list - the removal info no longer applies.
+    $termination->forceFill([
+      'removal_reason' => null,
+      'removal_note' => null,
+      'removed_by' => null,
+      'removed_at' => null,
+    ])->save();
+
+    return back()->with('success', $termination->name.' wurde wiederhergestellt.');
   }
 
   /**
@@ -160,11 +215,17 @@ class TerminationController extends Controller
     $titles = [
       'deleted'  => 'Mitarbeiter gelöscht',
       'inactive' => 'Mitarbeiter inaktiv',
+      'removed'  => 'Kündigung entfernt',
     ];
+
+    $reason = Termination::REMOVAL_REASONS[$termination->removal_reason] ?? null;
+    $removedText = $termination->name . ' aus ' . $termination->location . ' wurde aus der Kündigungsliste entfernt'
+      . ($reason ? ' (' . $reason . ($termination->removal_note ? ': ' . $termination->removal_note : '') . ')' : '') . '.';
 
     $messages = [
       'deleted'  => $termination->name . ' aus ' . $termination->location . ' wurde gelöscht.',
       'inactive' => $termination->name . ' aus ' . $termination->location . ' wurde als inaktiv markiert.',
+      'removed'  => $removedText,
     ];
 
     $title = $titles[$status] ?? 'Mitarbeiter aktualisiert';

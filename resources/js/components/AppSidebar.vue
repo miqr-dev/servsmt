@@ -17,20 +17,13 @@ import {
     ShieldCheck,
     Ticket as TicketIcon,
     Users,
+    UserMinus,
     UsersRound,
 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
 
 // Nav structure ported from the old resources/views/layouts/admin_layout/admin_sidebar.blade.php.
@@ -140,6 +133,7 @@ const adminItems: NavItem[] = [
     },
     { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Teilnehmer_Info', 'Sekretariat'] },
     { title: 'Mitarbeiter Liste', href: '/employees', icon: Briefcase, roles: ['Super_Admin', 'HR'] },
+    { title: 'Kündigungen', href: '/terminations', icon: UserMinus, roles: ['Super_Admin', 'HR'] },
 ];
 </script>
 

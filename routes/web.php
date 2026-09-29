@@ -449,7 +449,8 @@ Route::POST('terminations.delete/{id}', 'TerminationController@destroyed')->name
 Route::POST('terminations/upload', 'TerminationController@storeUpload')->name('termination_upload');
 Route::GET('terminations/upload_terminations', 'TerminationController@createUpload')->name('terminationCreate_upload');
 Route::GET('terminations/history', 'TerminationController@history')->name('termination_history');
-Route::GET('terminations/restore/{id}', 'TerminationController@restore')->name('termination.restore');
+Route::match(['get', 'post'], 'terminations/restore/{id}', 'TerminationController@restore')->name('termination.restore');
+Route::POST('terminations/{id}/remove', 'TerminationController@remove')->name('termination.remove'); // Entfernen (not needed anymore)
 
 Route::POST('terminations/{termination}/toggle', 'TerminationController@toggleStatus')->name('terminations.toggle');
 Route::resource('terminations', 'TerminationController');
