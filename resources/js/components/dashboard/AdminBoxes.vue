@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Pencil, Power, PowerOff, Trash2 } from '@lucide/vue';
+import { Pencil, Trash2 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import RowActions, { type RowAction } from '@/components/RowActions.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
@@ -9,10 +9,10 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
 
 /**
- * HR / Super_Admin boxes of the unified Dashboard (pages/Home.vue), moved here
+ * Super_Admin boxes of the unified Dashboard (pages/Home.vue), moved here
  * 2026-09-29 from the former /dashboard page (pages/Dashboard.vue, removed).
+ * (HR Kündigungen: components/dashboard/TerminationsBox.vue.)
  * Every box renders only when its prop is sent - DashboardController decides:
- * - terminations (Kündigungen): HR (+ Super_Admin)
  * - licenses (Lizenzen): Super_Admin only (your decision 2026-09-29)
  * - active/history email forwardings: Super_Admin only (as in the old app)
  * Tables use the shared useDataTable standard (sort, search, paging).
@@ -25,15 +25,6 @@ type LicenseRow = {
     comment: string | null;
     valid: string | null;
     version: string | null;
-};
-
-type TerminationRow = {
-    id: number;
-    name: string;
-    exit: string | null;
-    is_active: boolean;
-    location: string | null;
-    occupation: string | null;
 };
 
 type ForwardingUser = { name: string; vorname: string | null } | null;
@@ -56,7 +47,6 @@ type ForwardingTicketRow = {
 
 const props = defineProps<{
     licenses?: LicenseRow[];
-    terminations?: TerminationRow[];
     activeEmailForwardingTickets?: ForwardingTicketRow[];
     historyEmailForwardingTickets?: ForwardingTicketRow[];
 }>();
@@ -107,18 +97,6 @@ function deleteLicense(license: LicenseRow) {
     router.delete(`/licenses/${license.id}`, { preserveScroll: true });
 }
 
-function deleteTermination(termination: TerminationRow) {
-    if (!confirm(`"${termination.name}" wirklich löschen?`)) return;
-
-    // TerminationController has no resource destroy(); the old app used this
-    // POST route (it also mails the fixed recipient list).
-    router.post(`/terminations.delete/${termination.id}`, {}, { preserveScroll: true });
-}
-
-function toggleTermination(termination: TerminationRow) {
-    router.post(`/terminations/${termination.id}/toggle`, {}, { preserveScroll: true });
-}
-
 function markForwardingRemoved(ticket: ForwardingTicketRow) {
     router.post(`/ticket/${ticket.id}/forwarding-removed`, {}, { preserveScroll: true });
 }
@@ -139,27 +117,6 @@ function licenseActions(license: LicenseRow): RowAction[] {
     ];
 }
 
-function terminationActions(termination: TerminationRow): RowAction[] {
-    return [
-        {
-            icon: Pencil,
-            label: 'Bearbeiten',
-            href: `/terminations/${termination.id}/edit`,
-        },
-        {
-            icon: termination.is_active ? PowerOff : Power,
-            label: termination.is_active ? 'Deaktivieren' : 'Aktivieren',
-            onClick: () => toggleTermination(termination),
-        },
-        {
-            icon: Trash2,
-            label: 'Löschen',
-            variant: 'destructive',
-            onClick: () => deleteTermination(termination),
-        },
-    ];
-}
-
 // --- Licenses table ---
 const LICENSE_COLUMNS: DataTableColumn<LicenseRow>[] = [
     { key: 'name' },
@@ -171,16 +128,6 @@ const LICENSE_COLUMNS: DataTableColumn<LicenseRow>[] = [
 ];
 const licenses = computed(() => props.licenses ?? []);
 const licenseTable = reactive(useDataTable(licenses, LICENSE_COLUMNS));
-
-// --- Terminations table ---
-const TERMINATION_COLUMNS: DataTableColumn<TerminationRow>[] = [
-    { key: 'name' },
-    { key: 'exit', searchable: false },
-    { key: 'location' },
-    { key: 'actions', sortable: false, searchable: false },
-];
-const terminations = computed(() => props.terminations ?? []);
-const terminationTable = reactive(useDataTable(terminations, TERMINATION_COLUMNS));
 
 // --- Active email forwarding table ---
 const ACTIVE_FORWARDING_COLUMNS: DataTableColumn<ForwardingTicketRow>[] = [
@@ -211,13 +158,9 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
 
 <template>
     <div class="flex flex-col gap-6">
-        <div v-if="props.licenses || props.terminations" class="grid gap-6" :class="props.licenses && props.terminations ? 'lg:grid-cols-3' : ''">
+        <div v-if="props.licenses" class="grid gap-6">
             <!-- Licenses (Super_Admin) -->
-            <div
-                v-if="props.licenses"
-                class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm"
-                :class="props.terminations ? 'lg:col-span-2' : ''"
-            >
+            <div class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b p-4">
                     <h3 class="font-semibold">Lizenzen</h3>
                     <Link
@@ -305,85 +248,6 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                     :total="licenseTable.total"
                     item-label="Lizenzen"
                     @update:page="licenseTable.page = $event"
-                />
-            </div>
-
-            <!-- Terminations -->
-            <!-- Terminations (HR) -->
-            <div v-if="props.terminations" class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm">
-                <div class="flex items-center justify-between border-b p-4">
-                    <h3 class="font-semibold">Kündigungen</h3>
-                    <div class="flex gap-2">
-                        <Link href="/terminations/history" class="text-muted-foreground hover:text-foreground text-sm">Verlauf</Link>
-                        <Link
-                            href="/terminations/create"
-                            class="border-primary text-primary hover:bg-primary hover:text-primary-foreground inline-flex h-8 items-center rounded-md border px-3 text-sm"
-                            >+ Neu</Link
-                        >
-                    </div>
-                </div>
-                <div class="p-3">
-                    <TableToolbar
-                        v-model:search="terminationTable.search"
-                        v-model:page-size="terminationTable.pageSize"
-                        search-placeholder="Kündigung suchen..."
-                    />
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-muted-foreground text-left">
-                            <tr>
-                                <TableHeadCell
-                                    label="Name"
-                                    sort-key="name"
-                                    :active-key="terminationTable.sortKey"
-                                    :direction="terminationTable.sortDir"
-                                    @sort="terminationTable.toggleSort('name')"
-                                />
-                                <TableHeadCell
-                                    label="Austritt"
-                                    sort-key="exit"
-                                    :active-key="terminationTable.sortKey"
-                                    :direction="terminationTable.sortDir"
-                                    @sort="terminationTable.toggleSort('exit')"
-                                />
-                                <TableHeadCell
-                                    label="Standort"
-                                    sort-key="location"
-                                    :active-key="terminationTable.sortKey"
-                                    :direction="terminationTable.sortDir"
-                                    @sort="terminationTable.toggleSort('location')"
-                                />
-                                <TableHeadCell label="Aktion" align="right" />
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="termination in terminationTable.pagedRows" :key="termination.id">
-                                <td class="p-3">{{ termination.name }}</td>
-                                <td class="p-3" :class="dateColorClass(termination.exit, !termination.is_active)">
-                                    {{ formatDate(termination.exit) }}
-                                </td>
-                                <td class="p-3">{{ termination.location }}</td>
-                                <td class="p-3">
-                                    <RowActions :actions="terminationActions(termination)" />
-                                </td>
-                            </tr>
-                            <tr v-if="!terminationTable.pagedRows.length">
-                                <td colspan="4" class="text-muted-foreground p-3 text-center">
-                                    {{ terminationTable.search ? 'Keine Kündigungen gefunden.' : 'Keine Kündigungen vorhanden.' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <TablePagination
-                    :page="terminationTable.page"
-                    :page-count="terminationTable.pageCount"
-                    :range-from="terminationTable.rangeFrom"
-                    :range-to="terminationTable.rangeTo"
-                    :total="terminationTable.total"
-                    item-label="Kündigungen"
-                    @update:page="terminationTable.page = $event"
                 />
             </div>
         </div>

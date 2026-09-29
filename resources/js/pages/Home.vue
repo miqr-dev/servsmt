@@ -20,6 +20,7 @@ import {
 } from '@lucide/vue';
 import { computed, h, ref } from 'vue';
 import AdminBoxes from '@/components/dashboard/AdminBoxes.vue';
+import TerminationsBox, { type TerminationRow } from '@/components/dashboard/TerminationsBox.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Auth, BreadcrumbItem } from '@/types';
@@ -63,13 +64,13 @@ const props = defineProps<{
     cityHandwerks?: CityHandwerk[];
     handwerkCity?: string;
     // HR / Super_Admin boxes - shapes are typed inside AdminBoxes.vue.
-    terminations?: unknown[];
+    terminations?: TerminationRow[];
     licenses?: unknown[];
     activeEmailForwardingTickets?: unknown[];
     historyEmailForwardingTickets?: unknown[];
 }>();
 
-const hasAdminBoxes = computed(() => !!(props.terminations || props.licenses || props.activeEmailForwardingTickets));
+const hasAdminBoxes = computed(() => !!(props.licenses || props.activeEmailForwardingTickets));
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -172,7 +173,7 @@ const SHORTCUTS = [
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:flex-row lg:items-start">
         <div class="flex min-w-0 flex-1 flex-col gap-6">
             <!-- Greeting + news (the news bar formerly on the IT ticket page) -->
-            <div class="grid gap-6" :class="props.newsBar ? 'md:grid-cols-2' : ''">
+            <div class="grid gap-6" :class="props.newsBar ? 'lg:grid-cols-2' : ''">
                 <section class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
                     <p class="text-muted-foreground text-sm">
                         {{ todayLabel }}
@@ -445,12 +446,14 @@ const SHORTCUTS = [
                         <Link :href="FORWARD_FORM" class="text-primary font-medium hover:underline">Weiterleitung beantragen</Link>
                     </div>
                 </section>
+
+                <!-- HR: Kündigungen - right column, under the news box, beside the forwardings -->
+                <TerminationsBox v-if="props.terminations" class="lg:self-start" :terminations="props.terminations" />
             </div>
 
-            <!-- HR: Kündigungen. Super_Admin: + Lizenzen + all email forwardings -->
+            <!-- Super_Admin: Lizenzen + all email forwardings -->
             <AdminBoxes
                 v-if="hasAdminBoxes"
-                :terminations="props.terminations as any"
                 :licenses="props.licenses as any"
                 :active-email-forwarding-tickets="props.activeEmailForwardingTickets as any"
                 :history-email-forwarding-tickets="props.historyEmailForwardingTickets as any"
