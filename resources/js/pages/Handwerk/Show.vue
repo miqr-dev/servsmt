@@ -76,8 +76,11 @@ const canComplete = computed(
     () => isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat'),
 );
 
-const fromCity = new URLSearchParams(window.location.search).get('from_city');
-const backHref = computed(() => (fromCity ? `/handwerker/${fromCity}` : '/handwerk'));
+const query = new URLSearchParams(window.location.search);
+const fromCity = query.get('from_city');
+// Opened from the Dashboard's Handwerk box (Sekretariat): go back there.
+const fromDashboard = query.get('from') === 'dashboard';
+const backHref = computed(() => (fromCity ? `/handwerker/${fromCity}` : fromDashboard ? '/' : '/handwerk'));
 
 function formatDate(value: string): string {
     return new Date(value).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -116,7 +119,7 @@ async function onAssignChange() {
 function markDone() {
     router.post(
         `/handwerk.delete/${props.handwerk.id}`,
-        fromCity ? { from_city: fromCity } : {},
+        fromCity ? { from_city: fromCity } : fromDashboard ? { from_dashboard: 1 } : {},
         { preserveScroll: true },
     );
 }
@@ -136,7 +139,7 @@ function restore() {
                 class="border-border bg-card hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm"
             >
                 <ArrowLeft class="h-4 w-4" />
-                {{ fromCity ? 'Zurück zur Stadt' : 'Zurück zur Übersicht' }}
+                {{ fromCity ? 'Zurück zur Stadt' : fromDashboard ? 'Zurück zum Dashboard' : 'Zurück zur Übersicht' }}
             </Link>
         </div>
 

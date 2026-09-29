@@ -43,6 +43,10 @@ return [
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'auth_mode' => null,
+            // Set MAIL_VERIFY_PEER=false only when the mail server uses a certificate
+            // from an internal CA that PHP doesn't trust. Better: add that CA to
+            // openssl.cafile in php.ini and keep verification on.
+            'verify_peer' => env('MAIL_VERIFY_PEER', true),
         ],
 
         'ses' => [

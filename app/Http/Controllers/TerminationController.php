@@ -108,10 +108,14 @@ class TerminationController extends Controller
 
     $data = $this->buildNotificationData($termination, 'deleted');
 
-    Notification::route('mail', $this->notificationRecipients())
-      ->notify(new \App\Notifications\TerminationDeletedNotification($data));
+    \App\Support\Notify::one(Notification::route('mail', $this->notificationRecipients()), new \App\Notifications\TerminationDeletedNotification($data));
 
     $termination->delete();
+
+    // Dashboard (Inertia) goes back; the old jQuery AJAX still gets 'true'.
+    if (request()->header('X-Inertia')) {
+      return back();
+    }
 
     return 'true';
   }
@@ -124,8 +128,7 @@ class TerminationController extends Controller
     if (! $termination->is_active) {
       $data = $this->buildNotificationData($termination, 'inactive');
 
-      Notification::route('mail', $this->notificationRecipients())
-        ->notify(new \App\Notifications\TerminationDeletedNotification($data));
+      \App\Support\Notify::one(Notification::route('mail', $this->notificationRecipients()), new \App\Notifications\TerminationDeletedNotification($data));
     }
 
     $message = $termination->is_active

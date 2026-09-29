@@ -31,6 +31,22 @@ class Notify
             && $notifiable->trashed();
     }
 
+    /**
+     * Same safety for single ->notify() calls (users or Notification::route()
+     * recipients): a mail failure is logged, never shown to the user.
+     */
+    public static function one($notifiable, $notification): void
+    {
+        if ($notifiable === null || self::isRemoved($notifiable)) {
+            return;
+        }
+        try {
+            $notifiable->notify($notification);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     public static function send($notifiables, $notification): void
     {
         $list = $notifiables instanceof Collection
@@ -45,6 +61,13 @@ class Notify
             return;
         }
 
-        Notification::send($list, $notification);
+        // A mail problem (SMTP down, certificate error, ...) must not turn an
+        // already-saved ticket/comment into an error page - the user would
+        // retry and create duplicates. Log it and carry on.
+        try {
+            Notification::send($list, $notification);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

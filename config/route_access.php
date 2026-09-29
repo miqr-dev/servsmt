@@ -119,7 +119,7 @@ return [
 
     // ─── Handwerk ───────────────────────────────────────────────────────
     'handwerker/*' => $HW_STAFF,                  // per-city lists + ToDos
-    'handwerk.delete/{myhandwerk}' => $HW_STAFF,  // Erledigt
+    'handwerk.delete/{myhandwerk}' => $HW_STAFF.'|Sekretariat',  // Erledigt - Sekretariat could in the old app too
     'handwerk/ajax-destroy/{id}' => $HW_STAFF,
     'handwerk/assignTo' => $HW_ADMIN,
     'handwerk/admin_notes' => $HW_ADMIN,
@@ -187,7 +187,7 @@ return [
     'practice-companies*' => 'Terminal',
 
     // ─── HR ─────────────────────────────────────────────────────────────
-    'licenses*' => $HR,
+    'licenses*' => 'Super_Admin',                 // Lizenzen: Super_Admin only (2026-09-29)
     'terminations*' => $HR,
     'terminations.delete/{id}' => $HR,
     'employees*' => $HR,

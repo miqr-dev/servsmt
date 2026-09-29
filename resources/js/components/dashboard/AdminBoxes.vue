@@ -1,31 +1,21 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { Pencil, Power, PowerOff, Trash2 } from '@lucide/vue';
-import { computed, h, reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import RowActions, { type RowAction } from '@/components/RowActions.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
 import TablePagination from '@/components/table/TablePagination.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
-import AppLayout from '@/layouts/AppLayout.vue';
-import type { Auth, BreadcrumbItem } from '@/types';
 
 /**
- * First page converted from the old AdminLTE shell (resources/views/wilkommen.blade.php).
- * Server-side gating is unchanged: LicenseController@index only renders this for
- * Super_Admin/HR, and only Super_Admin additionally sees the forwarding cards -
- * see the isSuperAdmin check below, which mirrors the old @if(hasRole('Super_Admin')).
- *
- * Retrofitted 2026-09-17 to the shared sortable/searchable/paginated table
- * standard (see useDataTable.ts) - all 4 tables here already arrive as full
- * arrays, so this needed no controller change, just wiring each one through
- * its own useDataTable() instance (they're 4 independent tables, not one).
- * Date columns (valid/exit/forward_required_at/forward_to_at/
- * forward_removed_at) are marked `searchable: false` - they still sort
- * correctly (on the raw ISO value, not the dd.mm.yyyy display string), but
- * matching the free-text box against a raw ISO timestamp isn't something a
- * user would ever type, so leaving them out of search avoids confusing
- * "why doesn't typing today's date find anything" results.
+ * HR / Super_Admin boxes of the unified Dashboard (pages/Home.vue), moved here
+ * 2026-09-29 from the former /dashboard page (pages/Dashboard.vue, removed).
+ * Every box renders only when its prop is sent - DashboardController decides:
+ * - terminations (Kündigungen): HR (+ Super_Admin)
+ * - licenses (Lizenzen): Super_Admin only (your decision 2026-09-29)
+ * - active/history email forwardings: Super_Admin only (as in the old app)
+ * Tables use the shared useDataTable standard (sort, search, paging).
  */
 
 type LicenseRow = {
@@ -65,28 +55,11 @@ type ForwardingTicketRow = {
 };
 
 const props = defineProps<{
-    licenses: LicenseRow[];
-    terminations: TerminationRow[];
-    activeEmailForwardingTickets: ForwardingTicketRow[];
-    historyEmailForwardingTickets: ForwardingTicketRow[];
+    licenses?: LicenseRow[];
+    terminations?: TerminationRow[];
+    activeEmailForwardingTickets?: ForwardingTicketRow[];
+    historyEmailForwardingTickets?: ForwardingTicketRow[];
 }>();
-
-defineOptions({
-    layout: (h_: typeof h, page: unknown) => {
-        const breadcrumbs: BreadcrumbItem[] = [
-            { title: 'Dashboard', href: '/dashboard' },
-        ];
-
-        return h_(AppLayout, { breadcrumbs }, () => page);
-    },
-});
-
-const page = usePage<{ auth: Auth }>();
-const roles = computed(() => page.props.auth.user?.roles ?? []);
-const isSuperAdmin = computed(() => roles.value.includes('Super_Admin'));
-const isHrOrSuperAdmin = computed(
-    () => roles.value.includes('HR') || isSuperAdmin.value,
-);
 
 const showForwardingHistory = ref(false);
 
@@ -123,8 +96,7 @@ function dateColorClass(value: string | null, inactive = false): string {
     const diff = new Date(value).getTime() - now;
 
     if (diff <= WEEK_MS) return 'font-semibold text-red-600 dark:text-red-400';
-    if (diff <= MONTH_MS)
-        return 'font-semibold text-orange-500 dark:text-orange-400';
+    if (diff <= MONTH_MS) return 'font-semibold text-orange-500 dark:text-orange-400';
 
     return 'font-semibold text-green-600 dark:text-green-400';
 }
@@ -138,23 +110,17 @@ function deleteLicense(license: LicenseRow) {
 function deleteTermination(termination: TerminationRow) {
     if (!confirm(`"${termination.name}" wirklich löschen?`)) return;
 
-    router.delete(`/terminations/${termination.id}`, { preserveScroll: true });
+    // TerminationController has no resource destroy(); the old app used this
+    // POST route (it also mails the fixed recipient list).
+    router.post(`/terminations.delete/${termination.id}`, {}, { preserveScroll: true });
 }
 
 function toggleTermination(termination: TerminationRow) {
-    router.post(
-        `/terminations/${termination.id}/toggle`,
-        {},
-        { preserveScroll: true },
-    );
+    router.post(`/terminations/${termination.id}/toggle`, {}, { preserveScroll: true });
 }
 
 function markForwardingRemoved(ticket: ForwardingTicketRow) {
-    router.post(
-        `/ticket/${ticket.id}/forwarding-removed`,
-        {},
-        { preserveScroll: true },
-    );
+    router.post(`/ticket/${ticket.id}/forwarding-removed`, {}, { preserveScroll: true });
 }
 
 function licenseActions(license: LicenseRow): RowAction[] {
@@ -203,7 +169,7 @@ const LICENSE_COLUMNS: DataTableColumn<LicenseRow>[] = [
     { key: 'version' },
     { key: 'actions', sortable: false, searchable: false },
 ];
-const licenses = computed(() => props.licenses);
+const licenses = computed(() => props.licenses ?? []);
 const licenseTable = reactive(useDataTable(licenses, LICENSE_COLUMNS));
 
 // --- Terminations table ---
@@ -213,7 +179,7 @@ const TERMINATION_COLUMNS: DataTableColumn<TerminationRow>[] = [
     { key: 'location' },
     { key: 'actions', sortable: false, searchable: false },
 ];
-const terminations = computed(() => props.terminations);
+const terminations = computed(() => props.terminations ?? []);
 const terminationTable = reactive(useDataTable(terminations, TERMINATION_COLUMNS));
 
 // --- Active email forwarding table ---
@@ -226,7 +192,7 @@ const ACTIVE_FORWARDING_COLUMNS: DataTableColumn<ForwardingTicketRow>[] = [
     { key: 'submitter', value: (t) => personLabel(t.subUser, null) },
     { key: 'actions', sortable: false, searchable: false },
 ];
-const activeForwarding = computed(() => props.activeEmailForwardingTickets);
+const activeForwarding = computed(() => props.activeEmailForwardingTickets ?? []);
 const activeForwardingTable = reactive(useDataTable(activeForwarding, ACTIVE_FORWARDING_COLUMNS));
 
 // --- Forwarding history table ---
@@ -239,18 +205,18 @@ const HISTORY_FORWARDING_COLUMNS: DataTableColumn<ForwardingTicketRow>[] = [
     { key: 'forward_removed_at', searchable: false },
     { key: 'removedBy', value: (t) => personLabel(t.forwardRemovedByUser, null) },
 ];
-const historyForwarding = computed(() => props.historyEmailForwardingTickets);
+const historyForwarding = computed(() => props.historyEmailForwardingTickets ?? []);
 const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_FORWARDING_COLUMNS));
 </script>
 
 <template>
-    <Head title="Dashboard" />
-
-    <div class="flex flex-1 flex-col gap-4 p-4">
-        <div v-if="isHrOrSuperAdmin" class="grid gap-4 lg:grid-cols-3">
-            <!-- Licenses -->
+    <div class="flex flex-col gap-6">
+        <div v-if="props.licenses || props.terminations" class="grid gap-6" :class="props.licenses && props.terminations ? 'lg:grid-cols-3' : ''">
+            <!-- Licenses (Super_Admin) -->
             <div
-                class="bg-card text-card-foreground rounded-xl border shadow-sm lg:col-span-2"
+                v-if="props.licenses"
+                class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm"
+                :class="props.terminations ? 'lg:col-span-2' : ''"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b p-4">
                     <h3 class="font-semibold">Lizenzen</h3>
@@ -262,17 +228,51 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                     </Link>
                 </div>
                 <div class="p-3">
-                    <TableToolbar v-model:search="licenseTable.search" v-model:page-size="licenseTable.pageSize" search-placeholder="Lizenz suchen..." />
+                    <TableToolbar
+                        v-model:search="licenseTable.search"
+                        v-model:page-size="licenseTable.pageSize"
+                        search-placeholder="Lizenz suchen..."
+                    />
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Lizenzname" sort-key="name" :active-key="licenseTable.sortKey" :direction="licenseTable.sortDir" @sort="licenseTable.toggleSort('name')" />
-                                <TableHeadCell label="Wo" sort-key="where" :active-key="licenseTable.sortKey" :direction="licenseTable.sortDir" @sort="licenseTable.toggleSort('where')" />
-                                <TableHeadCell label="Bemerkung" sort-key="comment" :active-key="licenseTable.sortKey" :direction="licenseTable.sortDir" @sort="licenseTable.toggleSort('comment')" />
-                                <TableHeadCell label="Gültig" sort-key="valid" :active-key="licenseTable.sortKey" :direction="licenseTable.sortDir" @sort="licenseTable.toggleSort('valid')" />
-                                <TableHeadCell label="Version" sort-key="version" :active-key="licenseTable.sortKey" :direction="licenseTable.sortDir" @sort="licenseTable.toggleSort('version')" />
+                                <TableHeadCell
+                                    label="Lizenzname"
+                                    sort-key="name"
+                                    :active-key="licenseTable.sortKey"
+                                    :direction="licenseTable.sortDir"
+                                    @sort="licenseTable.toggleSort('name')"
+                                />
+                                <TableHeadCell
+                                    label="Wo"
+                                    sort-key="where"
+                                    :active-key="licenseTable.sortKey"
+                                    :direction="licenseTable.sortDir"
+                                    @sort="licenseTable.toggleSort('where')"
+                                />
+                                <TableHeadCell
+                                    label="Bemerkung"
+                                    sort-key="comment"
+                                    :active-key="licenseTable.sortKey"
+                                    :direction="licenseTable.sortDir"
+                                    @sort="licenseTable.toggleSort('comment')"
+                                />
+                                <TableHeadCell
+                                    label="Gültig"
+                                    sort-key="valid"
+                                    :active-key="licenseTable.sortKey"
+                                    :direction="licenseTable.sortDir"
+                                    @sort="licenseTable.toggleSort('valid')"
+                                />
+                                <TableHeadCell
+                                    label="Version"
+                                    sort-key="version"
+                                    :active-key="licenseTable.sortKey"
+                                    :direction="licenseTable.sortDir"
+                                    @sort="licenseTable.toggleSort('version')"
+                                />
                                 <TableHeadCell label="Ändern" align="right" />
                             </tr>
                         </thead>
@@ -281,10 +281,7 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                                 <td class="p-3">{{ license.name }}</td>
                                 <td class="p-3">{{ license.where }}</td>
                                 <td class="p-3">{{ license.comment }}</td>
-                                <td
-                                    class="p-3"
-                                    :class="dateColorClass(license.valid)"
-                                >
+                                <td class="p-3" :class="dateColorClass(license.valid)">
                                     {{ formatDate(license.valid) }}
                                 </td>
                                 <td class="p-3">{{ license.version }}</td>
@@ -293,10 +290,7 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                                 </td>
                             </tr>
                             <tr v-if="!licenseTable.pagedRows.length">
-                                <td
-                                    colspan="6"
-                                    class="text-muted-foreground p-3 text-center"
-                                >
+                                <td colspan="6" class="text-muted-foreground p-3 text-center">
                                     {{ licenseTable.search ? 'Keine Lizenzen gefunden.' : 'Keine Lizenzen vorhanden.' }}
                                 </td>
                             </tr>
@@ -315,15 +309,12 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
             </div>
 
             <!-- Terminations -->
-            <div class="bg-card text-card-foreground rounded-xl border shadow-sm">
+            <!-- Terminations (HR) -->
+            <div v-if="props.terminations" class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm">
                 <div class="flex items-center justify-between border-b p-4">
                     <h3 class="font-semibold">Kündigungen</h3>
                     <div class="flex gap-2">
-                        <Link
-                            href="/terminations/history"
-                            class="text-muted-foreground hover:text-foreground text-sm"
-                            >Verlauf</Link
-                        >
+                        <Link href="/terminations/history" class="text-muted-foreground hover:text-foreground text-sm">Verlauf</Link>
                         <Link
                             href="/terminations/create"
                             class="border-primary text-primary hover:bg-primary hover:text-primary-foreground inline-flex h-8 items-center rounded-md border px-3 text-sm"
@@ -332,47 +323,53 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                     </div>
                 </div>
                 <div class="p-3">
-                    <TableToolbar v-model:search="terminationTable.search" v-model:page-size="terminationTable.pageSize" search-placeholder="Kündigung suchen..." />
+                    <TableToolbar
+                        v-model:search="terminationTable.search"
+                        v-model:page-size="terminationTable.pageSize"
+                        search-placeholder="Kündigung suchen..."
+                    />
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Name" sort-key="name" :active-key="terminationTable.sortKey" :direction="terminationTable.sortDir" @sort="terminationTable.toggleSort('name')" />
-                                <TableHeadCell label="Austritt" sort-key="exit" :active-key="terminationTable.sortKey" :direction="terminationTable.sortDir" @sort="terminationTable.toggleSort('exit')" />
-                                <TableHeadCell label="Standort" sort-key="location" :active-key="terminationTable.sortKey" :direction="terminationTable.sortDir" @sort="terminationTable.toggleSort('location')" />
+                                <TableHeadCell
+                                    label="Name"
+                                    sort-key="name"
+                                    :active-key="terminationTable.sortKey"
+                                    :direction="terminationTable.sortDir"
+                                    @sort="terminationTable.toggleSort('name')"
+                                />
+                                <TableHeadCell
+                                    label="Austritt"
+                                    sort-key="exit"
+                                    :active-key="terminationTable.sortKey"
+                                    :direction="terminationTable.sortDir"
+                                    @sort="terminationTable.toggleSort('exit')"
+                                />
+                                <TableHeadCell
+                                    label="Standort"
+                                    sort-key="location"
+                                    :active-key="terminationTable.sortKey"
+                                    :direction="terminationTable.sortDir"
+                                    @sort="terminationTable.toggleSort('location')"
+                                />
                                 <TableHeadCell label="Aktion" align="right" />
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            <tr
-                                v-for="termination in terminationTable.pagedRows"
-                                :key="termination.id"
-                            >
+                            <tr v-for="termination in terminationTable.pagedRows" :key="termination.id">
                                 <td class="p-3">{{ termination.name }}</td>
-                                <td
-                                    class="p-3"
-                                    :class="
-                                        dateColorClass(
-                                            termination.exit,
-                                            !termination.is_active,
-                                        )
-                                    "
-                                >
+                                <td class="p-3" :class="dateColorClass(termination.exit, !termination.is_active)">
                                     {{ formatDate(termination.exit) }}
                                 </td>
                                 <td class="p-3">{{ termination.location }}</td>
                                 <td class="p-3">
-                                    <RowActions
-                                        :actions="terminationActions(termination)"
-                                    />
+                                    <RowActions :actions="terminationActions(termination)" />
                                 </td>
                             </tr>
                             <tr v-if="!terminationTable.pagedRows.length">
-                                <td
-                                    colspan="4"
-                                    class="text-muted-foreground p-3 text-center"
-                                >
+                                <td colspan="4" class="text-muted-foreground p-3 text-center">
                                     {{ terminationTable.search ? 'Keine Kündigungen gefunden.' : 'Keine Kündigungen vorhanden.' }}
                                 </td>
                             </tr>
@@ -392,60 +389,81 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
         </div>
 
         <!-- Email forwarding - Super_Admin only, matches the old @if(hasRole('Super_Admin')) -->
-        <template v-if="isSuperAdmin">
+        <template v-if="props.activeEmailForwardingTickets">
             <div class="bg-card text-card-foreground rounded-xl border shadow-sm">
                 <div class="flex items-center justify-between border-b p-4">
-                    <h3 class="font-semibold">
-                        E-Mail-Weiterleitungen (Aktiv)
-                    </h3>
+                    <h3 class="font-semibold">E-Mail-Weiterleitungen (Aktiv)</h3>
                     <button
                         type="button"
                         class="border-border hover:bg-accent inline-flex h-8 items-center rounded-md border px-3 text-sm"
                         @click="showForwardingHistory = !showForwardingHistory"
                     >
-                        {{
-                            showForwardingHistory
-                                ? 'Verlauf ausblenden'
-                                : 'Verlauf anzeigen'
-                        }}
+                        {{ showForwardingHistory ? 'Verlauf ausblenden' : 'Verlauf anzeigen' }}
                     </button>
                 </div>
                 <div class="p-3">
-                    <TableToolbar v-model:search="activeForwardingTable.search" v-model:page-size="activeForwardingTable.pageSize" search-placeholder="Weiterleitung suchen..." />
+                    <TableToolbar
+                        v-model:search="activeForwardingTable.search"
+                        v-model:page-size="activeForwardingTable.pageSize"
+                        search-placeholder="Weiterleitung suchen..."
+                    />
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Von" sort-key="from" :active-key="activeForwardingTable.sortKey" :direction="activeForwardingTable.sortDir" @sort="activeForwardingTable.toggleSort('from')" />
-                                <TableHeadCell label="An" sort-key="on" :active-key="activeForwardingTable.sortKey" :direction="activeForwardingTable.sortDir" @sort="activeForwardingTable.toggleSort('on')" />
-                                <TableHeadCell label="Von Datum" sort-key="forward_required_at" :active-key="activeForwardingTable.sortKey" :direction="activeForwardingTable.sortDir" @sort="activeForwardingTable.toggleSort('forward_required_at')" />
-                                <TableHeadCell label="Bis Datum" sort-key="forward_to_at" :active-key="activeForwardingTable.sortKey" :direction="activeForwardingTable.sortDir" @sort="activeForwardingTable.toggleSort('forward_to_at')" />
-                                <TableHeadCell label="Status" sort-key="status" :active-key="activeForwardingTable.sortKey" :direction="activeForwardingTable.sortDir" @sort="activeForwardingTable.toggleSort('status')" />
-                                <TableHeadCell label="Erstellt von" sort-key="submitter" :active-key="activeForwardingTable.sortKey" :direction="activeForwardingTable.sortDir" @sort="activeForwardingTable.toggleSort('submitter')" />
+                                <TableHeadCell
+                                    label="Von"
+                                    sort-key="from"
+                                    :active-key="activeForwardingTable.sortKey"
+                                    :direction="activeForwardingTable.sortDir"
+                                    @sort="activeForwardingTable.toggleSort('from')"
+                                />
+                                <TableHeadCell
+                                    label="An"
+                                    sort-key="on"
+                                    :active-key="activeForwardingTable.sortKey"
+                                    :direction="activeForwardingTable.sortDir"
+                                    @sort="activeForwardingTable.toggleSort('on')"
+                                />
+                                <TableHeadCell
+                                    label="Von Datum"
+                                    sort-key="forward_required_at"
+                                    :active-key="activeForwardingTable.sortKey"
+                                    :direction="activeForwardingTable.sortDir"
+                                    @sort="activeForwardingTable.toggleSort('forward_required_at')"
+                                />
+                                <TableHeadCell
+                                    label="Bis Datum"
+                                    sort-key="forward_to_at"
+                                    :active-key="activeForwardingTable.sortKey"
+                                    :direction="activeForwardingTable.sortDir"
+                                    @sort="activeForwardingTable.toggleSort('forward_to_at')"
+                                />
+                                <TableHeadCell
+                                    label="Status"
+                                    sort-key="status"
+                                    :active-key="activeForwardingTable.sortKey"
+                                    :direction="activeForwardingTable.sortDir"
+                                    @sort="activeForwardingTable.toggleSort('status')"
+                                />
+                                <TableHeadCell
+                                    label="Erstellt von"
+                                    sort-key="submitter"
+                                    :active-key="activeForwardingTable.sortKey"
+                                    :direction="activeForwardingTable.sortDir"
+                                    @sort="activeForwardingTable.toggleSort('submitter')"
+                                />
                                 <TableHeadCell label="Aktion" />
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            <tr
-                                v-for="ticket in activeForwardingTable.pagedRows"
-                                :key="ticket.id"
-                            >
+                            <tr v-for="ticket in activeForwardingTable.pagedRows" :key="ticket.id">
                                 <td class="p-3">
-                                    {{
-                                        personLabel(
-                                            ticket.forwardFromUser,
-                                            ticket.forward_from,
-                                        )
-                                    }}
+                                    {{ personLabel(ticket.forwardFromUser, ticket.forward_from) }}
                                 </td>
                                 <td class="p-3">
-                                    {{
-                                        personLabel(
-                                            ticket.forwardOnUser,
-                                            ticket.forward_on,
-                                        )
-                                    }}
+                                    {{ personLabel(ticket.forwardOnUser, ticket.forward_on) }}
                                 </td>
                                 <td class="p-3">
                                     {{ formatDate(ticket.forward_required_at) }}
@@ -479,10 +497,7 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                                 </td>
                             </tr>
                             <tr v-if="!activeForwardingTable.pagedRows.length">
-                                <td
-                                    colspan="7"
-                                    class="text-muted-foreground p-3 text-center"
-                                >
+                                <td colspan="7" class="text-muted-foreground p-3 text-center">
                                     {{ activeForwardingTable.search ? 'Keine Weiterleitungen gefunden.' : 'Keine aktiven Weiterleitungen.' }}
                                 </td>
                             </tr>
@@ -500,51 +515,79 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                 />
             </div>
 
-            <div
-                v-if="showForwardingHistory"
-                class="bg-card text-card-foreground rounded-xl border shadow-sm"
-            >
+            <div v-if="showForwardingHistory" class="bg-card text-card-foreground rounded-xl border shadow-sm">
                 <div class="border-b p-4">
-                    <h3 class="font-semibold">
-                        E-Mail-Weiterleitungen (Verlauf)
-                    </h3>
+                    <h3 class="font-semibold">E-Mail-Weiterleitungen (Verlauf)</h3>
                 </div>
                 <div class="p-3">
-                    <TableToolbar v-model:search="historyForwardingTable.search" v-model:page-size="historyForwardingTable.pageSize" search-placeholder="Verlauf suchen..." />
+                    <TableToolbar
+                        v-model:search="historyForwardingTable.search"
+                        v-model:page-size="historyForwardingTable.pageSize"
+                        search-placeholder="Verlauf suchen..."
+                    />
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Von" sort-key="from" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('from')" />
-                                <TableHeadCell label="An" sort-key="on" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('on')" />
-                                <TableHeadCell label="Von Datum" sort-key="forward_required_at" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('forward_required_at')" />
-                                <TableHeadCell label="Bis Datum" sort-key="forward_to_at" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('forward_to_at')" />
-                                <TableHeadCell label="Erstellt von" sort-key="submitter" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('submitter')" />
-                                <TableHeadCell label="Entfernt am" sort-key="forward_removed_at" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('forward_removed_at')" />
-                                <TableHeadCell label="Entfernt von" sort-key="removedBy" :active-key="historyForwardingTable.sortKey" :direction="historyForwardingTable.sortDir" @sort="historyForwardingTable.toggleSort('removedBy')" />
+                                <TableHeadCell
+                                    label="Von"
+                                    sort-key="from"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('from')"
+                                />
+                                <TableHeadCell
+                                    label="An"
+                                    sort-key="on"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('on')"
+                                />
+                                <TableHeadCell
+                                    label="Von Datum"
+                                    sort-key="forward_required_at"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('forward_required_at')"
+                                />
+                                <TableHeadCell
+                                    label="Bis Datum"
+                                    sort-key="forward_to_at"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('forward_to_at')"
+                                />
+                                <TableHeadCell
+                                    label="Erstellt von"
+                                    sort-key="submitter"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('submitter')"
+                                />
+                                <TableHeadCell
+                                    label="Entfernt am"
+                                    sort-key="forward_removed_at"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('forward_removed_at')"
+                                />
+                                <TableHeadCell
+                                    label="Entfernt von"
+                                    sort-key="removedBy"
+                                    :active-key="historyForwardingTable.sortKey"
+                                    :direction="historyForwardingTable.sortDir"
+                                    @sort="historyForwardingTable.toggleSort('removedBy')"
+                                />
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            <tr
-                                v-for="ticket in historyForwardingTable.pagedRows"
-                                :key="ticket.id"
-                            >
+                            <tr v-for="ticket in historyForwardingTable.pagedRows" :key="ticket.id">
                                 <td class="p-3">
-                                    {{
-                                        personLabel(
-                                            ticket.forwardFromUser,
-                                            ticket.forward_from,
-                                        )
-                                    }}
+                                    {{ personLabel(ticket.forwardFromUser, ticket.forward_from) }}
                                 </td>
                                 <td class="p-3">
-                                    {{
-                                        personLabel(
-                                            ticket.forwardOnUser,
-                                            ticket.forward_on,
-                                        )
-                                    }}
+                                    {{ personLabel(ticket.forwardOnUser, ticket.forward_on) }}
                                 </td>
                                 <td class="p-3">
                                     {{ formatDate(ticket.forward_required_at) }}
@@ -559,19 +602,11 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                                     {{ formatDate(ticket.forward_removed_at) }}
                                 </td>
                                 <td class="p-3">
-                                    {{
-                                        personLabel(
-                                            ticket.forwardRemovedByUser,
-                                            null,
-                                        )
-                                    }}
+                                    {{ personLabel(ticket.forwardRemovedByUser, null) }}
                                 </td>
                             </tr>
                             <tr v-if="!historyForwardingTable.pagedRows.length">
-                                <td
-                                    colspan="7"
-                                    class="text-muted-foreground p-3 text-center"
-                                >
+                                <td colspan="7" class="text-muted-foreground p-3 text-center">
                                     {{ historyForwardingTable.search ? 'Nichts gefunden.' : 'Kein Verlauf vorhanden.' }}
                                 </td>
                             </tr>
@@ -589,12 +624,5 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
                 />
             </div>
         </template>
-
-        <div
-            v-if="!isHrOrSuperAdmin"
-            class="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm"
-        >
-            Kein Zugriff auf dieses Dashboard.
-        </div>
     </div>
 </template>

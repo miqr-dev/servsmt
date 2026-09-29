@@ -420,7 +420,7 @@ class KorsoController extends Controller
 
       $korsoUsers = User::role('Korso_ma')->get();
       foreach ($korsoUsers as $user)
-        $user->notify(new \App\Notifications\KorsoNotification($notifications));
+        \App\Support\Notify::one($user, new \App\Notifications\KorsoNotification($notifications));
     }
     // 🔔 Onlinemarketing-spezifische Benachrichtigung
     if ($korso->problem_type === 'Onlinemarketing') {
@@ -433,7 +433,7 @@ class KorsoController extends Controller
           'problem_type' => $korso->problem_type,
         ];
 
-        $onlinemarketingUser->notify(new \App\Notifications\KorsoNotification($notifications));
+        \App\Support\Notify::one($onlinemarketingUser, new \App\Notifications\KorsoNotification($notifications));
       }
     }
 
@@ -837,12 +837,11 @@ class KorsoController extends Controller
       // person clicking the button. Log and move on instead.
       try {
         if ($korso->sek_group_id && $korso->sekGroup) {
-          Notification::route('mail', $korso->sekGroup->email)
-            ->notify(new \App\Notifications\KorsoNotification($notificationData));
+          \App\Support\Notify::one(Notification::route('mail', $korso->sekGroup->email), new \App\Notifications\KorsoNotification($notificationData));
         } else {
           $submitterUser = $korso->subUser;
           if ($submitterUser) {
-            $submitterUser->notify(new \App\Notifications\KorsoNotification($notificationData));
+            \App\Support\Notify::one($submitterUser, new \App\Notifications\KorsoNotification($notificationData));
           }
         }
       } catch (\Throwable $e) {
@@ -908,24 +907,23 @@ class KorsoController extends Controller
       if ($korso->assignedTo) {
         $assignedUser = $korso->assignedUser;
         if ($assignedUser) {
-          $assignedUser->notify(new \App\Notifications\KorsoNotification($notificationData));
+          \App\Support\Notify::one($assignedUser, new \App\Notifications\KorsoNotification($notificationData));
         }
       } else {
         $fallbackUser = \App\User::find(39);
         if ($fallbackUser) {
-          $fallbackUser->notify(new \App\Notifications\KorsoNotification($notificationData));
+          \App\Support\Notify::one($fallbackUser, new \App\Notifications\KorsoNotification($notificationData));
         }
       }
     } else {
       // Restored by Korso_ma or the assigned user:
       // Notify the submitter.
       if ($korso->sek_group_id && $korso->sekGroup) {
-        Notification::route('mail', $korso->sekGroup->email)
-          ->notify(new \App\Notifications\KorsoNotification($notificationData));
+        \App\Support\Notify::one(Notification::route('mail', $korso->sekGroup->email), new \App\Notifications\KorsoNotification($notificationData));
       } else {
         $submitterUser = $korso->subUser;
         if ($submitterUser) {
-          $submitterUser->notify(new \App\Notifications\KorsoNotification($notificationData));
+          \App\Support\Notify::one($submitterUser, new \App\Notifications\KorsoNotification($notificationData));
         }
       }
     }

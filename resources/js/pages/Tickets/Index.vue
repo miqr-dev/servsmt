@@ -62,13 +62,28 @@ const CARDS: CardDef[] = [
     {
         title: 'Neu - Anforderungen',
         sections: [
-            { title: 'Softwareinstallation', color: 'text-emerald-600', links: [{ lines: ['neue Software benötigt'], href: '/ticket.software_install' }] },
+            {
+                title: 'Softwareinstallation',
+                color: 'text-emerald-600',
+                links: [
+                    {
+                        lines: ['neue Software benötigt'],
+                        href: '/ticket.software_install',
+                    },
+                ],
+            },
             {
                 title: 'Hardwarebedarf',
                 color: 'text-sky-600',
                 links: [
-                    { lines: ['Maus | Tastatur | Kopfhörer', 'Webcam | Lautsprecher'], href: '/ticket.peripheral_request' },
-                    { lines: ['PC | Laptop | Tablet | Telefon', 'Drucker | Beamer | Scanner'], href: '/ticket.hardware_request' },
+                    {
+                        lines: ['Maus | Tastatur | Kopfhörer', 'Webcam | Lautsprecher'],
+                        href: '/ticket.peripheral_request',
+                    },
+                    {
+                        lines: ['PC | Laptop | Tablet | Telefon', 'Drucker | Beamer | Scanner'],
+                        href: '/ticket.hardware_request',
+                    },
                 ],
             },
             {
@@ -76,7 +91,10 @@ const CARDS: CardDef[] = [
                 color: 'text-purple-600',
                 links: [
                     { lines: ['Neuer Mitarbeiter'], href: '/ticket.employee' },
-                    { lines: ['Neuer Teilnehmer'], href: '/ticket.participant' },
+                    {
+                        lines: ['Neuer Teilnehmer'],
+                        href: '/ticket.participant',
+                    },
                 ],
             },
         ],
@@ -84,7 +102,16 @@ const CARDS: CardDef[] = [
     {
         title: 'Probleme & Fehlermeldungen',
         sections: [
-            { title: 'Software', color: 'text-emerald-600', links: [{ lines: ['Funktioniert nicht | Aktivieren'], href: '/ticket.software_error' }] },
+            {
+                title: 'Software',
+                color: 'text-emerald-600',
+                links: [
+                    {
+                        lines: ['Funktioniert nicht | Aktivieren'],
+                        href: '/ticket.software_error',
+                    },
+                ],
+            },
             {
                 title: 'PC',
                 color: 'text-sky-600',
@@ -103,8 +130,26 @@ const CARDS: CardDef[] = [
                     },
                 ],
             },
-            { title: 'Drucker', color: 'text-indigo-600', links: [{ lines: ['Druckt nicht', 'Defekt'], href: '/ticket.errors' }] },
-            { title: 'Scanner', color: 'text-indigo-600', links: [{ lines: ['Scannt nicht', 'Scans nicht im Scan Ordner'], href: '/ticket.scanner' }] },
+            {
+                title: 'Drucker',
+                color: 'text-indigo-600',
+                links: [
+                    {
+                        lines: ['Druckt nicht', 'Defekt'],
+                        href: '/ticket.errors',
+                    },
+                ],
+            },
+            {
+                title: 'Scanner',
+                color: 'text-indigo-600',
+                links: [
+                    {
+                        lines: ['Scannt nicht', 'Scans nicht im Scan Ordner'],
+                        href: '/ticket.scanner',
+                    },
+                ],
+            },
         ],
     },
     {
@@ -113,10 +158,33 @@ const CARDS: CardDef[] = [
             {
                 title: 'Telefon',
                 color: 'text-amber-600',
-                links: [{ lines: ['Keine Anrufe möglich', 'Keine Verbindung', 'Defekt'], href: '/ticket.tel_problems' }],
+                links: [
+                    {
+                        lines: ['Keine Anrufe möglich', 'Keine Verbindung', 'Defekt'],
+                        href: '/ticket.tel_problems',
+                    },
+                ],
             },
-            { title: 'Beamer', color: 'text-indigo-600', links: [{ lines: ['Kein Signal', 'Flackern | Lampe defekt'], href: '/ticket.projector_problems' }] },
-            { title: 'Benutzer', color: 'text-purple-600', links: [{ lines: ['Anmeldeprobleme'], href: '/ticket.users_loginProblem' }] },
+            {
+                title: 'Beamer',
+                color: 'text-indigo-600',
+                links: [
+                    {
+                        lines: ['Kein Signal', 'Flackern | Lampe defekt'],
+                        href: '/ticket.projector_problems',
+                    },
+                ],
+            },
+            {
+                title: 'Benutzer',
+                color: 'text-purple-600',
+                links: [
+                    {
+                        lines: ['Anmeldeprobleme'],
+                        href: '/ticket.users_loginProblem',
+                    },
+                ],
+            },
             {
                 title: 'Web',
                 color: 'text-red-600',
@@ -137,16 +205,28 @@ const CARDS: CardDef[] = [
                 title: 'Drucker & Scanner',
                 color: 'text-indigo-600',
                 links: [
-                    { lines: ['Druckerinstallation | Einrichten'], href: '/ticket.printer' },
-                    { lines: ['Scannerinstallation | Einrichten'], href: '/ticket.scanner.new' },
-                    { lines: ['Standort ändern'], href: '/ticket.printer_changes_location' },
+                    {
+                        lines: ['Druckerinstallation | Einrichten'],
+                        href: '/ticket.printer',
+                    },
+                    {
+                        lines: ['Scannerinstallation | Einrichten'],
+                        href: '/ticket.scanner.new',
+                    },
+                    {
+                        lines: ['Standort ändern'],
+                        href: '/ticket.printer_changes_location',
+                    },
                 ],
             },
             {
                 title: 'Benutzer',
                 color: 'text-purple-600',
                 links: [
-                    { lines: ['Namensänderung'], href: '/ticket.users_namechange' },
+                    {
+                        lines: ['Namensänderung'],
+                        href: '/ticket.users_namechange',
+                    },
                     { lines: ['Email Weiterleiten'], href: '/ticket.forward' },
                 ],
             },
@@ -154,18 +234,35 @@ const CARDS: CardDef[] = [
                 title: 'Telefon',
                 color: 'text-amber-600',
                 links: [
-                    { lines: ['Standort ändern'], href: '/ticket.tel_changes_location' },
-                    { lines: ['Name ändern'], href: '/ticket.tel_changes_name' },
-                    { lines: ['Nummer ändern'], href: '/ticket.tel_changes_number' },
+                    {
+                        lines: ['Standort ändern'],
+                        href: '/ticket.tel_changes_location',
+                    },
+                    {
+                        lines: ['Name ändern'],
+                        href: '/ticket.tel_changes_name',
+                    },
+                    {
+                        lines: ['Nummer ändern'],
+                        href: '/ticket.tel_changes_number',
+                    },
                 ],
             },
-            { title: 'PCs', color: 'text-blue-600', links: [{ lines: ['Standort ändern'], href: '/ticket.pc_changes_location' }] },
+            {
+                title: 'PCs',
+                color: 'text-blue-600',
+                links: [
+                    {
+                        lines: ['Standort ändern'],
+                        href: '/ticket.pc_changes_location',
+                    },
+                ],
+            },
         ],
     },
 ];
 
 const newsPopup = ref<{ title: string; body: string } | null>(null);
-const newsBarText = ref<string | null>(null);
 
 onMounted(async () => {
     try {
@@ -177,14 +274,7 @@ onMounted(async () => {
         // matches the old page's silent-fail behavior - no error handler there either
     }
 
-    try {
-        const { data } = await axios.get('/newsbar.check');
-        if (data?.[0]?.isNewsBar === 'on') {
-            newsBarText.value = data[0].name;
-        }
-    } catch {
-        //
-    }
+    // The news bar moved to the Dashboard (2026-09-29, your request).
 });
 </script>
 
@@ -192,18 +282,18 @@ onMounted(async () => {
     <Head title="Ticketanfrage" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
-        <div v-if="newsBarText" class="bg-primary/10 text-primary marquee-track rounded-md border px-4 py-2 text-sm font-medium">
-            <span class="marquee-text">{{ newsBarText }}</span>
-        </div>
-
         <h2 class="text-center text-xl font-semibold">Ticketanfrage</h2>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div v-for="(card, i) in CARDS" :key="i" class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm">
-                <div class="text-primary border-b px-4 py-3 text-center font-semibold">{{ card.title }}</div>
+                <div class="text-primary border-b px-4 py-3 text-center font-semibold">
+                    {{ card.title }}
+                </div>
                 <div class="flex flex-col divide-y">
                     <div v-for="(section, j) in card.sections" :key="j" class="flex flex-col gap-2 px-4 py-3">
-                        <h3 class="text-center text-sm font-semibold underline" :class="section.color">{{ section.title }}</h3>
+                        <h3 class="text-center text-sm font-semibold underline" :class="section.color">
+                            {{ section.title }}
+                        </h3>
                         <div class="flex flex-col items-center gap-2">
                             <Link
                                 v-for="(link, k) in section.links"
@@ -219,42 +309,23 @@ onMounted(async () => {
             </div>
         </div>
 
-        <Transition enter-active-class="transition-opacity" leave-active-class="transition-opacity" enter-from-class="opacity-0" leave-to-class="opacity-0">
+        <Transition
+            enter-active-class="transition-opacity"
+            leave-active-class="transition-opacity"
+            enter-from-class="opacity-0"
+            leave-to-class="opacity-0"
+        >
             <div v-if="newsPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="newsPopup = null">
                 <div class="bg-card text-primary w-full max-w-lg rounded-xl border p-6 shadow-lg">
                     <div class="mb-2 flex justify-end">
                         <button type="button" class="text-muted-foreground hover:text-foreground text-sm" @click="newsPopup = null">✕</button>
                     </div>
-                    <h3 class="mb-3 text-center text-lg font-semibold">{{ newsPopup?.title }}</h3>
+                    <h3 class="mb-3 text-center text-lg font-semibold">
+                        {{ newsPopup?.title }}
+                    </h3>
                     <div class="text-foreground text-sm" v-html="newsPopup?.body"></div>
                 </div>
             </div>
         </Transition>
     </div>
 </template>
-
-<style scoped>
-.marquee-track {
-    overflow: hidden;
-}
-
-.marquee-text {
-    display: inline-block;
-    white-space: nowrap;
-    padding-left: 100%;
-    animation: marquee 18s linear infinite;
-}
-
-.marquee-track:hover .marquee-text {
-    animation-play-state: paused;
-}
-
-@keyframes marquee {
-    from {
-        transform: translateX(0);
-    }
-    to {
-        transform: translateX(-100%);
-    }
-}
-</style>

@@ -579,12 +579,20 @@ class HandwerkController extends Controller
       return redirect()->route('handwerk.city', ['city' => $request->from_city]);
     }
 
+    // Marked Erledigt from a ticket opened via the Dashboard's Handwerk box.
+    if ($request->boolean('from_dashboard')) {
+      return redirect()->route('home');
+    }
+
     return redirect()->route('ticket.usertickets');
   }
 
   public function restore($id)
   {
-    $admin = User::find(327)->first();
+    // Notify user 327 (hardcoded, to be replaced later). Was
+    // User::find(327)->first(), which returned the first user in the table
+    // and crashed when 327 didn't exist. Notify::send skips null/removed users.
+    $admin = User::find(327);
 
     $handwerk = Handwerk::withTrashed()->findOrFail($id);
     TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);

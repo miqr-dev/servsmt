@@ -1586,7 +1586,7 @@ class TicketController extends Controller
     $reception = $all_receptions->toArray();
 
     // Send notifications
-    Notification::route('mail', $reception)->notify(new TicketNotification($notifications));
+    \App\Support\Notify::one(Notification::route('mail', $reception), new TicketNotification($notifications));
 
     $ticket->delete();
     Comment::withTrashed()->where('commentable_id', $id)->restore();

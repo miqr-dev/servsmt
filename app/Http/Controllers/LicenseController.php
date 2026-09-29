@@ -16,39 +16,11 @@ class LicenseController extends Controller
    *
    * @return \Illuminate\Http\Response
    */
+  // The former /dashboard page (licenses, terminations, forwardings) moved
+  // to the unified Dashboard (DashboardController / pages/Home.vue).
   public function index()
   {
-    $user = Auth()->user();
-    if ($user->hasAnyRole(['Super_Admin', 'HR'])) {
-      $licenses = License::orderByRaw('CASE WHEN valid IS NULL THEN 0 ELSE 1 END DESC')->orderBy('valid', 'ASC')->get();
-      $month = Carbon::now()->addDays(30);
-      $week = Carbon::now()->addDays(7);
-      $terminations = Termination::orderBy('exit', 'ASC')->get();
-      $emailForwardingTickets = Ticket::withTrashed()->with(['subUser', 'forwardOnUser', 'forwardFromUser', 'forwardRemovedByUser', 'user'])
-        ->where('problem_type', 'Email Weiterleitung')
-        ->orderBy('forward_required_at', 'asc')
-        ->orderByDesc('created_at')
-        ->get();
-      $activeEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
-        if (empty($ticket->forward_required_at) || empty($ticket->forward_to_at)) {
-          return false;
-        }
-
-        return empty($ticket->forward_removed_at);
-      })->values();
-      $historyEmailForwardingTickets = $emailForwardingTickets->filter(function ($ticket) {
-        return !empty($ticket->forward_removed_at);
-      })->values();
-
-      return \Inertia\Inertia::render('Dashboard', [
-        'licenses' => $licenses,
-        'terminations' => $terminations,
-        'activeEmailForwardingTickets' => $activeEmailForwardingTickets,
-        'historyEmailForwardingTickets' => $historyEmailForwardingTickets,
-      ]);
-    } else {
-      return redirect('/');
-    }
+    return redirect()->route('home');
   }
 
   /**

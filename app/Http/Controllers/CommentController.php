@@ -128,8 +128,7 @@ class CommentController extends Controller
           if ($submitter && $submitter->id !== $commenterId) {
             if ($model->sek_group_id && $model->sekGroup) {
               // send to the group’s email instead of the user
-              Notification::route('mail', $model->sekGroup->email)
-                ->notify(new CommentNotification($notifications));
+              \App\Support\Notify::one(Notification::route('mail', $model->sekGroup->email), new CommentNotification($notifications));
             } else {
               // fallback: the original user
               Notify::send($submitter, new CommentNotification($notifications));
@@ -260,8 +259,7 @@ class CommentController extends Controller
         && $model->sek_group_id
         && $model->sekGroup
       ) {
-        Notification::route('mail', $model->sekGroup->email)
-          ->notify(new CommentNotification($notifications));
+        \App\Support\Notify::one(Notification::route('mail', $model->sekGroup->email), new CommentNotification($notifications));
       } else {
         // Fallback: send to that single user
         $reply_to = User::find($parentCommenterId);
