@@ -437,7 +437,7 @@ class KorsoController extends Controller
       }
     }
 
-    return redirect()->route('ticket.usertickets')->with('success', 'Korso ticket created successfully!');
+    return redirect()->route('ticket.usertickets', ['tab' => 'korso'])->with('success', 'Korso ticket created successfully!');
   }
 
 

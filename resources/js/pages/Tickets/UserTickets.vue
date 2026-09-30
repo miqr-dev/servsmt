@@ -3,7 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, reactive, ref } from 'vue';
-import { Inbox, CheckCircle2, FileDown, Trash2 } from '@lucide/vue';
+import { Inbox, CheckCircle2, FileDown, HardHat, Ticket as TicketIcon, Trash2, Users } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import TicketFolderNav from '@/components/tickets/TicketFolderNav.vue';
 import RowActions from '@/components/RowActions.vue';
@@ -33,6 +33,10 @@ import { ticketStatusMeta, ticketPriorityLabel, ticketPriorityBadgeClass, korsoS
  *
  * DataTables search/paging dropped, matching the plain-table approach used
  * everywhere else in this migration.
+ *
+ * 2026-09-30: the 3 stacked sections became 3 tabs (IT / Handwerk / Korso).
+ * The active tab is kept in the URL (?tab=it|handwerk|korso) so links and
+ * reloads land on the right tab; /usertickets/{city} opens Handwerk.
  *
  * Retrofitted 2026-09-17 to the shared sortable/searchable/paginated table
  * standard (see useDataTable.ts) - each of the 3 sections is its own
@@ -126,6 +130,38 @@ const canSeeKorso = computed(() => roles.value.includes('Verwaltung'));
 const canDownloadHandwerkPdf = computed(
     () => isSuperAdmin.value || roles.value.includes('handwerk_admin') || roles.value.includes('Sekretariat'),
 );
+
+// --- Tabs ---
+type TabKey = 'it' | 'handwerk' | 'korso';
+
+const tabs = computed(() => {
+    const list: { key: TabKey; label: string; icon: typeof TicketIcon; count: number }[] = [
+        { key: 'it', label: 'IT Tickets', icon: TicketIcon, count: props.myTicketsCount },
+    ];
+    if (canSeeHandwerk.value) list.push({ key: 'handwerk', label: 'Handwerk', icon: HardHat, count: props.myhandwerkTicketsCount });
+    if (canSeeKorso.value) list.push({ key: 'korso', label: 'Korso', icon: Users, count: korsoTickets.value.length });
+
+    return list;
+});
+
+function initialTab(): TabKey {
+    const q = new URLSearchParams(window.location.search).get('tab');
+    if (q === 'it' || q === 'handwerk' || q === 'korso') return q;
+
+    return props.city ? 'handwerk' : 'it';
+}
+
+const activeTab = ref<TabKey>(initialTab());
+// A tab the user can't see (e.g. old link) falls back to IT.
+const currentTab = computed<TabKey>(() => (tabs.value.some((t) => t.key === activeTab.value) ? activeTab.value : 'it'));
+
+function selectTab(key: TabKey) {
+    activeTab.value = key;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', key);
+    // Keep Inertia's own history state, only swap the URL.
+    window.history.replaceState(window.history.state, '', url.toString());
+}
 
 // --- Ticket folder nav ---
 
@@ -253,9 +289,38 @@ const korsoFolderLinks = computed(() => [
 <template>
     <Head title="Meine Tickets" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4">
-        <!-- Ticket section -->
-        <div class="flex flex-col gap-4 lg:flex-row">
+    <div class="flex flex-1 flex-col gap-4 p-4">
+        <!-- Tabs -->
+        <div class="border-b" role="tablist" aria-label="Meine Tickets">
+            <div class="-mb-px flex gap-1 overflow-x-auto">
+                <button
+                    v-for="t in tabs"
+                    :key="t.key"
+                    type="button"
+                    role="tab"
+                    :aria-selected="currentTab === t.key"
+                    class="inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+                    :class="
+                        currentTab === t.key
+                            ? 'border-primary text-primary'
+                            : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
+                    "
+                    @click="selectTab(t.key)"
+                >
+                    <component :is="t.icon" class="size-4" />
+                    {{ t.label }}
+                    <span
+                        class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold"
+                        :class="currentTab === t.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'"
+                    >
+                        {{ t.count }}
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- IT tab -->
+        <div v-show="currentTab === 'it'" class="flex flex-col gap-4 lg:flex-row" role="tabpanel">
             <TicketFolderNav title="Ordner" :links="ticketFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
@@ -331,8 +396,8 @@ const korsoFolderLinks = computed(() => [
             </div>
         </div>
 
-        <!-- Handwerk section -->
-        <div v-if="canSeeHandwerk" class="flex flex-col gap-4 lg:flex-row">
+        <!-- Handwerk tab -->
+        <div v-if="canSeeHandwerk" v-show="currentTab === 'handwerk'" class="flex flex-col gap-4 lg:flex-row" role="tabpanel">
             <TicketFolderNav title="Handwerk Ordner" :links="handwerkFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
@@ -410,13 +475,14 @@ const korsoFolderLinks = computed(() => [
             </div>
         </div>
 
-        <!-- Korso section -->
-        <div v-if="canSeeKorso" class="flex flex-col gap-4 lg:flex-row">
+        <!-- Korso tab -->
+        <div v-if="canSeeKorso" v-show="currentTab === 'korso'" class="flex flex-col gap-4 lg:flex-row" role="tabpanel">
             <TicketFolderNav title="Ordner" :links="korsoFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
                 <div class="border-b p-4">
-                    <h3 class="font-semibold">Anzahl offener Tickets: {{ myTicketsCount }}</h3>
+                    <!-- was myTicketsCount (the IT count) - fixed to the Korso list -->
+                    <h3 class="font-semibold">Anzahl offener Tickets: {{ korsoTickets.length }}</h3>
                 </div>
                 <div class="p-3">
                     <TableToolbar v-model:search="korsoTable.search" v-model:page-size="korsoTable.pageSize" search-placeholder="Suchen..." />

@@ -369,7 +369,7 @@ class HandwerkController extends Controller
       'alert-type' => 'success'
     );
 
-    return redirect()->route('ticket.usertickets')->with($sucMsg);
+    return redirect()->route('ticket.usertickets', ['tab' => 'handwerk'])->with($sucMsg);
   }
 
   public function room_list(Request $request, $city = null)
@@ -584,7 +584,7 @@ class HandwerkController extends Controller
       return redirect()->route('home');
     }
 
-    return redirect()->route('ticket.usertickets');
+    return redirect()->route('ticket.usertickets', ['tab' => 'handwerk']);
   }
 
   public function restore($id)
@@ -606,7 +606,7 @@ class HandwerkController extends Controller
     Comment::withTrashed()->where('commentable_id', $id)->restore();
     Notify::send($admin, new HandwerkNotification($notifications));
     $handwerk->restore();
-    return redirect()->route('ticket.usertickets');
+    return redirect()->route('ticket.usertickets', ['tab' => 'handwerk']);
   }
 
   public function ajaxDestroy(Request $request, $id)
