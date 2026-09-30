@@ -45,7 +45,7 @@ type HandwerkRow = {
 const props = defineProps<{
     user: { ort: string | null };
     handwerkticketsdone: HandwerkRow[];
-    myhandwerkTicketsCountCity: number;
+    myhandwerkTicketsCountCity: number | null; // null = not city-wide (Verwaltung)
     myhandwerkTicketsCount: number;
     handwerkticketsdoneCount: number;
 }>();
@@ -121,7 +121,7 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
             <h2 class="text-sm font-medium">
                 Eigene offene Tickets:
                 <span class="text-primary font-semibold">{{ myhandwerkTicketsCount }}</span>
-                <span class="text-muted-foreground ml-4">
+                <span v-if="myhandwerkTicketsCountCity !== null" class="text-muted-foreground ml-4">
                     Erledigte Tickets in {{ user.ort }}:
                     <span class="text-primary font-semibold">{{ myhandwerkTicketsCountCity }}</span>
                 </span>

@@ -99,7 +99,9 @@ const props = defineProps<{
     myHandwerkTickets: HandwerkRow[];
     handwerkticketsdone: number;
     myhandwerkTicketsCount: number;
-    myhandwerkTicketsCountCity: number;
+    myhandwerkTicketsCountCity: number | null;
+    /** Sekretariat / handwerk / handwerk_admin see their city; Verwaltung only own tickets. */
+    handwerkCityWide: boolean;
     userCities: Record<number, string[]>;
     cityHandwerkCounts: Record<string, number>;
     korsoTicket: KorsoTicketRow[];
@@ -404,7 +406,7 @@ const korsoFolderLinks = computed(() => [
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b p-4">
                     <h3 class="font-semibold">
                         Anzahl eigene offener Tickets: <span style="color: #004873">{{ myhandwerkTicketsCount }}</span>
-                        <span class="text-muted-foreground ml-2 font-normal capitalize">
+                        <span v-if="handwerkCityWide" class="text-muted-foreground ml-2 font-normal capitalize">
                             {{ handwerkCardHeading }}: <span class="font-semibold" style="color: #004873">{{ myhandwerkTicketsCountCity }}</span>
                         </span>
                     </h3>

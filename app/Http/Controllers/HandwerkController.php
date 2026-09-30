@@ -529,20 +529,24 @@ class HandwerkController extends Controller
   public function userhandwerkticketshistory()
   {
     $user = Auth()->user();
+    // City-wide history only for Handwerk staff and Sekretariat (2026-09-30);
+    // Verwaltung sees only their own finished tickets.
+    $cityWide = $user->hasAnyRole(['Sekretariat', 'handwerk', 'handwerk_admin']);
     $handwerkticketsdone = Handwerk::onlyTrashed()->with('room', 'location', 'subUser')
-      ->where(function ($query) use ($user) {
+      ->where(function ($query) use ($user, $cityWide) {
         $query->where('submitter', $user->id)
-          ->orWhere('assignedTo', $user->id)
-          ->orwhere('submitter_standort', $user->ort)
-          ->orderBy('deleted_at', 'desc');
-      })->latest()->get();
+          ->orWhere('assignedTo', $user->id);
+        if ($cityWide) {
+          $query->orWhere('submitter_standort', $user->ort);
+        }
+      })->latest('deleted_at')->get();
 
     $handwerkticketsdoneCount = Handwerk::onlyTrashed()->where(function ($query) use ($user) {
       $query->where('submitter', $user->id);
     })->count();
-    $myhandwerkTicketsCountCity = Handwerk::onlyTrashed()->where(function ($query) use ($user) {
-      $query->where('submitter_standort', $user->ort);
-    })->count();
+    $myhandwerkTicketsCountCity = $cityWide
+      ? Handwerk::onlyTrashed()->where('submitter_standort', $user->ort)->count()
+      : null;
     $myhandwerkTicketsCount = Handwerk::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
 
     return Inertia::render('Handwerk/History', [

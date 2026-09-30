@@ -859,9 +859,21 @@ class TicketController extends Controller
     $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
 
     // Handwerk
+    // City-wide lists only for Handwerk staff and Sekretariat (2026-09-30).
+    // Everyone else (Verwaltung) sees only their own Handwerk tickets.
     $cityHandwerkCounts = [];
+    $handwerkCityWide = $user->hasAnyRole(['Sekretariat', 'handwerk', 'handwerk_admin']);
 
-    if (array_key_exists($user->id, $userCities)) {
+    if (! $handwerkCityWide) {
+      $userCities = [];
+      $city = null;
+      $myHandwerkTickets = Handwerk::with('location.invrooms')
+        ->where(function ($q) use ($user) {
+          $q->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
+        })
+        ->orderBy('updated_at', 'ASC')->get();
+      $myhandwerkTicketsCountCity = null;
+    } elseif (array_key_exists($user->id, $userCities)) {
       $cities = $userCities[$user->id];
 
       foreach ($cities as $cityName) {
@@ -908,7 +920,8 @@ class TicketController extends Controller
       'korsoTicket',
       'assignedCount',
       'myDoneCount',
-      'city'
+      'city',
+      'handwerkCityWide'
     ));
   }
 
