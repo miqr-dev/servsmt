@@ -464,7 +464,7 @@ class HandwerkController extends Controller
   {
     $user = Auth()->user();
     $admins = User::role('handwerk_admin')->get();
-    $handwerk = Handwerk::with('room.location.place')->with('subUser')->with('comments')->withTrashed()->findorFail($id);
+    $handwerk = Handwerk::with('room.location.place')->with('subUser')->with('assignedUser:id,username,vorname,name')->with('comments')->withTrashed()->findorFail($id);
     // Handwerk staff (+ Sekretariat, who see the submitter panel) or the submitter.
     TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
     $not = NotificationLookup::byDataId($user->unreadNotifications(), $id)->first();

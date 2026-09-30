@@ -263,8 +263,11 @@ async function deleteParticipant(participant: Participant) {
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-1">
                 <div class="text-center">
                     <p class="text-muted-foreground text-sm">{{ isDone ? 'Erledigt von' : 'Zugewiesen an' }}</p>
-                    <h3 class="text-lg font-bold" style="color: #661421">
-                        {{ isDone ? ticket.done_by : (ticket.user?.username ?? '') }}
+                    <h3 v-if="isDone ? ticket.done_by : ticket.user?.username" class="text-lg font-bold" style="color: #661421">
+                        {{ isDone ? ticket.done_by : ticket.user?.username }}
+                    </h3>
+                    <h3 v-else class="text-muted-foreground text-lg font-semibold italic">
+                        {{ isDone ? 'Unbekannt' : 'Nicht zugewiesen' }}
                     </h3>
                 </div>
 

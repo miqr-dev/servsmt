@@ -5,6 +5,7 @@
 // recursive @include('comments::_comment', ...) for child replies.
 import { ref } from 'vue';
 import { Pencil, Reply } from '@lucide/vue';
+import { htmlToText } from '@/lib/htmlToText';
 import CommentThreadNode from './CommentThreadNode.vue';
 import type { CommentItem, CommentNode } from './CommentThread.vue';
 
@@ -74,7 +75,8 @@ const editText = ref('');
 
 function startEdit() {
     editing.value = true;
-    editText.value = props.node.comment;
+    // Old comments are stored as HTML - edit them as plain text.
+    editText.value = htmlToText(props.node.comment);
 }
 
 function cancelEdit() {
@@ -127,7 +129,7 @@ function onChildEdit(comment: CommentItem, message: string) {
                 </div>
             </template>
             <template v-else>
-                <div class="mt-0.5 text-sm whitespace-pre-wrap">{{ node.comment }}</div>
+                <div class="mt-0.5 text-sm break-words whitespace-pre-wrap">{{ htmlToText(node.comment) }}</div>
 
                 <div v-if="!isDone && !node.deleted_at" class="mt-1 flex gap-3 text-xs">
                     <button

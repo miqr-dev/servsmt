@@ -6,6 +6,7 @@ import { computed, h, ref } from 'vue';
 import { ArrowLeft, File, FileDown, FileSpreadsheet, FileText, Pencil, RotateCcw, Trash2, Upload } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CommentThread from '@/components/CommentThread.vue';
+import { htmlToText } from '@/lib/htmlToText';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type { CommentItem } from '@/components/CommentThread.vue';
 
@@ -368,8 +369,12 @@ function commentTimeAgo(value: string): string {
                         <p class="text-sm font-semibold" style="color: #65a30d">
                             {{ isDone ? 'Erledigt von' : 'Zugewiesen an' }}
                         </p>
-                        <h3 class="mt-1 text-lg font-bold">
-                            {{ isDone ? (korso.doneByUser?.name ?? 'Unbekannt') : (korso.assignedUser?.name ?? 'Nicht zugewiesen') }}
+                        <h3 v-if="isDone ? korso.doneByUser?.name : korso.assignedUser?.name" class="mt-1 text-lg font-bold">
+                            {{ isDone ? korso.doneByUser?.name : korso.assignedUser?.name }}
+                        </h3>
+                        <!-- same muted style as IT / Handwerk tickets -->
+                        <h3 v-else class="text-muted-foreground mt-1 text-lg font-semibold italic">
+                            {{ isDone ? 'Unbekannt' : 'Nicht zugewiesen' }}
                         </h3>
                     </div>
 
@@ -735,7 +740,7 @@ function commentTimeAgo(value: string): string {
                                 <template v-else>
                                     <div class="min-w-0 flex-1">
                                         <strong>{{ comment.user?.name }}</strong>:
-                                        <span>{{ comment.comment }}</span>
+                                        <span class="break-words whitespace-pre-wrap">{{ htmlToText(comment.comment) }}</span>
                                         <span class="text-muted-foreground text-xs"> ({{ commentTimeAgo(comment.created_at) }})</span>
                                     </div>
                                     <div v-if="comment.user_id === currentUserId" class="flex shrink-0 items-center gap-1.5">

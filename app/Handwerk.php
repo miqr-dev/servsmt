@@ -40,6 +40,12 @@ class Handwerk extends Model
   {
     return $this->belongsTo('App\InvRoom', 'room_id', 'id');
   }
+  // Assigned Handwerker/admin (column assignedTo). withTrashed so people who
+  // left AD still show by name on old tickets.
+  public function assignedUser()
+  {
+    return $this->belongsTo('App\User', 'assignedTo', 'id')->withTrashed();
+  }
   public function todos()
   {
     return $this->hasMany(HandwerkTodo::class, 'ticket_id');

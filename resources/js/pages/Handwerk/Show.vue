@@ -42,6 +42,7 @@ type HandwerkDetail = {
     done_by: string | null;
     deleted_at: string | null;
     assignedTo: number | null;
+    assignedUser?: { id: number; username: string | null } | null;
     room: RoomInfo;
     location: LocationInfo;
     subUser: SubUser;
@@ -115,8 +116,14 @@ const assignedTo = ref<number | ''>(props.handwerk.assignedTo ?? '');
 // creator) - so this always rendered blank. Using the already-loaded
 // `admins` list to resolve the actual assigned admin's name instead, which
 // matches what the "Zuweisen" dropdown right below it is for.
+// Name of the assigned person: from the admins list (follows the dropdown),
+// else the loaded assignedUser relation (e.g. a Handwerker not in the list),
+// else empty = not assigned.
 const assignedAdminUsername = computed(
-    () => props.admins.find((admin) => admin.id === props.handwerk.assignedTo)?.username ?? '',
+    () =>
+        props.admins.find((admin) => admin.id === Number(assignedTo.value))?.username ??
+        (props.handwerk.assignedUser && props.handwerk.assignedUser.id === Number(assignedTo.value) ? props.handwerk.assignedUser.username : '') ??
+        '',
 );
 
 async function onAssignChange() {
@@ -161,8 +168,11 @@ function restore() {
                         <p class="text-muted-foreground text-sm">
                             {{ handwerk.deleted_at ? 'Erledigt von' : 'Zugewiesen an' }}
                         </p>
-                        <h3 class="text-lg font-bold" style="color: #661421">
+                        <h3 v-if="handwerk.deleted_at ? handwerk.done_by : assignedAdminUsername" class="text-lg font-bold" style="color: #661421">
                             {{ handwerk.deleted_at ? handwerk.done_by : assignedAdminUsername }}
+                        </h3>
+                        <h3 v-else class="text-muted-foreground text-lg font-semibold italic">
+                            {{ handwerk.deleted_at ? 'Unbekannt' : 'Nicht zugewiesen' }}
                         </h3>
                     </div>
 
