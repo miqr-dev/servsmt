@@ -20,6 +20,7 @@ import {
 } from '@lucide/vue';
 import { computed, h, ref } from 'vue';
 import AdminBoxes from '@/components/dashboard/AdminBoxes.vue';
+import EmployeeLookup from '@/components/dashboard/EmployeeLookup.vue';
 import TerminationsBox, { type TerminationRow } from '@/components/dashboard/TerminationsBox.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -58,6 +59,7 @@ type CityHandwerk = {
 const props = defineProps<{
     myForwardings?: Forwarding[];
     createShortcuts?: boolean;
+    employeeLookup?: boolean;
     newsBar?: string | null;
     standortForwardings?: Forwarding[];
     standortLabel?: string;
@@ -460,25 +462,27 @@ const SHORTCUTS = [
         </div>
 
         <!-- Verwaltung: small "Neues Ticket" shortcut box, far right -->
-        <aside
-            v-if="props.createShortcuts"
-            class="bg-card text-card-foreground w-full shrink-0 rounded-xl border shadow-sm lg:sticky lg:top-4 lg:w-56"
-        >
-            <h2 class="text-muted-foreground border-b px-4 py-3 text-xs font-semibold tracking-wide uppercase">Neues Ticket</h2>
-            <nav class="flex flex-col p-2">
-                <Link
-                    v-for="s in SHORTCUTS"
-                    :key="s.href"
-                    :href="s.href"
-                    class="hover:bg-accent group flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors"
-                >
-                    <span class="flex size-8 items-center justify-center rounded-md" :class="s.color">
-                        <component :is="s.icon" class="size-4" />
-                    </span>
-                    <span class="flex-1">{{ s.title }}</span>
-                    <ChevronRight class="text-muted-foreground size-4 opacity-0 transition-opacity group-hover:opacity-100" />
-                </Link>
-            </nav>
-        </aside>
+        <!-- Right column: Neues Ticket + Mitarbeiter Info (both Verwaltung = everyone) -->
+        <div v-if="props.createShortcuts || props.employeeLookup" class="flex w-full shrink-0 flex-col gap-6 lg:sticky lg:top-4 lg:w-72">
+            <aside v-if="props.createShortcuts" class="bg-card text-card-foreground rounded-xl border shadow-sm">
+                <h2 class="text-muted-foreground border-b px-4 py-3 text-xs font-semibold tracking-wide uppercase">Neues Ticket</h2>
+                <nav class="flex flex-col p-2">
+                    <Link
+                        v-for="s in SHORTCUTS"
+                        :key="s.href"
+                        :href="s.href"
+                        class="hover:bg-accent group flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors"
+                    >
+                        <span class="flex size-8 items-center justify-center rounded-md" :class="s.color">
+                            <component :is="s.icon" class="size-4" />
+                        </span>
+                        <span class="flex-1">{{ s.title }}</span>
+                        <ChevronRight class="text-muted-foreground size-4 opacity-0 transition-opacity group-hover:opacity-100" />
+                    </Link>
+                </nav>
+            </aside>
+
+            <EmployeeLookup v-if="props.employeeLookup" />
+        </div>
     </div>
 </template>

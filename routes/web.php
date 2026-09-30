@@ -143,6 +143,7 @@ Route::get('/room/lists', 'HandwerkController@roomsList')->name('rooms.lists');
 
 // Route::get('/', 'TicketController@index')->name('home');
 Route::get('/', 'DashboardController@index')->name('home'); // unified Dashboard (was TicketController@landing)
+Route::get('/dashboard/mitarbeiter-suche', 'DashboardController@employeeSearch')->name('dashboard.employeeSearch'); // Mitarbeiter Info box
 Route::redirect('/dashboard', '/')->name('dashboard'); // was LicenseController@index - everything is on the unified Dashboard now
 Route::get('/korso-dashboard', 'KorsoController@dashboard')->name('korso.dashboard');
 

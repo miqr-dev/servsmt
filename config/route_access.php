@@ -94,6 +94,7 @@ return [
     // ─── Korso ──────────────────────────────────────────────────────────
     'korso-dashboard' => $KORSO_STAFF,
     'dashboard/filter-tickets' => $KORSO_STAFF,
+    'dashboard/mitarbeiter-suche' => $VERWALTUNG,   // Mitarbeiter Info (Dashboard)
     'korso/{id}/details' => $KORSO_STAFF,
     'korso/assign' => $KORSO_STAFF,
     'korso/update-status/{id}' => $KORSO_STAFF,

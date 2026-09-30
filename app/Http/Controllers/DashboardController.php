@@ -9,6 +9,7 @@ use App\NewsBar;
 use App\User;
 use App\Ticket;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -45,6 +46,7 @@ class DashboardController extends Controller
 
         if ($user->hasRole('Verwaltung')) {
             $props['createShortcuts'] = true;
+            $props['employeeLookup'] = true; // "Mitarbeiter Info" box
         }
 
         // Email forwardings: Sekretariat gets the Standort table INSTEAD of the
@@ -197,6 +199,51 @@ class DashboardController extends Controller
             'end' => $t->forward_to_at->toDateString(),
             'active' => $t->forward_required_at->copy()->startOfDay()->lte($today),
         ];
+    }
+
+    /**
+     * "Mitarbeiter Info" box (every employee): look up a colleague by first
+     * name, last name or username. Like the old contacts "Suche nach Name",
+     * but only work data is returned - no private / mobile numbers.
+     * Every word of the query must match vorname, name or username.
+     */
+    public function employeeSearch(Request $request)
+    {
+        $words = preg_split('/\s+/', trim((string) $request->query('q', '')), -1, PREG_SPLIT_NO_EMPTY);
+        $words = array_slice($words, 0, 4);
+        if (! $words || mb_strlen(implode('', $words)) < 2) {
+            return response()->json([]);
+        }
+
+        $users = User::query() // soft-deleted (left AD) users are excluded
+            ->where(function ($q) use ($words) {
+                foreach ($words as $w) {
+                    $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $w).'%';
+                    $q->where(function ($q) use ($like) {
+                        $q->where('vorname', 'like', $like)
+                            ->orWhere('name', 'like', $like)
+                            ->orWhere('username', 'like', $like);
+                    });
+                }
+            })
+            ->orderBy('name')
+            ->orderBy('vorname')
+            ->limit(10)
+            ->get(['id', 'vorname', 'name', 'username', 'position', 'abteilung', 'straße', 'plz', 'ort', 'tel', 'email']);
+
+        return response()->json($users->map(fn (User $u) => [
+            'id' => $u->id,
+            'vorname' => $u->vorname,
+            'name' => $u->name,
+            'username' => $u->username,
+            'position' => $u->position,
+            'abteilung' => $u->abteilung,
+            'street' => $u->straße,
+            'plz' => $u->plz,
+            'ort' => $u->ort,
+            'tel' => $u->tel,
+            'email' => $u->email,
+        ])->values());
     }
 
     private function newsBar(): ?string
