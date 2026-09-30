@@ -94,7 +94,7 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
     <div class="flex flex-1 flex-col gap-4 p-4 lg:grid lg:grid-cols-4 lg:gap-4">
         <div class="bg-card text-card-foreground rounded-xl border shadow-sm lg:col-span-1">
             <div class="border-b p-4">
-                <h3 class="font-semibold">Handwerk Ordner</h3>
+                <h3 class="font-semibold">Übersicht</h3>
             </div>
             <nav class="flex flex-col gap-1 p-2">
                 <Link

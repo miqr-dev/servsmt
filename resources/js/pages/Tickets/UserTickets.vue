@@ -323,7 +323,7 @@ const korsoFolderLinks = computed(() => [
 
         <!-- IT tab -->
         <div v-show="currentTab === 'it'" class="flex flex-col gap-4 lg:flex-row" role="tabpanel">
-            <TicketFolderNav title="Ordner" :links="ticketFolderLinks" />
+            <TicketFolderNav title="Übersicht" :links="ticketFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
                 <div class="border-b p-4">
@@ -357,7 +357,7 @@ const korsoFolderLinks = computed(() => [
                                 </td>
                                 <td class="p-3">
                                     <Link :href="`/ticket/${ticket.id}`" class="text-primary font-semibold hover:underline">
-                                        {{ (isSuperAdmin ? ticket.subUser?.username : ticket.user?.username) ?? 'Unbekannt' }}
+                                        {{ (isSuperAdmin ? ticket.subUser?.username : ticket.user?.username) ?? (isSuperAdmin ? 'Unbekannt' : 'nicht zugewiesen') }}
                                     </Link>
                                 </td>
                                 <td class="p-3">
@@ -400,7 +400,7 @@ const korsoFolderLinks = computed(() => [
 
         <!-- Handwerk tab -->
         <div v-if="canSeeHandwerk" v-show="currentTab === 'handwerk'" class="flex flex-col gap-4 lg:flex-row" role="tabpanel">
-            <TicketFolderNav title="Handwerk Ordner" :links="handwerkFolderLinks" />
+            <TicketFolderNav title="Übersicht" :links="handwerkFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b p-4">
@@ -479,7 +479,7 @@ const korsoFolderLinks = computed(() => [
 
         <!-- Korso tab -->
         <div v-if="canSeeKorso" v-show="currentTab === 'korso'" class="flex flex-col gap-4 lg:flex-row" role="tabpanel">
-            <TicketFolderNav title="Ordner" :links="korsoFolderLinks" />
+            <TicketFolderNav title="Übersicht" :links="korsoFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
                 <div class="border-b p-4">

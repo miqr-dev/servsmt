@@ -850,7 +850,7 @@ class TicketController extends Controller
       327 => ['dresden', 'berlin', 'leipzig', 'chemntiz', 'döbeln', 'erfurt', 'suhl'], //Fuierer
     ];
 
-    $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();
+    $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user'])->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();
 
     $ticketsdone = Ticket::onlyTrashed()->where(function ($query) use ($user) {
       $query->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
@@ -949,7 +949,7 @@ class TicketController extends Controller
     // regular Ticket history (unchanged)
     // ———————————————————————————————
     $oldTickets = Ticket::onlyTrashed()
-      ->with('invitem.invroom.location.place', 'printer.invroom.location.place')
+      ->with('invitem.invroom.location.place', 'printer.invroom.location.place', 'subUser')
       ->where(function ($q) use ($user) {
         $q->where('submitter',   $user->id)
           ->orWhere('assignedTo', $user->id);

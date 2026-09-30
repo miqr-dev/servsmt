@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\HandwerkTodo;
 use Illuminate\Http\Request;
+use App\Support\HandwerkCityAccess;
 
 class HandwerkTodoController extends Controller
 {
@@ -23,16 +24,26 @@ class HandwerkTodoController extends Controller
     // Show a single todo
   }
 
+  /** The ToDo must belong to $city, and the user must be allowed that city. */
+  private function findForCity($city, $id): HandwerkTodo
+  {
+    HandwerkCityAccess::authorize($city);
+    $todo = HandwerkTodo::findOrFail($id);
+    abort_unless(HandwerkCityAccess::slug($todo->standort) === HandwerkCityAccess::slug($city), 404);
+
+    return $todo;
+  }
+
   public function edit($city, $id)
   {
-    $todo = HandwerkTodo::findOrFail($id);
+    $todo = $this->findForCity($city, $id);
 
     return response()->json($todo, 200);
   }
 
 public function updateTodo(Request $request, $city, $id)
 {
-    $todo = HandwerkTodo::findOrFail($id);
+    $todo = $this->findForCity($city, $id);
 
     $todo->title = $request->title;
     $todo->body = $request->body;
@@ -53,7 +64,7 @@ public function updateTodo(Request $request, $city, $id)
 }
 public function destroy($city, $id) 
 {
-    $todo = HandwerkTodo::findOrFail($id);
+    $todo = $this->findForCity($city, $id);
     $todo->delete();
     return response()->json(null, 204);
 }

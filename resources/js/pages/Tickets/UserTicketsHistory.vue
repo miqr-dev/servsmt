@@ -130,7 +130,7 @@ const korsoTable = reactive(useDataTable(oldKorsoTickets, KORSO_COLUMNS));
     <div class="flex flex-1 flex-col gap-6 p-4">
         <!-- Ticket section -->
         <div class="flex flex-col gap-4 lg:flex-row">
-            <TicketFolderNav title="Ordner" :links="ticketFolderLinks" />
+            <TicketFolderNav title="Übersicht" :links="ticketFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
                 <div class="border-b p-4">
@@ -185,7 +185,7 @@ const korsoTable = reactive(useDataTable(oldKorsoTickets, KORSO_COLUMNS));
 
         <!-- Korso section -->
         <div v-if="canSeeKorso" class="flex flex-col gap-4 lg:flex-row">
-            <TicketFolderNav title="Ordner" :links="korsoFolderLinks" />
+            <TicketFolderNav title="Übersicht" :links="korsoFolderLinks" />
 
             <div class="bg-card text-card-foreground flex-1 rounded-xl border shadow-sm">
                 <div class="border-b p-4">

@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use App\Support\Notify;
 use App\Support\TicketAccess;
+use App\Support\HandwerkCityAccess;
 use App\Support\NotificationLookup;
 
 class HandwerkController extends Controller
@@ -30,10 +31,16 @@ class HandwerkController extends Controller
     $cityCounts = collect();
     $citySlugs = [];
 
-    if (auth()->user()->hasAnyRole('Super_Admin', 'handwerk_admin')) {
-      $cityCounts = Handwerk::select('submitter_standort', DB::raw('count(*) as total'))
-        ->groupBy('submitter_standort')
-        ->pluck('total', 'submitter_standort');
+    // City badges (links to /handwerker/{city}):
+    // Super_Admin / handwerk_admin see every city, handwerk only their own.
+    $user = auth()->user();
+    if (HandwerkCityAccess::allCities($user) || $user->hasRole('handwerk')) {
+      $query = Handwerk::select('submitter_standort', DB::raw('count(*) as total'))
+        ->groupBy('submitter_standort');
+      if (! HandwerkCityAccess::allCities($user)) {
+        $query->where('submitter_standort', $user->ort ?: '__none__');
+      }
+      $cityCounts = $query->pluck('total', 'submitter_standort');
 
       foreach ($cityCounts as $city => $count) {
         $citySlugs[$city] = str_replace('Döbeln', 'doebeln', mb_strtolower($city, 'UTF-8'));
@@ -59,7 +66,10 @@ class HandwerkController extends Controller
 
   public function showCity($city)
   {
-    $handwerks = Handwerk::where('submitter_standort', $city)
+    HandwerkCityAccess::authorize($city);
+    // URL slug "doebeln" never matched the stored "Döbeln" - map it back.
+    $standort = $city === 'doebeln' ? 'Döbeln' : $city;
+    $handwerks = Handwerk::where('submitter_standort', $standort)
       ->with('room', 'location', 'subUser')
       ->orderByDesc('created_at')
       ->get();
@@ -78,6 +88,7 @@ class HandwerkController extends Controller
   }
   public function storeTodo(Request $request, $city)
   {
+    HandwerkCityAccess::authorize($city);
     $todo = new HandwerkTodo;
     $todo->standort = $city;
     $todo->title = $request->title;
