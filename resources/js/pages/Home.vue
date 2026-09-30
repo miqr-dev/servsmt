@@ -199,7 +199,7 @@ const SHORTCUTS = [
             </div>
 
             <div class="grid gap-6 lg:grid-cols-2">
-                <div v-if="props.standortForwardings || props.cityHandwerks" class="flex min-w-0 flex-col gap-6">
+                <div v-if="props.standortForwardings || props.cityHandwerks" class="flex min-w-0 flex-col gap-6 lg:self-start">
                     <!-- Sekretariat: active forwardings at their Standort + their own (replaces the personal list) -->
                     <section v-if="props.standortForwardings" class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
                         <header class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
@@ -387,7 +387,7 @@ const SHORTCUTS = [
                 </div>
 
                 <!-- Verwaltung: own email forwardings -->
-                <section v-if="props.myForwardings" class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm">
+                <section v-if="props.myForwardings" class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm lg:self-start">
                     <header class="flex items-center justify-between gap-3 border-b px-5 py-4">
                         <div class="flex items-center gap-2">
                             <Mail class="text-primary size-5" />
@@ -440,10 +440,9 @@ const SHORTCUTS = [
                         </li>
                     </ul>
 
-                    <div v-else class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center text-sm">
+                    <div v-else class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 px-5 py-8 text-center text-sm">
                         <Mail class="size-8 opacity-40" />
                         <p>Keine aktuellen oder geplanten E-Mail-Weiterleitungen.</p>
-                        <Link :href="FORWARD_FORM" class="text-primary font-medium hover:underline">Weiterleitung beantragen</Link>
                     </div>
                 </section>
 
