@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Briefcase, Mail, MapPin, Phone, Search, UserRound, X } from '@lucide/vue';
+import { Briefcase, Check, Copy, Mail, MapPin, Phone, Search, UserRound, X } from '@lucide/vue';
 import axios from 'axios';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
@@ -34,6 +34,58 @@ let requestId = 0;
 
 function fullName(e: Employee): string {
     return [e.vorname, e.name].filter(Boolean).join(' ') || e.username || '';
+}
+
+/** Split an address so the browser may wrap before "@" and after "." / "-" only. */
+function emailParts(email: string): string[] {
+    return email.split(/(?=@)|(?<=[.\-])/);
+}
+
+// Which field was just copied ('email' | 'tel'), for the checkmark.
+const copied = ref<string | null>(null);
+let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * navigator.clipboard only exists on HTTPS / localhost - the intranet
+ * servers run on plain http, so fall back to the classic hidden-textarea +
+ * execCommand('copy'), which works there.
+ */
+function writeClipboard(text: string): boolean {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try {
+        ok = document.execCommand('copy');
+    } catch {
+        ok = false;
+    }
+    document.body.removeChild(ta);
+
+    return ok;
+}
+
+async function copy(text: string, key: string) {
+    let ok = false;
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            ok = true;
+        } catch {
+            ok = false;
+        }
+    }
+    if (!ok) ok = writeClipboard(text);
+    if (!ok) return;
+
+    copied.value = key;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied.value = null), 1500);
 }
 
 function initials(e: Employee): string {
@@ -79,7 +131,10 @@ watch(query, (q) => {
     timer = setTimeout(() => runSearch(q.trim()), 250);
 });
 
-onBeforeUnmount(() => clearTimeout(timer));
+onBeforeUnmount(() => {
+    clearTimeout(timer);
+    clearTimeout(copiedTimer);
+});
 
 function clear() {
     query.value = '';
@@ -115,12 +170,12 @@ function clear() {
 
         <!-- Details of the chosen colleague -->
         <div v-if="selected" class="border-t p-4">
-            <div class="flex items-center gap-3">
+            <div class="flex items-start gap-3">
                 <span class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
                     {{ initials(selected) }}
                 </span>
                 <div class="min-w-0">
-                    <p class="truncate font-semibold">{{ fullName(selected) }}</p>
+                    <p class="leading-snug font-semibold break-words hyphens-auto" lang="de" :title="fullName(selected)">{{ fullName(selected) }}</p>
                     <p class="text-muted-foreground truncate text-xs">{{ selected.username }}</p>
                 </div>
             </div>
@@ -145,20 +200,41 @@ function clear() {
                     <Phone class="text-muted-foreground mt-0.5 size-4 shrink-0" />
                     <div class="min-w-0">
                         <dt class="sr-only">Telefon</dt>
-                        <dd>
-                            <a v-if="selected.tel" :href="`tel:${selected.tel.replace(/[^\d+]/g, '')}`" class="hover:underline">{{ selected.tel }}</a>
-                            <span v-else>–</span>
+                        <dd v-if="selected.tel" class="flex items-start gap-1">
+                            <a :href="`tel:${selected.tel.replace(/[^\d+]/g, '')}`" class="hover:underline">{{ selected.tel }}</a>
+                            <button
+                                type="button"
+                                class="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 rounded p-1"
+                                :title="copied === 'tel' ? 'Kopiert' : 'Nummer kopieren'"
+                                @click="copy(selected.tel, 'tel')"
+                            >
+                                <Check v-if="copied === 'tel'" class="size-3.5 text-green-600" />
+                                <Copy v-else class="size-3.5" />
+                            </button>
                         </dd>
+                        <dd v-else>–</dd>
                     </div>
                 </div>
                 <div class="flex gap-2">
                     <Mail class="text-muted-foreground mt-0.5 size-4 shrink-0" />
                     <div class="min-w-0">
                         <dt class="sr-only">E-Mail</dt>
-                        <dd class="break-all">
-                            <a v-if="selected.email" :href="`mailto:${selected.email}`" class="text-primary hover:underline">{{ selected.email }}</a>
-                            <span v-else>–</span>
+                        <dd v-if="selected.email" class="flex items-start gap-1">
+                            <!-- Breaks only at "@", "." and "-" (see emailParts), never mid-word -->
+                            <a :href="`mailto:${selected.email}`" :title="selected.email" class="text-primary min-w-0 hover:underline">
+                                <template v-for="(part, i) in emailParts(selected.email)" :key="i"><wbr v-if="i > 0" />{{ part }}</template>
+                            </a>
+                            <button
+                                type="button"
+                                class="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 rounded p-1"
+                                :title="copied === 'email' ? 'Kopiert' : 'E-Mail kopieren'"
+                                @click="copy(selected.email, 'email')"
+                            >
+                                <Check v-if="copied === 'email'" class="size-3.5 text-green-600" />
+                                <Copy v-else class="size-3.5" />
+                            </button>
                         </dd>
+                        <dd v-else>–</dd>
                     </div>
                 </div>
             </dl>
