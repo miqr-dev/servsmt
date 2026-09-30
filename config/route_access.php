@@ -124,7 +124,7 @@ return [
     'handwerk/ajax-destroy/{id}' => $HW_STAFF,
     'handwerk/assignTo' => $HW_ADMIN,
     'handwerk/admin_notes' => $HW_ADMIN,
-    'handwerk/{city}/open-tickets-pdf' => 'handwerk_admin|Sekretariat',
+    'handwerk/{city}/open-tickets-pdf' => 'handwerk_admin|Sekretariat|handwerk', // handwerk: own city (controller)
     'handwerk.restore/{myhandwerk}' => null,      // owner or Handwerk staff - controller
     'handwerk' => $VERWALTUNG,
     'einrichtungsgegenstände' => $VERWALTUNG,

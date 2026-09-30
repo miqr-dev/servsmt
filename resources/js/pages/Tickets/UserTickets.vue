@@ -130,7 +130,11 @@ const canSeeHandwerk = computed(
 );
 const canSeeKorso = computed(() => roles.value.includes('Verwaltung'));
 const canDownloadHandwerkPdf = computed(
-    () => isSuperAdmin.value || roles.value.includes('handwerk_admin') || roles.value.includes('Sekretariat'),
+    () =>
+        isSuperAdmin.value ||
+        roles.value.includes('handwerk_admin') ||
+        roles.value.includes('Sekretariat') ||
+        roles.value.includes('handwerk'), // own city (the link uses auth.user.ort)
 );
 
 // --- Tabs ---

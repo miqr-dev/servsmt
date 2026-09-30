@@ -72,8 +72,18 @@ const roles = computed(() => page.props.auth.user?.roles ?? []);
 const isSuperAdmin = computed(() => roles.value.includes('Super_Admin'));
 const isHandwerkAdmin = computed(() => roles.value.includes('handwerk_admin'));
 const canAssign = computed(() => isSuperAdmin.value || isHandwerkAdmin.value);
+// handwerk (the workers) may complete tickets of their own city - same rule
+// as HandwerkController::authorizeComplete / App\Support\HandwerkCityAccess.
+const citySlug = (c: string | null | undefined) =>
+    (c ?? '').trim().toLowerCase().replace('döbeln', 'doebeln').replace(/ö/g, 'oe').replace(/ä/g, 'ae').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+const isOwnCityWorker = computed(
+    () =>
+        roles.value.includes('handwerk') &&
+        !!page.props.auth.user?.ort &&
+        citySlug(page.props.auth.user?.ort as string) === citySlug(props.handwerk.submitter_standort),
+);
 const canComplete = computed(
-    () => isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat'),
+    () => isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat') || isOwnCityWorker.value,
 );
 
 const query = new URLSearchParams(window.location.search);
@@ -245,7 +255,7 @@ function restore() {
                     </div>
 
                     <a
-                        v-if="canAssign"
+                        v-if="canAssign || isOwnCityWorker"
                         :href="`/handwerk/${handwerk.id}/pdf`"
                         target="_blank"
                         rel="noopener"

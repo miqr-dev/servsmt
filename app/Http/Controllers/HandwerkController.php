@@ -55,7 +55,11 @@ class HandwerkController extends Controller
 
   public function openTicketsPDF($city)
   {
-    $openHandwerks = Handwerk::where('submitter_standort', $city)
+    // handwerk: only their own city. Sekretariat / handwerk_admin / Super_Admin: any.
+    if (! auth()->user()->hasAnyRole(['Super_Admin', 'handwerk_admin', 'Sekretariat'])) {
+      HandwerkCityAccess::authorize($city);
+    }
+    $openHandwerks = Handwerk::where('submitter_standort', $city === 'doebeln' ? 'Döbeln' : $city)
       ->whereNull('deleted_at')
       ->get();
 
@@ -83,12 +87,15 @@ class HandwerkController extends Controller
     return Inertia::render('Handwerk/City', [
       'city' => $city,
       'handwerks' => $handwerks,
-      'todos' => $todos,
+      // ToDos only for handwerk_admin / Super_Admin - the handwerk role sees just the tickets.
+      'todos' => HandwerkCityAccess::canUseTodos() ? $todos : null,
+      'canPdf' => auth()->user()->hasAnyRole(['Super_Admin', 'handwerk_admin', 'Sekretariat', 'handwerk']),
     ]);
   }
   public function storeTodo(Request $request, $city)
   {
     HandwerkCityAccess::authorize($city);
+    HandwerkCityAccess::authorizeTodos();
     $todo = new HandwerkTodo;
     $todo->standort = $city;
     $todo->title = $request->title;
@@ -435,13 +442,16 @@ class HandwerkController extends Controller
 
   public function exportTicketPdf($id)
   {
-    abort_unless(auth()->user()->hasAnyRole(['Super_Admin', 'handwerk_admin']), 403);
-
     $handwerk = Handwerk::with([
       'room.location.place',
       'subUser',
       'comments.commenter',
     ])->withTrashed()->findOrFail($id);
+
+    // Super_Admin / handwerk_admin: any ticket; handwerk: tickets of their own city.
+    if (! auth()->user()->hasAnyRole(['Super_Admin', 'handwerk_admin'])) {
+      abort_unless(HandwerkCityAccess::allows($handwerk->submitter_standort), 403);
+    }
 
     $comments = $handwerk->comments->sortBy('created_at')->values();
 
@@ -569,11 +579,26 @@ class HandwerkController extends Controller
     ]);
   }
 
+  /**
+   * Erledigt: Super_Admin, handwerk_admin and Sekretariat for any ticket
+   * (route_access already limits the route to them + handwerk);
+   * handwerk only for tickets of their own city.
+   */
+  private function authorizeComplete(Handwerk $handwerk): void
+  {
+    $user = auth()->user();
+    if ($user->hasAnyRole(['Super_Admin', 'handwerk_admin', 'Sekretariat'])) {
+      return;
+    }
+    abort_unless(HandwerkCityAccess::allows($handwerk->submitter_standort, $user), 403, 'Keine Berechtigung für diese Stadt.');
+  }
+
   public function destroy(Request $request, $id)
   {
     $user = Auth()->user();
     $admins = User::role('handwerk_admin')->first();
     $handwerk = Handwerk::findOrFail($id);
+    $this->authorizeComplete($handwerk);
     $handwerk->done_by = $user->username;
     $handwerk->save();
 
@@ -629,6 +654,7 @@ class HandwerkController extends Controller
     try {
         $user = auth()->user();
         $handwerk = Handwerk::findOrFail($id);
+        $this->authorizeComplete($handwerk);
 
         $handwerk->done_by = $user->username;
         $handwerk->save();

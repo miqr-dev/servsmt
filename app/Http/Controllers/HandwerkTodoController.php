@@ -28,6 +28,7 @@ class HandwerkTodoController extends Controller
   private function findForCity($city, $id): HandwerkTodo
   {
     HandwerkCityAccess::authorize($city);
+    HandwerkCityAccess::authorizeTodos();
     $todo = HandwerkTodo::findOrFail($id);
     abort_unless(HandwerkCityAccess::slug($todo->standort) === HandwerkCityAccess::slug($city), 404);
 

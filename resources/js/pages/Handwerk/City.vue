@@ -51,8 +51,19 @@ type TodoRow = {
 const props = defineProps<{
     city: string;
     handwerks: HandwerkRow[];
-    todos: TodoRow[];
+    /** null for the handwerk role - ToDos are for handwerk_admin / Super_Admin only. */
+    todos: TodoRow[] | null;
+    /** Open-tickets PDF: handwerk_admin, Sekretariat, Super_Admin. */
+    canPdf: boolean;
 }>();
+
+// Without ToDos (handwerk role) the ticket table is shown alone, centred.
+const showTodos = props.todos !== null;
+
+// `window` isn't reachable from the template - the old inline handler threw.
+function goBack() {
+    window.history.back();
+}
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -121,7 +132,7 @@ function handwerkActions(handwerk: HandwerkRow): RowAction[] {
 type TodoItem = TodoRow & { editing: boolean; draftTitle: string; draftBody: string };
 
 const todos = ref<TodoItem[]>(
-    props.todos.map((t) => ({ ...t, editing: false, draftTitle: t.title, draftBody: t.body })),
+    (props.todos ?? []).map((t) => ({ ...t, editing: false, draftTitle: t.title, draftBody: t.body })),
 );
 
 const newTitle = ref('');
@@ -180,18 +191,19 @@ async function doneTodo(todo: TodoItem) {
     <Head :title="`${city} Handwerks`" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2" :class="showTodos ? '' : 'mx-auto w-full max-w-5xl'">
             <div class="flex items-center gap-2">
                 <button
                     type="button"
                     class="border-border hover:bg-accent inline-flex h-9 items-center rounded-md border px-3 text-sm"
-                    @click="() => window.history.back()"
+                    @click="goBack"
                 >
                     ←
                 </button>
                 <h1 class="text-xl font-semibold capitalize">{{ city }} Handwerks</h1>
             </div>
             <a
+                v-if="canPdf"
                 :href="`/handwerk/${city}/open-tickets-pdf`"
                 class="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm"
             >
@@ -200,9 +212,9 @@ async function doneTodo(todo: TodoItem) {
             </a>
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
-            <!-- ToDo list -->
-            <div class="bg-card text-card-foreground rounded-xl border shadow-sm">
+        <div class="grid gap-4" :class="showTodos ? 'lg:grid-cols-2' : 'mx-auto w-full max-w-5xl'">
+            <!-- ToDo list (handwerk_admin / Super_Admin only) -->
+            <div v-if="showTodos" class="bg-card text-card-foreground rounded-xl border shadow-sm">
                 <div class="flex items-center gap-2 border-b p-4">
                     <h3 class="font-semibold">ToDo</h3>
                     <span class="bg-secondary text-secondary-foreground rounded-full px-2 py-0.5 text-xs font-medium">

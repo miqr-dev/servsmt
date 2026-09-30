@@ -30,6 +30,17 @@ class HandwerkCityAccess
         return $user && $user->hasAnyRole(['Super_Admin', 'handwerk_admin']);
     }
 
+    /** City ToDos: only handwerk_admin / Super_Admin (not the handwerk role). */
+    public static function canUseTodos($user = null): bool
+    {
+        return self::allCities($user);
+    }
+
+    public static function authorizeTodos(): void
+    {
+        abort_unless(self::canUseTodos(), 403, 'Keine Berechtigung für die ToDos.');
+    }
+
     public static function allows(?string $city, $user = null): bool
     {
         $user = $user ?: Auth::user();
