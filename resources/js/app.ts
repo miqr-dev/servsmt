@@ -13,10 +13,14 @@ createInertiaApp({
         const pages = import.meta.glob<DefineComponent>('./pages/**/*.vue', { eager: true });
         const page = pages[`./pages/${name}.vue`];
 
-        // Every page uses the sidebar shell for now - pages can opt out later
-        // (e.g. auth pages) the same way the Laravel starter kit does, once
-        // those get converted too.
-        page.default.layout = page.default.layout ?? AppLayout;
+        // Every page uses the sidebar shell unless it opts out with
+        // `defineOptions({ layout: false })` (e.g. pages/Error.vue, which is
+        // also shown without a logged-in user).
+        if (page.default.layout !== false) {
+            page.default.layout = page.default.layout ?? AppLayout;
+        } else {
+            page.default.layout = undefined;
+        }
 
         return page;
     },
