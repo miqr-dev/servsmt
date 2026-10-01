@@ -3,6 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, ref, watch } from 'vue';
+import UnreadDot from '@/components/UnreadDot.vue';
+import { useUnread } from '@/composables/useUnread';
 import { useDebounceFn } from '@vueuse/core';
 import { X } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -131,6 +133,9 @@ const props = defineProps<{
     pagination?: { page: number; pageCount: number; total: number; from: number; to: number };
     filters?: { search: string; sort: string | null; direction: 'asc' | 'desc'; per_page: number };
 }>();
+
+// Unread notifications (all systems) - dot on rows with news.
+const { isUnread } = useUnread();
 
 const page = usePage<{ auth: Auth }>();
 const roles = computed(() => page.props.auth.user?.roles ?? []);
@@ -562,6 +567,7 @@ async function deleteNote(note: CityNote) {
                                 </select>
                             </td>
                             <td class="p-3">
+                                <UnreadDot :show="isUnread('ticket', ticket.id)" />
                                 <Link :href="`/ticket/${ticket.id}`" class="text-primary hover:underline">{{ ticket.subUser?.username ?? '—' }}</Link>
                             </td>
                             <td class="p-3">

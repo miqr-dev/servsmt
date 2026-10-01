@@ -39,6 +39,8 @@ class DashboardController extends Controller
         }
 
         $props = [
+            // "Neu für dich": unread notifications of all systems, grouped per ticket.
+            'newForYou' => \App\Support\NotificationFeed::groups($user),
             // News bar (Einstellungen > Newsbar) - shown to everyone next to the
             // greeting. Moved here from the IT ticket page (2026-09-29).
             'newsBar' => $this->newsBar(),

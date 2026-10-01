@@ -3,6 +3,7 @@ import { createApp, h } from 'vue';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { trackNavigation } from '@/lib/navHistory';
+import { withUnreadPrefix } from '@/composables/useUnread';
 import { initializeFlashToast } from '@/lib/flashToast';
 import type { DefineComponent } from 'vue';
 
@@ -12,7 +13,8 @@ const appName = import.meta.env.VITE_APP_NAME || 'servsmt';
 trackNavigation();
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    // "(3) …" when there are unread notifications (see composables/useUnread.ts).
+    title: (title) => withUnreadPrefix(title ? `${title} - ${appName}` : appName),
     resolve: (name) => {
         const pages = import.meta.glob<DefineComponent>('./pages/**/*.vue', { eager: true });
         const page = pages[`./pages/${name}.vue`];

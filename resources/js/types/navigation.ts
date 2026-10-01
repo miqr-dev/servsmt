@@ -15,6 +15,8 @@ export type NavItem = {
     roles?: string[];
     /** Hidden from users who have any of these roles (e.g. a simplified item that admins get in a richer form elsewhere). */
     hideForRoles?: string[];
+    /** Small counter on the right (e.g. unread notifications). Hidden when 0/undefined. */
+    badge?: number;
     /** Nested links, rendered as a collapsible sub-menu. */
     children?: NavItem[];
 };

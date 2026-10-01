@@ -11,6 +11,8 @@ import TableHeadCell from '@/components/table/TableHeadCell.vue';
 import TablePagination from '@/components/table/TablePagination.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
+import UnreadDot from '@/components/UnreadDot.vue';
+import { useUnread } from '@/composables/useUnread';
 import type { Auth, BreadcrumbItem } from '@/types';
 import { ticketStatusMeta, ticketPriorityLabel, ticketPriorityBadgeClass, korsoStatusBadgeClass } from '@/lib/ticketStatus';
 
@@ -121,6 +123,8 @@ const page = usePage<{ auth: Auth }>();
 const currentUser = computed(() => page.props.auth.user);
 const roles = computed(() => currentUser.value?.roles ?? []);
 const isSuperAdmin = computed(() => roles.value.includes('Super_Admin'));
+// Unread notifications (all systems) - dot on rows with news.
+const { isUnread } = useUnread();
 const canSeeHandwerk = computed(
     () =>
         isSuperAdmin.value ||
@@ -141,11 +145,21 @@ const canDownloadHandwerkPdf = computed(
 type TabKey = 'it' | 'handwerk' | 'korso';
 
 const tabs = computed(() => {
-    const list: { key: TabKey; label: string; icon: typeof TicketIcon; count: number }[] = [
-        { key: 'it', label: 'IT Tickets', icon: TicketIcon, count: props.myTicketsCount },
+    // unread = this tab's tickets that have unread notifications (dot on the tab)
+    const unreadIn = (kind: 'ticket' | 'handwerk' | 'korso', ids: number[]) => ids.filter((id) => isUnread(kind, id)).length;
+    const list: { key: TabKey; label: string; icon: typeof TicketIcon; count: number; unread: number }[] = [
+        { key: 'it', label: 'IT Tickets', icon: TicketIcon, count: props.myTicketsCount, unread: unreadIn('ticket', props.myTickets.map((t) => t.id)) },
     ];
-    if (canSeeHandwerk.value) list.push({ key: 'handwerk', label: 'Handwerk', icon: HardHat, count: props.myhandwerkTicketsCount });
-    if (canSeeKorso.value) list.push({ key: 'korso', label: 'Korso', icon: Users, count: korsoTickets.value.length });
+    if (canSeeHandwerk.value)
+        list.push({
+            key: 'handwerk',
+            label: 'Handwerk',
+            icon: HardHat,
+            count: props.myhandwerkTicketsCount,
+            unread: unreadIn('handwerk', props.myHandwerkTickets.map((t) => t.id)),
+        });
+    if (canSeeKorso.value)
+        list.push({ key: 'korso', label: 'Korso', icon: Users, count: korsoTickets.value.length, unread: unreadIn('korso', korsoTickets.value.map((t) => t.id)) });
 
     return list;
 });
@@ -321,6 +335,7 @@ const korsoFolderLinks = computed(() => [
                     >
                         {{ t.count }}
                     </span>
+                    <span v-if="t.unread" class="bg-primary inline-block size-2 rounded-full" :title="`${t.unread} mit neuer Aktivität`" />
                 </button>
             </div>
         </div>
@@ -360,6 +375,7 @@ const korsoFolderLinks = computed(() => [
                                     />
                                 </td>
                                 <td class="p-3">
+                                    <UnreadDot :show="isUnread('ticket', ticket.id)" />
                                     <Link :href="`/ticket/${ticket.id}`" class="text-primary font-semibold hover:underline">
                                         {{ (isSuperAdmin ? ticket.subUser?.username : ticket.user?.username) ?? (isSuperAdmin ? 'Unbekannt' : 'nicht zugewiesen') }}
                                     </Link>
@@ -442,6 +458,7 @@ const korsoFolderLinks = computed(() => [
                         <tbody class="divide-y">
                             <tr v-for="ticket in handwerkTable.pagedRows" :key="ticket.id">
                                 <td class="p-3">
+                                    <UnreadDot :show="isUnread('handwerk', ticket.id)" />
                                     <Link :href="`/handwerk/${ticket.id}`" class="text-primary font-semibold hover:underline">
                                         {{ ticket.problem_type }}
                                     </Link>
@@ -518,6 +535,7 @@ const korsoFolderLinks = computed(() => [
                                     </span>
                                 </td>
                                 <td class="p-3">
+                                    <UnreadDot :show="isUnread('korso', ticket.id)" />
                                     <Link :href="`/korso/${ticket.id}`" class="text-primary font-semibold hover:underline">
                                         {{ ticket.assignedUser?.username ?? 'nicht zugewiesen' }}
                                     </Link>

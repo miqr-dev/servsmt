@@ -21,6 +21,7 @@ import {
 import { computed, h, ref } from 'vue';
 import AdminBoxes from '@/components/dashboard/AdminBoxes.vue';
 import EmployeeLookup from '@/components/dashboard/EmployeeLookup.vue';
+import NewForYou, { type FeedGroup } from '@/components/dashboard/NewForYou.vue';
 import TerminationsBox, { type TerminationRow } from '@/components/dashboard/TerminationsBox.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -60,6 +61,7 @@ const props = defineProps<{
     myForwardings?: Forwarding[];
     createShortcuts?: boolean;
     employeeLookup?: boolean;
+    newForYou?: FeedGroup[];
     newsBar?: string | null;
     standortForwardings?: Forwarding[];
     standortLabel?: string;
@@ -199,6 +201,9 @@ const SHORTCUTS = [
                     </div>
                 </section>
             </div>
+
+            <!-- Unread notifications of all systems, one line per ticket -->
+            <NewForYou v-if="props.newForYou?.length" :groups="props.newForYou" />
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <div v-if="props.standortForwardings || props.cityHandwerks" class="flex min-w-0 flex-col gap-6 lg:self-start">

@@ -2,15 +2,12 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarMenuSub,
@@ -28,9 +25,7 @@ const props = defineProps<{
 const { isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
 
 const page = usePage();
-const userRoles = computed<string[]>(
-    () => (page.props.auth?.user?.roles as string[] | undefined) ?? [],
-);
+const userRoles = computed<string[]>(() => (page.props.auth?.user?.roles as string[] | undefined) ?? []);
 
 function isVisible(item: NavItem): boolean {
     if (item.hideForRoles?.some((role) => userRoles.value.includes(role))) {
@@ -44,9 +39,7 @@ function isVisible(item: NavItem): boolean {
 }
 
 // A group item with children is only shown if at least one child is visible.
-const visibleItems = computed(() =>
-    props.items.filter((item) => isVisible(item) && (!item.children?.length || visibleChildren(item).length > 0)),
-);
+const visibleItems = computed(() => props.items.filter((item) => isVisible(item) && (!item.children?.length || visibleChildren(item).length > 0)));
 
 function visibleChildren(item: NavItem): NavItem[] {
     return (item.children ?? []).filter(isVisible);
@@ -71,21 +64,13 @@ function visibleChildren(item: NavItem): NavItem[] {
                             <SidebarMenuButton :tooltip="item.title">
                                 <component :is="item.icon" v-if="item.icon" />
                                 <span>{{ item.title }}</span>
-                                <ChevronRight
-                                    class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-                                />
+                                <ChevronRight class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
-                                <SidebarMenuSubItem
-                                    v-for="child in visibleChildren(item)"
-                                    :key="child.title"
-                                >
-                                    <SidebarMenuSubButton
-                                        as-child
-                                        :is-active="isCurrentUrl(child.href ?? '#')"
-                                    >
+                                <SidebarMenuSubItem v-for="child in visibleChildren(item)" :key="child.title">
+                                    <SidebarMenuSubButton as-child :is-active="isCurrentUrl(child.href ?? '#')">
                                         <Link :href="child.href ?? '#'">
                                             <span>{{ child.title }}</span>
                                         </Link>
@@ -98,16 +83,19 @@ function visibleChildren(item: NavItem): NavItem[] {
 
                 <!-- Plain link -->
                 <SidebarMenuItem v-else>
-                    <SidebarMenuButton
-                        as-child
-                        :is-active="isCurrentUrl(item.href ?? '#')"
-                        :tooltip="item.title"
-                    >
+                    <SidebarMenuButton as-child :is-active="isCurrentUrl(item.href ?? '#')" :tooltip="item.title">
                         <Link :href="item.href ?? '#'">
                             <component :is="item.icon" v-if="item.icon" />
                             <span>{{ item.title }}</span>
                         </Link>
                     </SidebarMenuButton>
+                    <SidebarMenuBadge
+                        v-if="item.badge"
+                        class="bg-primary text-primary-foreground rounded-full px-1.5 peer-hover/menu-button:text-primary-foreground peer-data-[active=true]/menu-button:text-primary-foreground"
+                        :title="`${item.badge} neu`"
+                    >
+                        {{ item.badge > 99 ? '99+' : item.badge }}
+                    </SidebarMenuBadge>
                 </SidebarMenuItem>
             </template>
         </SidebarMenu>

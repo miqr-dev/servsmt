@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
+import { startUnreadPolling, titleState, useUnread, withUnreadPrefix } from '@/composables/useUnread';
 import {
     Boxes,
     Briefcase,
@@ -39,7 +41,7 @@ import type { NavItem } from '@/types';
 // both later). "Ticket Erstellen" was pulled out of the "Ticket" group, renamed "IT Ticket",
 // and made a standalone top-level item directly above "Korso Ticket".
 
-const generalItems: NavItem[] = [
+const baseGeneralItems: NavItem[] = [
     // "/" is the unified Dashboard for everyone (DashboardController); every
     // role's boxes (incl. HR Kündigungen, Super_Admin Lizenzen) live there.
     { title: 'Dashboard', href: '/', icon: LayoutGrid },
@@ -51,6 +53,20 @@ const generalItems: NavItem[] = [
     { title: 'Inventar', href: '/inventory', icon: Boxes, roles: ['Super_Admin', 'INV'] },
     { title: 'MIQR Mitarbeiter', href: '/contacts', icon: Contact, roles: ['admin', 'Super_Admin'] },
 ];
+
+// Unread notifications (all systems): counter on "Dashboard", where the
+// "Neu für dich" box lists them; "(n)" prefix on the browser tab title.
+const unread = useUnread();
+startUnreadPolling();
+const generalItems = computed<NavItem[]>(() => baseGeneralItems.map((item) => (item.href === '/' ? { ...item, badge: unread.count.value } : item)));
+watch(
+    unread.count,
+    (n) => {
+        titleState.count = n;
+        document.title = withUnreadPrefix(document.title);
+    },
+    { immediate: true },
+);
 
 // Two layouts (2026-09-28, your request):
 // - IT admins (Super_Admin, admin): the "Ticket" group with Offen / Erledigt /

@@ -3,6 +3,8 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { CircleCheck, FileDown, Pencil, Save } from '@lucide/vue';
 import { h, ref } from 'vue';
+import UnreadDot from '@/components/UnreadDot.vue';
+import { useUnread } from '@/composables/useUnread';
 import RowActions, { type RowAction } from '@/components/RowActions.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
 import TablePagination from '@/components/table/TablePagination.vue';
@@ -59,6 +61,9 @@ const props = defineProps<{
 
 // Without ToDos (handwerk role) the ticket table is shown alone, centred.
 const showTodos = props.todos !== null;
+
+// Unread notifications (all systems) - dot on rows with news.
+const { isUnread } = useUnread();
 
 // `window` isn't reachable from the template - the old inline handler threw.
 function goBack() {
@@ -340,6 +345,7 @@ async function doneTodo(todo: TodoItem) {
                         <tbody class="divide-y">
                             <tr v-for="handwerk in pagedRows" :key="handwerk.id">
                                 <td class="p-3">
+                                    <UnreadDot :show="isUnread('handwerk', handwerk.id)" />
                                     <Link
                                         :href="`/handwerk/${handwerk.id}?from_city=${city}`"
                                         class="text-primary hover:underline"

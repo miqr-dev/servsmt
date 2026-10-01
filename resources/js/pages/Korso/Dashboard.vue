@@ -3,6 +3,8 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, ref } from 'vue';
+import UnreadDot from '@/components/UnreadDot.vue';
+import { useUnread } from '@/composables/useUnread';
 import { watchDebounced } from '@vueuse/core';
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Eye, PaintRoller, RefreshCw, Settings, X } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -102,6 +104,9 @@ const props = defineProps<{
     myDoneCount: number;
     allDoneCount: number;
 }>();
+
+// Unread notifications (all systems) - dot on rows with news.
+const { isUnread } = useUnread();
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -556,6 +561,7 @@ function attachmentUrl(path: string): string {
                             <tr v-for="ticket in tickets" :key="ticket.id" :class="ticket.priority === 3 ? 'bg-red-50' : ''">
                                 <td class="p-3">{{ ticket.id }}</td>
                                 <td class="p-3">
+                                    <UnreadDot :show="isUnread('korso', ticket.id)" />
                                     <Link :href="ticketHref(ticket)" class="text-primary font-semibold hover:underline">
                                         {{ creatorLabel(ticket) }}
                                     </Link>

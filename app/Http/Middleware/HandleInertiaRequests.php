@@ -54,6 +54,10 @@ class HandleInertiaRequests extends Middleware
                     'isSuperAdmin' => $user->isSuperAdmin(),
                 ] : null,
             ],
+            // Unread in-app notifications, all systems (App\Support\NotificationFeed):
+            // count of records with news + their keys ("ticket:5", "korso:12", …)
+            // for the sidebar counter, the tab title and unread dots in lists.
+            'notifications' => fn () => $user ? \App\Support\NotificationFeed::summary($user) : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
