@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Collection;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -40,11 +41,7 @@ class Notify
         if ($notifiable === null || self::isRemoved($notifiable)) {
             return;
         }
-        try {
-            $notifiable->notify($notification);
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        self::deliver($notifiable, $notification);
     }
 
     public static function send($notifiables, $notification): void
@@ -53,21 +50,51 @@ class Notify
             ? $notifiables
             : collect(is_array($notifiables) ? $notifiables : [$notifiables]);
 
-        $list = $list->filter(function ($n) {
+        $list->filter(function ($n) {
             return $n !== null && ! self::isRemoved($n);
-        })->values();
+        })->each(function ($n) use ($notification) {
+            self::deliver($n, $notification);
+        });
+    }
 
-        if ($list->isEmpty()) {
+    /**
+     * Deliver to ONE recipient, channel by channel, in-app ("database") first.
+     *
+     * Before (2026-10-01): Notification::send($all, ...) sent mail before
+     * database, recipient after recipient, inside one try/catch. One failing
+     * mail (e.g. the SMTP certificate error on the dev server) aborted
+     * everything after it - no in-app notification for that person and
+     * nothing at all for the remaining recipients. Now every channel of every
+     * recipient is tried on its own and failures are only logged.
+     */
+    private static function deliver($notifiable, $notification): void
+    {
+        try {
+            $channels = (array) $notification->via($notifiable);
+        } catch (\Throwable $e) {
+            report($e);
+
             return;
         }
 
-        // A mail problem (SMTP down, certificate error, ...) must not turn an
-        // already-saved ticket/comment into an error page - the user would
-        // retry and create duplicates. Log it and carry on.
-        try {
-            Notification::send($list, $notification);
-        } catch (\Throwable $e) {
-            report($e);
+        // On-demand recipients (Notification::route('mail', ...)) only have
+        // the channels they were given a route for.
+        if ($notifiable instanceof AnonymousNotifiable) {
+            $channels = array_values(array_filter($channels, function ($c) use ($notifiable) {
+                return $notifiable->routeNotificationFor($c) !== null;
+            }));
+        }
+
+        usort($channels, function ($a, $b) {
+            return ($a === 'database' ? 0 : 1) <=> ($b === 'database' ? 0 : 1);
+        });
+
+        foreach ($channels as $channel) {
+            try {
+                Notification::sendNow($notifiable, $notification, [$channel]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 }
