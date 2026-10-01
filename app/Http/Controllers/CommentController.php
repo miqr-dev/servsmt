@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\User;
 use App\Korso;
 use App\Handwerk;
+use App\Ticket;
 use Illuminate\Http\Request;
 use App\Comment;
 use Illuminate\Routing\Controller;
@@ -52,14 +53,22 @@ class CommentController extends Controller
     }
 
     // Merge guest rules, if any, with normal validation rules.
+    // commentable_id: the Vue CommentThread posts a JSON number, the old Blade
+    // form a string - 'string' rejected the number ("Commentable id muss ein
+    // string sein"). Any positive integer is fine.
     Validator::make($request->all(), array_merge($guest_rules ?? [], [
       'commentable_type' => 'required|string',
-      'commentable_id'   => 'required|string|min:1',
+      'commentable_id'   => 'required|integer|min:1',
       'message'          => 'required|string',
     ]))->validate();
 
+    // Only these models can be commented on - the class name comes from the
+    // request, so never instantiate anything else from it.
+    $type = ltrim((string) $request->commentable_type, '\\');
+    abort_unless(in_array($type, [Ticket::class, Handwerk::class, Korso::class], true), 422, 'Ungültiger Kommentar-Typ.');
+
     // Load the commentable model
-    $model = $request->commentable_type::findOrFail($request->commentable_id);
+    $model = $type::findOrFail((int) $request->commentable_id);
 
     // Create the comment instance
     $commentClass = Config::get('comments.model');
