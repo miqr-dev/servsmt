@@ -1498,7 +1498,7 @@ class TicketController extends Controller
     Notify::send($submitter, new TicketNotification($notifications));
 
     $ticket->delete();
-    Comment::withTrashed()->where('commentable_id', $id)->restore();
+    Comment::withTrashed()->where('commentable_type', Ticket::class)->where('commentable_id', $id)->restore();
     return redirect()->route('ticket.opentickets');
   }
 
@@ -1592,7 +1592,7 @@ class TicketController extends Controller
     \App\Support\Notify::one(Notification::route('mail', $reception), new TicketNotification($notifications));
 
     $ticket->delete();
-    Comment::withTrashed()->where('commentable_id', $id)->restore();
+    Comment::withTrashed()->where('commentable_type', Ticket::class)->where('commentable_id', $id)->restore();
     return redirect()->route('ticket.opentickets');
   }
 
@@ -1606,13 +1606,20 @@ class TicketController extends Controller
       'title' => 'Wiederhergestellt',
       'ticket_id' => $ticket->id,
       'date' => Carbon::parse($ticket->created_at)->locale('de_DE')->translatedFormat('d F Y H:i'),
-      'submitter' => $ticket->subUser->username,
+      'submitter' => optional($ticket->subUser)->username,
       'problem_type' => $ticket->problem_type,
     ];
-    Comment::withTrashed()->where('commentable_id', $id)->restore();
+    Comment::withTrashed()->where('commentable_type', Ticket::class)->where('commentable_id', $id)->restore();
     Notify::send($admins, new TicketNotification($notifications));
     $ticket->restore();
-    return redirect()->route('ticket.opentickets');
+
+    // IT staff go back to the open-tickets list; the submitter (e.g. a
+    // Verwaltung user) isn't allowed there (403) - send them to the Dashboard.
+    if (auth()->user()->hasAnyRole(TicketAccess::IT_STAFF)) {
+      return redirect()->route('ticket.opentickets');
+    }
+
+    return redirect()->route('home')->with('success', 'Ticket #' . $ticket->id . ' wurde wiederhergestellt.');
   }
 
   public function forceDelete(Request $request, $id)

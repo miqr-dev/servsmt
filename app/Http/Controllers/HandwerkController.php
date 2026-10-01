@@ -611,7 +611,7 @@ class HandwerkController extends Controller
     Notify::send($submitter, new HandwerkNotification($notifications));
 
     $handwerk->delete();
-    Comment::withTrashed()->where('commentable_id', $id)->restore();
+    Comment::withTrashed()->where('commentable_type', Handwerk::class)->where('commentable_id', $id)->restore();
 
     if ($request->has('from_city')) {
       return redirect()->route('handwerk.city', ['city' => $request->from_city]);
@@ -641,7 +641,7 @@ class HandwerkController extends Controller
       'submitter' => $handwerk->subUser->username,
       'problem_type' => $handwerk->problem_type,
     ];
-    Comment::withTrashed()->where('commentable_id', $id)->restore();
+    Comment::withTrashed()->where('commentable_type', Handwerk::class)->where('commentable_id', $id)->restore();
     Notify::send($admin, new HandwerkNotification($notifications));
     $handwerk->restore();
     return redirect()->route('ticket.usertickets', ['tab' => 'handwerk']);
@@ -671,7 +671,7 @@ class HandwerkController extends Controller
 
         // Delete the handwerk and restore related comments
         $handwerk->delete();
-        Comment::withTrashed()->where('commentable_id', $id)->restore();
+        Comment::withTrashed()->where('commentable_type', Handwerk::class)->where('commentable_id', $id)->restore();
 
         return response()->json([
             'success' => true,

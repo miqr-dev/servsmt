@@ -816,7 +816,7 @@ class KorsoController extends Controller
     $korso->delete(); // Soft delete the ticket
     // Use $korso->id here, not $korso itself - same as the analogous line
     // in restore() above.
-    Comment::withTrashed()->where('commentable_id', $korso->id)->restore();
+    Comment::withTrashed()->where('commentable_type', Korso::class)->where('commentable_id', $korso->id)->restore();
 
     // Get the user who submitted the ticket using the subUser relationship
     $submitterUser = $korso->subUser;
@@ -877,7 +877,7 @@ class KorsoController extends Controller
     $korso = Korso::withTrashed()->findOrFail($id);
     TicketAccess::authorize($korso, TicketAccess::KORSO_STAFF);
     // Restore Laravelista Comments linked to this Korso
-    Comment::withTrashed()->where('commentable_id', $id)->restore();
+    Comment::withTrashed()->where('commentable_type', Korso::class)->where('commentable_id', $id)->restore();
 
     $korso->restore();
     $korso->korsoItems()->update(['ordered' => false]);
