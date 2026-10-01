@@ -144,7 +144,8 @@ function markDone() {
 }
 
 function restore() {
-    router.post(`/handwerk.restore/${props.handwerk.id}`, {}, { preserveScroll: true });
+    // keep from_city / from=dashboard so "Zurück" still leads back there
+    router.post(`/handwerk.restore/${props.handwerk.id}`, fromCity ? { from_city: fromCity } : fromDashboard ? { from: 'dashboard' } : {}, { preserveScroll: true });
 }
 </script>
 

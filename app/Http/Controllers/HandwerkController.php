@@ -638,13 +638,17 @@ class HandwerkController extends Controller
       'title' => 'Wiederhergestellt',
       'ticket_id' => $handwerk->id,
       'date' => Carbon::parse($handwerk->created_at)->locale('de_DE')->translatedFormat('d F Y H:i'),
-      'submitter' => $handwerk->subUser->username,
+      'submitter' => optional($handwerk->subUser)->username,
       'problem_type' => $handwerk->problem_type,
     ];
     Comment::withTrashed()->where('commentable_type', Handwerk::class)->where('commentable_id', $id)->restore();
     Notify::send($admin, new HandwerkNotification($notifications));
     $handwerk->restore();
-    return redirect()->route('ticket.usertickets', ['tab' => 'handwerk']);
+    // Back to the same ticket (to comment on it), keeping where it was opened from.
+    $query = array_filter(['from_city' => request('from_city'), 'from' => request('from')]);
+
+    return redirect('/handwerk/' . $handwerk->id . ($query ? '?' . http_build_query($query) : ''))
+      ->with('success', 'Ticket wurde wiederhergestellt.');
   }
 
   public function ajaxDestroy(Request $request, $id)

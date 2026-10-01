@@ -1613,13 +1613,9 @@ class TicketController extends Controller
     Notify::send($admins, new TicketNotification($notifications));
     $ticket->restore();
 
-    // IT staff go back to the open-tickets list; the submitter (e.g. a
-    // Verwaltung user) isn't allowed there (403) - send them to the Dashboard.
-    if (auth()->user()->hasAnyRole(TicketAccess::IT_STAFF)) {
-      return redirect()->route('ticket.opentickets');
-    }
-
-    return redirect()->route('home')->with('success', 'Ticket #' . $ticket->id . ' wurde wiederhergestellt.');
+    // Back to the same ticket - after "Wiederherstellen" people usually want
+    // to comment on it. (Was: /opentickets, a 403 for non-IT users.)
+    return redirect()->route('ticket.show', $ticket->id)->with('success', 'Ticket wurde wiederhergestellt.');
   }
 
   public function forceDelete(Request $request, $id)
