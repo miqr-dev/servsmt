@@ -522,7 +522,7 @@
     });
   });
 
-  $('.delete-note-btn').dblclick(function () {
+  $('.delete-note-btn').click(function () {
     var noteId = $(this).data('note-id');
     deleteNote(noteId, $(this));
   });
