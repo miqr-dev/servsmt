@@ -1331,10 +1331,9 @@ class TicketController extends Controller
     // into one data table there, same approach as Handwerk's
     // ITEM_GROUPS_BY_TYPE).
     $viewKey = str_replace(' ', '', strtolower($ticket->problem_type)) . 'ticket';
-    $not = NotificationLookup::byDataId($user->unreadNotifications(), $id)->first();
-    if ($not) {
-      $not->markAsRead();
-    }
+    // Opening the ticket = seen: every unread notification about THIS IT
+    // ticket (new, assigned, Erledigt, comments, reminders) is marked read.
+    NotificationLookup::markReadFor($user, 'ticket', $id);
 
     $createdAt = Carbon::parse($ticket->created_at);
     $telNewRoom = InvRoom::where('id', $ticket->tel_target_room)->first();
@@ -1377,10 +1376,7 @@ class TicketController extends Controller
 
     $admins = User::role('Super_Admin')->get();
     foreach ($admins as $admin) {
-      $not = NotificationLookup::byDataId($admin->Notifications(), $request->ticket_id)->first();
-      if ($not) {
-        $not->markAsRead();
-      }
+      NotificationLookup::markReadFor($admin, 'ticket', $request->ticket_id);
     }
 
     $ticket = Ticket::where('id', $request->ticket_id)->first();
@@ -1489,10 +1485,7 @@ class TicketController extends Controller
     $ticket->done_by = $user->username;
     $ticket->save();
     foreach ($admins as $admin) {
-      $not = NotificationLookup::byDataId($admin->Notifications(), $id)->first();
-      if ($not) {
-        $not->markAsRead();
-      }
+      NotificationLookup::markReadFor($admin, 'ticket', $id);
     }
     $notifications = [
       'title' => 'Erledigt',
@@ -1520,10 +1513,7 @@ class TicketController extends Controller
     $ticket->done_by = $user->username;
     $ticket->save();
     foreach ($admins as $admin) {
-      $not = NotificationLookup::byDataId($admin->Notifications(), $id)->first();
-      if ($not) {
-        $not->markAsRead();
-      }
+      NotificationLookup::markReadFor($admin, 'ticket', $id);
     }
 
     $employee = new Employee();
@@ -1631,10 +1621,7 @@ class TicketController extends Controller
     $ticket = Ticket::findOrFail($id);
 
     foreach ($admins as $admin) {
-      $not = NotificationLookup::byDataId($admin->Notifications(), $id)->first();
-      if ($not) {
-        $not->delete();
-      }
+      NotificationLookup::forRecord($admin->notifications(), 'ticket', $id)->each(fn ($n) => $n->delete());
     }
     $ticket->forceDelete();
     return 'true';

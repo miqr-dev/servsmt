@@ -242,6 +242,8 @@ class CommentController extends Controller
       'id'           => $reply->commentable_id,
       'comment'      => $reply->comment,
       'commenter_id' => $reply->commenter->username,
+      // Without the type, replies on Handwerk/Korso linked to /ticket/{id}.
+      'type'         => class_basename($comment->commentable),
     ];
 
     // The model we're commenting on

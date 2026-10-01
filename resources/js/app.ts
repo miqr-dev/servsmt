@@ -2,10 +2,14 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { createApp, h } from 'vue';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { trackNavigation } from '@/lib/navHistory';
 import { initializeFlashToast } from '@/lib/flashToast';
 import type { DefineComponent } from 'vue';
 
 const appName = import.meta.env.VITE_APP_NAME || 'servsmt';
+
+// Lets the ticket pages' "Zurück" button know if there is an in-app page to go back to.
+trackNavigation();
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

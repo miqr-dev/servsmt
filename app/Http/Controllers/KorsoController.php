@@ -493,10 +493,8 @@ class KorsoController extends Controller
       'location.place',
     ]);
 
-    NotificationLookup::byDataId(auth()->user()->unreadNotifications(), $korso->id)
-      ->each(function ($notification) {
-        $notification->markAsRead();
-      });
+    // Opening the ticket = seen (incl. KorsoNotifications, stored under korso_id).
+    NotificationLookup::markReadFor(auth()->user(), 'korso', $korso->id);
 
     $korso_ma_users = User::role('Korso_ma')
       ->orderBy('name', 'asc')     // Sort by last name alphabetically
@@ -866,7 +864,7 @@ class KorsoController extends Controller
 
     $korso->delete();
 
-    NotificationLookup::byDataId(DatabaseNotification::whereNull('read_at'), $korso->id)
+    NotificationLookup::forRecord(DatabaseNotification::whereNull('read_at'), 'korso', $korso->id)
       ->each(function ($notification) {
         $notification->markAsRead();
       });

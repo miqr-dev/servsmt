@@ -52,4 +52,72 @@ class NotificationLookup
             })
             ->values();
     }
+
+    /**
+     * Every notification that belongs to ONE ticket of ONE system (2026-10-01).
+     *
+     * byDataId() matched any notification whose data.id equals the number, so
+     * IT ticket 5, Handwerk 5 and Korso 5 (and their comments) cleared each
+     * other, and Korso notifications (stored under "korso_id") never matched.
+     * This also checks the notification class / comment type:
+     *
+     *   ticket   : TicketNotification (id), ReminderNotification (ticket_id),
+     *              CommentNotification with type "ticket" (or no type - old rows)
+     *   handwerk : HandwerkNotification (id), CommentNotification type "handwerk"
+     *   korso    : KorsoNotification (korso_id), CommentNotification type "korso"
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation  $query
+     */
+    public static function forRecord($query, string $kind, $id): Collection
+    {
+        $id = trim((string) $id);
+        if ($id === '' || ! ctype_digit($id)) {
+            return collect();
+        }
+
+        $keys = ['id', 'korso_id', 'ticket_id'];
+
+        return $query
+            ->where(function ($q) use ($id, $keys) {
+                foreach ($keys as $k) {
+                    $q->orWhere('data', 'like', '%"' . $k . '":' . $id . '%')
+                        ->orWhere('data', 'like', '%"' . $k . '":"' . $id . '"%');
+                }
+            })
+            ->get()
+            ->filter(function ($n) use ($id, $kind) {
+                $data = $n->data;
+                if (! is_array($data)) {
+                    return false;
+                }
+                $is = fn ($key) => isset($data[$key]) && (string) $data[$key] === $id;
+                $class = class_basename($n->type);
+
+                switch ($class) {
+                    case 'TicketNotification':
+                        return $kind === 'ticket' && $is('id');
+                    case 'ReminderNotification':
+                        return $kind === 'ticket' && $is('ticket_id');
+                    case 'HandwerkNotification':
+                        return $kind === 'handwerk' && $is('id');
+                    case 'KorsoNotification':
+                        return $kind === 'korso' && $is('korso_id');
+                    case 'CommentNotification':
+                        return $is('id') && strtolower($data['type'] ?? 'ticket') === $kind;
+                    default:
+                        return false;
+                }
+            })
+            ->values();
+    }
+
+    /** Mark all of a user's unread notifications for this ticket as read. */
+    public static function markReadFor($user, string $kind, $id): void
+    {
+        if (! $user) {
+            return;
+        }
+        self::forRecord($user->unreadNotifications(), $kind, $id)
+            ->each(fn ($n) => $n->markAsRead());
+    }
 }

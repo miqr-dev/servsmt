@@ -125,6 +125,15 @@
             <i class="fas fa-hourglass-start mr-2" style="color:green"></i>
             {{@$notification->updated_at->diffForHumans()}}<br>
           </a>
+          @elseif($notification->type === "App\Notifications\KorsoNotification")
+          {{-- Korso notifications were counted in the badge but never listed (2026-10-01) --}}
+          <a href="{{ url('korso/'.($notification->data['korso_id'] ?? '')) }}" class="dropdown-item">
+            <i class="fas fa-paperclip mr-2" style="color:#461b23"></i> {{@$notification->data['title']}}<br>
+            <i class="far fa-user mr-2" style="color:#461b23"></i> {{@$notification->data['submitter']}}<br>
+            <i class="far fa-comment-alt mr-2" style="color:indigo;"></i> {{@$notification->data['problem_type']}}<br>
+            <i class="fas fa-hourglass-start mr-2" style="color:green"></i>
+            {{@$notification->updated_at->diffForHumans()}}<br>
+          </a>
           @endif
           <hr>
           <!-- <div class="dropdown-divider"></div> -->

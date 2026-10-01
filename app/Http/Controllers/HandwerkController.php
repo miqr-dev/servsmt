@@ -467,10 +467,8 @@ class HandwerkController extends Controller
     $handwerk = Handwerk::with('room.location.place')->with('subUser')->with('assignedUser:id,username,vorname,name')->with('comments')->withTrashed()->findorFail($id);
     // Handwerk staff (+ Sekretariat, who see the submitter panel) or the submitter.
     TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
-    $not = NotificationLookup::byDataId($user->unreadNotifications(), $id)->first();
-    if ($not) {
-      $not->markAsRead();
-    }
+    // Opening the ticket = seen (all unread notifications about this Handwerk ticket).
+    NotificationLookup::markReadFor($user, 'handwerk', $id);
 
     return Inertia::render('Handwerk/Show', [
       'handwerk' => $handwerk,

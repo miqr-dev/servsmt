@@ -3,8 +3,9 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, ref } from 'vue';
-import { ArrowLeft, File, FileDown, FileSpreadsheet, FileText, Pencil, RotateCcw, Trash2, Upload } from '@lucide/vue';
+import { File, FileDown, FileSpreadsheet, FileText, Pencil, RotateCcw, Trash2, Upload } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import BackButton from '@/components/BackButton.vue';
 import CommentThread from '@/components/CommentThread.vue';
 import { htmlToText } from '@/lib/htmlToText';
 import type { Auth, BreadcrumbItem } from '@/types';
@@ -342,15 +343,10 @@ function commentTimeAgo(value: string): string {
     <Head :title="korso.problem_type" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
-        <div v-if="canManage" class="flex items-center justify-between">
-            <Link
-                :href="dashboardHref"
-                class="border-border bg-card hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm"
-            >
-                <ArrowLeft class="h-4 w-4" />
-                Dashboard
-            </Link>
+        <div class="flex items-center justify-between">
+            <BackButton :fallback="canManage ? dashboardHref : '/usertickets?tab=korso'" />
             <a
+                v-if="canManage"
                 :href="`/korso/${korso.id}/download-pdf`"
                 target="_blank"
                 rel="noopener"

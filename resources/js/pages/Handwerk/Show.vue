@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
-import { ArrowLeft, FileDown } from '@lucide/vue';
+import { FileDown } from '@lucide/vue';
+import BackButton from '@/components/BackButton.vue';
 import { computed, h, ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CommentThread from '@/components/CommentThread.vue';
@@ -91,7 +92,8 @@ const query = new URLSearchParams(window.location.search);
 const fromCity = query.get('from_city');
 // Opened from the Dashboard's Handwerk box (Sekretariat): go back there.
 const fromDashboard = query.get('from') === 'dashboard';
-const backHref = computed(() => (fromCity ? `/handwerker/${fromCity}` : fromDashboard ? '/' : '/handwerk'));
+// Fallback when the ticket was opened directly (e-mail link, new tab).
+const backHref = computed(() => (fromCity ? `/handwerker/${fromCity}` : fromDashboard ? '/' : '/usertickets?tab=handwerk'));
 
 function formatDate(value: string): string {
     return new Date(value).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -150,14 +152,8 @@ function restore() {
     <Head :title="handwerk.problem_type" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
-        <div v-if="canAssign" class="flex justify-end">
-            <Link
-                :href="backHref"
-                class="border-border bg-card hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm"
-            >
-                <ArrowLeft class="h-4 w-4" />
-                {{ fromCity ? 'Zurück zur Stadt' : fromDashboard ? 'Zurück zum Dashboard' : 'Zurück zur Übersicht' }}
-            </Link>
+        <div>
+            <BackButton :fallback="backHref" />
         </div>
 
         <div class="grid gap-4 lg:grid-cols-3">

@@ -5,7 +5,8 @@ import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, ref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
-import { ArrowLeft, Check, Trash2, X } from '@lucide/vue';
+import { Check, Trash2, X } from '@lucide/vue';
+import BackButton from '@/components/BackButton.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CommentThread from '@/components/CommentThread.vue';
 import type { CommentItem } from '@/components/CommentThread.vue';
@@ -76,10 +77,6 @@ const page = usePage<{ auth: Auth }>();
 const roles = computed(() => page.props.auth.user?.roles ?? []);
 const isSuperAdmin = computed(() => roles.value.includes('Super_Admin'));
 const isDone = computed(() => !!props.ticket.deleted_at);
-
-function goBack() {
-    window.history.back();
-}
 
 function formatDate(value: string): string {
     return new Date(value).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -249,14 +246,9 @@ async function deleteParticipant(participant: Participant) {
     <Head title="Ticket" />
 
     <div class="flex flex-1 flex-col gap-4 p-4">
-        <button
-            type="button"
-            class="border-input hover:bg-accent inline-flex h-9 w-9 items-center justify-center rounded-md border"
-            title="Zurück"
-            @click="goBack"
-        >
-            <ArrowLeft class="h-4 w-4" />
-        </button>
+        <div>
+            <BackButton :fallback="isSuperAdmin ? '/opentickets' : '/usertickets?tab=it'" />
+        </div>
 
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <!-- Left card -->
