@@ -179,7 +179,8 @@ const SHORTCUTS = [
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:flex-row lg:items-start">
         <div class="flex min-w-0 flex-1 flex-col gap-6">
             <!-- Greeting + news (the news bar formerly on the IT ticket page) -->
-            <div class="grid gap-6" :class="props.newsBar ? 'lg:grid-cols-2' : ''">
+            <!-- Boxes fill the row: two side by side, one alone takes the full width (auto-fit) -->
+            <div class="grid gap-6 lg:grid-cols-[repeat(auto-fit,minmax(22rem,1fr))]">
                 <section class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
                     <p class="text-muted-foreground text-sm">
                         {{ todayLabel }}
@@ -207,7 +208,8 @@ const SHORTCUTS = [
             <!-- Unread notifications of all systems, one line per ticket -->
             <NewForYou v-if="props.newForYou?.length" :groups="props.newForYou" />
 
-            <div class="grid gap-6 lg:grid-cols-2">
+            <!-- Same auto-fit: if a box isn't there (e.g. no due Kündigungen), the other one uses the whole row -->
+            <div class="grid gap-6 lg:grid-cols-[repeat(auto-fit,minmax(22rem,1fr))]">
                 <div v-if="props.standortForwardings || props.cityHandwerks" class="flex min-w-0 flex-col gap-6 lg:self-start">
                     <!-- Sekretariat: active forwardings at their Standort + their own (replaces the personal list) -->
                     <section v-if="props.standortForwardings" class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
