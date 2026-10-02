@@ -11,6 +11,7 @@ import {
     Contact,
     FileText,
     FolderKanban,
+    Forward,
     HardHat,
     KeyRound,
     LayoutDashboard,
@@ -152,6 +153,7 @@ const adminItems: NavItem[] = [
     { title: 'Mitarbeiter Liste', href: '/employees', icon: Briefcase, roles: ['Super_Admin', 'HR'] },
     { title: 'Kündigungen', href: '/terminations', icon: UserMinus, roles: ['Super_Admin', 'HR'] },
     { title: 'Lizenzen', href: '/licenses', icon: KeyRound, roles: ['Super_Admin'] },
+    { title: 'E-Mail-Weiterleitungen', href: '/email-forwardings', icon: Forward, roles: ['Super_Admin'] },
 ];
 </script>
 

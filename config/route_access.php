@@ -94,7 +94,8 @@ return [
     // ─── Korso ──────────────────────────────────────────────────────────
     'korso-dashboard' => $KORSO_STAFF,
     'dashboard/filter-tickets' => $KORSO_STAFF,
-    'dashboard/mitarbeiter-suche' => $VERWALTUNG,   // Mitarbeiter Info (Dashboard)
+    'dashboard/mitarbeiter-suche' => $VERWALTUNG,
+    'email-forwardings' => 'Super_Admin',           // E-Mail-Weiterleitungen page (2026-10-02)   // Mitarbeiter Info (Dashboard)
     'korso/{id}/details' => $KORSO_STAFF,
     'korso/assign' => $KORSO_STAFF,
     'korso/update-status/{id}' => $KORSO_STAFF,

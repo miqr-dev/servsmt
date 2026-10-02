@@ -53,7 +53,9 @@ class DashboardController extends Controller
 
         // Email forwardings: Sekretariat gets the Standort table INSTEAD of the
         // personal list (their own forwardings are included in it).
-        if ($user->hasRole('Sekretariat')) {
+        // Strict check: only real secretaries - a Super_Admin gets the
+        // personal list (2026-10-02).
+        if ($user->hasAssignedRole('Sekretariat')) {
             $props['standortForwardings'] = $this->standortForwardings($user);
             $props['standortLabel'] = $user->ort === 'Berlin' && $user->straße
                 ? 'Berlin, '.$user->straße
@@ -99,30 +101,27 @@ class DashboardController extends Controller
                 $props['licenses'] = $expiring;
             }
 
-            // Only the columns/relations the tables show (was: every ticket column
-            // + 5 full user models per row, for every forwarding ever).
-            $userCols = 'id,name,vorname,username';
-            $forwardings = Ticket::withTrashed()
-                ->select([
-                    'id', 'submitter', 'problem_type', 'forward_from', 'forward_on', 'forward_removed_by',
-                    'forward_required_at', 'forward_to_at', 'forward_removed_at', 'done_by', 'created_at', 'deleted_at',
+            // E-Mail-Weiterleitungen whose "bis" date is yesterday or older and
+            // that are not marked as removed yet - i.e. to be taken down now.
+            // No box when there are none. Full lists: /email-forwardings.
+            $overdue = $this->forwardingQuery()
+                ->whereNull('forward_removed_at')
+                ->whereNotNull('forward_to_at')
+                ->whereDate('forward_to_at', '<=', Carbon::yesterday())
+                ->orderBy('forward_to_at', 'asc')
+                ->get()
+                ->map(fn (Ticket $t) => [
+                    'id' => $t->id,
+                    'from' => $this->personName($t->forwardFromUser),
+                    'to' => $this->personName($t->forwardOnUser),
+                    'start' => optional($t->forward_required_at)->toDateString(),
+                    'end' => optional($t->forward_to_at)->toDateString(),
+                    'submitter' => $this->personName($t->subUser),
                 ])
-                ->with([
-                    'subUser:' . $userCols,
-                    'forwardOnUser:' . $userCols,
-                    'forwardFromUser:' . $userCols,
-                    'forwardRemovedByUser:' . $userCols,
-                ])
-                ->where('problem_type', 'Email Weiterleitung')
-                ->orderBy('forward_required_at', 'asc')
-                ->orderByDesc('created_at')
-                ->get();
-            $props['activeEmailForwardingTickets'] = $forwardings
-                ->filter(fn ($t) => ! empty($t->forward_required_at) && ! empty($t->forward_to_at) && empty($t->forward_removed_at))
                 ->values();
-            $props['historyEmailForwardingTickets'] = $forwardings
-                ->filter(fn ($t) => ! empty($t->forward_removed_at))
-                ->values();
+            if ($overdue->isNotEmpty()) {
+                $props['overdueForwardings'] = $overdue;
+            }
         }
 
         return Inertia::render('Home', $props);
@@ -287,6 +286,46 @@ class DashboardController extends Controller
         }
 
         return $bar->name;
+    }
+
+    /**
+     * Own page (sidebar "E-Mail-Weiterleitungen", Super_Admin): all active
+     * forwardings + the history of removed ones. Was part of the Dashboard.
+     */
+    public function emailForwardings()
+    {
+        $forwardings = $this->forwardingQuery()
+            ->orderBy('forward_required_at', 'asc')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return Inertia::render('EmailForwardings/Index', [
+            'activeEmailForwardingTickets' => $forwardings
+                ->filter(fn ($t) => ! empty($t->forward_required_at) && ! empty($t->forward_to_at) && empty($t->forward_removed_at))
+                ->values(),
+            'historyEmailForwardingTickets' => $forwardings
+                ->filter(fn ($t) => ! empty($t->forward_removed_at))
+                ->values(),
+        ]);
+    }
+
+    /** E-Mail-Weiterleitung tickets (incl. Erledigt), only the columns/relations the tables show. */
+    private function forwardingQuery()
+    {
+        $userCols = 'id,name,vorname,username';
+
+        return Ticket::withTrashed()
+            ->select([
+                'id', 'submitter', 'problem_type', 'forward_from', 'forward_on', 'forward_removed_by',
+                'forward_required_at', 'forward_to_at', 'forward_removed_at', 'done_by', 'created_at', 'deleted_at',
+            ])
+            ->with([
+                'subUser:' . $userCols,
+                'forwardOnUser:' . $userCols,
+                'forwardFromUser:' . $userCols,
+                'forwardRemovedByUser:' . $userCols,
+            ])
+            ->where('problem_type', 'Email Weiterleitung');
     }
 
     private function personName($u): string

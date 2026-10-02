@@ -201,7 +201,7 @@
             </h3>
             @if (URL::current() == route('ticket.unassigned') || URL::current() == route('ticket.opentickets'))
             <div class="d-flex align-items-center flex-wrap mt-2 mt-md-0">
-              <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-primary">
+              <a href="{{ url('/email-forwardings') }}" class="btn btn-sm btn-outline-primary">
                 Aktiv
                 <span class="forwarding-count {{ (int)($activeForwardingCount ?? 0) > 0 ? 'is-alert' : '' }}">
                   {{ (int)($activeForwardingCount ?? 0) }}
@@ -210,7 +210,7 @@
               </a>
 
               @if ((int)($dueForwardingCount ?? 0) > 0)
-              <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-danger ml-2 forwarding-alert-btn">
+              <a href="{{ url('/email-forwardings') }}" class="btn btn-sm btn-outline-danger ml-2 forwarding-alert-btn">
                 Endet/Überfällig
                 <span class="forwarding-count is-alert">
                   {{ (int)($dueForwardingCount ?? 0) }}
@@ -219,7 +219,7 @@
               @endif
 
               @if ((int)($dueTerminationCount ?? 0) > 0)
-              <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-danger ml-2 forwarding-alert-btn">
+              <a href="{{ url('/terminations') }}" class="btn btn-sm btn-outline-danger ml-2 forwarding-alert-btn">
                 überfällige Kündigungen
                 <span class="forwarding-count is-alert">
                   {{ (int)($dueTerminationCount ?? 0) }}

@@ -497,7 +497,7 @@ async function deleteNote(note: CityNote) {
                 <h3 class="font-semibold">{{ heading }}</h3>
 
                 <div v-if="showForwardingAlerts" class="flex flex-wrap items-center gap-2">
-                    <Link href="/dashboard" class="border-border hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm">
+                    <Link href="/email-forwardings" class="border-border hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm">
                         Aktiv
                         <span
                             class="font-bold"
@@ -509,7 +509,7 @@ async function deleteNote(note: CityNote) {
                     </Link>
                     <Link
                         v-if="(dueForwardingCount ?? 0) > 0"
-                        href="/dashboard"
+                        href="/email-forwardings"
                         class="bg-destructive text-destructive-foreground inline-flex h-9 animate-pulse items-center gap-1.5 rounded-md px-3 text-sm"
                     >
                         Endet/Überfällig
@@ -517,7 +517,7 @@ async function deleteNote(note: CityNote) {
                     </Link>
                     <Link
                         v-if="(dueTerminationCount ?? 0) > 0"
-                        href="/dashboard"
+                        href="/terminations"
                         class="bg-destructive text-destructive-foreground inline-flex h-9 animate-pulse items-center gap-1.5 rounded-md px-3 text-sm"
                     >
                         überfällige Kündigungen

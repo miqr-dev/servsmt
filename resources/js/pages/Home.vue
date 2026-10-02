@@ -20,7 +20,7 @@ import {
     GripHorizontal,
 } from '@lucide/vue';
 import { computed, h, ref, watch } from 'vue';
-import AdminBoxes from '@/components/dashboard/AdminBoxes.vue';
+import OverdueForwardingsBox, { type OverdueForwarding } from '@/components/dashboard/OverdueForwardingsBox.vue';
 import LicensesBox, { type LicenseRow } from '@/components/dashboard/LicensesBox.vue';
 import EmployeeLookup from '@/components/dashboard/EmployeeLookup.vue';
 import NewForYou, { type FeedGroup } from '@/components/dashboard/NewForYou.vue';
@@ -73,11 +73,9 @@ const props = defineProps<{
     terminations?: TerminationRow[];
     licenses?: LicenseRow[];
     terminationsDueOnly?: boolean;
-    activeEmailForwardingTickets?: unknown[];
-    historyEmailForwardingTickets?: unknown[];
+    // Super_Admin: forwardings with "bis" ≤ yesterday, not removed yet
+    overdueForwardings?: OverdueForwarding[];
 }>();
-
-const hasAdminBoxes = computed(() => !!props.activeEmailForwardingTickets);
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -93,13 +91,13 @@ const page = usePage<{ auth: Auth }>();
 // Every box can be dragged (grip, top right) onto another box - it is placed
 // before it - or into the free space of either column, so boxes move freely
 // between left and right. Layout is stored per user in this browser.
-type WidgetKey = 'standortForwardings' | 'cityHandwerks' | 'myForwardings' | 'terminations' | 'licenses';
+type WidgetKey = 'standortForwardings' | 'cityHandwerks' | 'myForwardings' | 'terminations' | 'licenses' | 'overdueForwardings';
 type ColumnId = 'left' | 'right';
 type Layout = Record<ColumnId, WidgetKey[]>;
-const ALL_WIDGETS: WidgetKey[] = ['standortForwardings', 'myForwardings', 'cityHandwerks', 'terminations', 'licenses'];
+const ALL_WIDGETS: WidgetKey[] = ['standortForwardings', 'myForwardings', 'cityHandwerks', 'overdueForwardings', 'terminations', 'licenses'];
 const DEFAULT_LAYOUT: Layout = {
     left: ['standortForwardings', 'myForwardings', 'cityHandwerks'],
-    right: ['terminations', 'licenses'],
+    right: ['overdueForwardings', 'terminations', 'licenses'],
 };
 
 /** Boxes this user actually gets today (the server decides by sending the prop). */
@@ -115,6 +113,8 @@ function isAvailable(k: WidgetKey): boolean {
             return !!props.terminations;
         case 'licenses':
             return !!props.licenses?.length;
+        case 'overdueForwardings':
+            return !!props.overdueForwardings?.length;
     }
 }
 
@@ -181,13 +181,31 @@ const draggingKey = ref<WidgetKey | null>(null);
 const dragOverKey = ref<WidgetKey | null>(null);
 const dragOverColumn = ref<ColumnId | null>(null);
 
+// While dragging, every box shrinks to its title bar, so all boxes and the
+// "Hier ablegen" zones fit on screen even when a box is very long.
+const compact = ref(false);
+const WIDGET_LABELS: Record<WidgetKey, string> = {
+    standortForwardings: 'E-Mail-Weiterleitungen (Standort)',
+    myForwardings: 'Meine E-Mail-Weiterleitungen',
+    cityHandwerks: 'Handwerkaufgaben',
+    overdueForwardings: 'E-Mail-Weiterleitungen beenden',
+    terminations: 'Kündigungen',
+    licenses: 'Lizenzen',
+};
+
 function onDragStart(key: WidgetKey, e: DragEvent) {
     draggingKey.value = key;
     e.dataTransfer?.setData('text/plain', key);
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    // collapse after the browser took the drag image - collapsing inside
+    // dragstart itself would cancel the drag in Chrome
+    setTimeout(() => {
+        if (draggingKey.value) compact.value = true;
+    }, 0);
 }
 
 function onDragEnd() {
+    compact.value = false;
     draggingKey.value = null;
     dragOverKey.value = null;
     dragOverColumn.value = null;
@@ -382,271 +400,293 @@ const SHORTCUTS = [
                             <GripHorizontal class="size-4" />
                         </button>
 
-                        <!-- Sekretariat: active forwardings at their Standort + their own (replaces the personal list) -->
-                        <template v-if="key === 'standortForwardings' && props.standortForwardings">
-                            <section class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
-                                <header class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
-                                    <div class="flex min-w-0 items-center gap-2">
-                                        <Mail class="text-primary size-5 shrink-0" />
-                                        <div class="min-w-0">
-                                            <h2 class="font-semibold">E-Mail-Weiterleitungen</h2>
-                                            <p class="text-muted-foreground truncate text-xs">
-                                                Aktiv am Standort
-                                                {{ props.standortLabel }} ·
-                                                {{ props.standortForwardings.length }}
-                                            </p>
+                        <!-- Compact title bar while dragging (content below stays mounted, just hidden) -->
+                        <div
+                            v-if="compact"
+                            class="bg-card text-card-foreground flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-sm"
+                            :class="draggingKey === key ? 'border-primary border-dashed' : ''"
+                        >
+                            <GripHorizontal class="text-muted-foreground size-4" />
+                            {{ WIDGET_LABELS[key] }}
+                        </div>
+
+                        <div v-show="!compact">
+                            <!-- Sekretariat: active forwardings at their Standort + their own (replaces the personal list) -->
+                            <template v-if="key === 'standortForwardings' && props.standortForwardings">
+                                <section class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
+                                    <header class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <Mail class="text-primary size-5 shrink-0" />
+                                            <div class="min-w-0">
+                                                <h2 class="font-semibold">E-Mail-Weiterleitungen</h2>
+                                                <p class="text-muted-foreground truncate text-xs">
+                                                    Aktiv am Standort
+                                                    {{ props.standortLabel }} ·
+                                                    {{ props.standortForwardings.length }}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <Button as-child size="sm">
-                                        <Link :href="FORWARD_FORM">
-                                            <Plus class="size-4" />
-                                            Neue Weiterleitung
-                                        </Link>
-                                    </Button>
-                                </header>
-
-                                <div v-if="props.standortForwardings.length" class="max-h-[26rem] overflow-auto">
-                                    <table class="w-full text-sm">
-                                        <thead class="bg-muted/60 text-muted-foreground sticky top-0 text-left text-xs backdrop-blur">
-                                            <tr>
-                                                <th class="px-4 py-2 font-medium">Von</th>
-                                                <th class="px-4 py-2 font-medium">An</th>
-                                                <th class="px-4 py-2 font-medium">Zeitraum</th>
-                                                <th class="hidden px-4 py-2 font-medium sm:table-cell">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y">
-                                            <tr v-for="f in props.standortForwardings" :key="f.id" :class="f.own ? 'bg-primary/5' : ''">
-                                                <td class="px-4 py-2 align-top">
-                                                    <span class="font-medium">{{ f.from }}</span>
-                                                    <span
-                                                        v-if="f.own"
-                                                        class="bg-primary/10 text-primary ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-                                                        >Ich</span
-                                                    >
-                                                </td>
-                                                <td class="px-4 py-2 align-top">
-                                                    {{ f.to }}
-                                                </td>
-                                                <td class="text-muted-foreground px-4 py-2 align-top whitespace-nowrap">
-                                                    {{ fmt(f.start) }} –
-                                                    {{ fmt(f.end) }}
-                                                    <span
-                                                        class="mt-1 block text-xs sm:hidden"
-                                                        :class="f.active ? 'text-emerald-600' : 'text-amber-600'"
-                                                        >{{ f.active ? 'Aktiv' : 'Geplant' }}</span
-                                                    >
-                                                </td>
-                                                <td class="hidden px-4 py-2 align-top sm:table-cell">
-                                                    <span
-                                                        class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                                        :class="
-                                                            f.active
-                                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
-                                                        "
-                                                        >{{ f.active ? 'Aktiv' : 'Geplant' }}</span
-                                                    >
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div
-                                    v-else
-                                    class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center text-sm"
-                                >
-                                    <Mail class="size-8 opacity-40" />
-                                    <p>Zurzeit keine aktiven E-Mail-Weiterleitungen an Ihrem Standort.</p>
-                                </div>
-                            </section>
-                        </template>
-
-                        <!-- Sekretariat: open Handwerk tasks of their city -->
-                        <template v-else-if="key === 'cityHandwerks' && props.cityHandwerks">
-                            <section class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
-                                <header class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
-                                    <div class="flex min-w-0 items-center gap-2">
-                                        <HardHat class="size-5 shrink-0 text-amber-600" />
-                                        <div class="min-w-0">
-                                            <h2 class="font-semibold">Handwerkaufgaben</h2>
-                                            <p class="text-muted-foreground truncate text-xs">
-                                                Offen in {{ props.handwerkCity }} ·
-                                                {{ props.cityHandwerks.length }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <Button v-if="props.cityHandwerks.length" as-child size="sm" variant="outline">
-                                            <a :href="`/handwerk/${encodeURIComponent(props.handwerkCity ?? '')}/open-tickets-pdf`">
-                                                <FileDown class="size-4" />
-                                                PDF
-                                            </a>
-                                        </Button>
                                         <Button as-child size="sm">
-                                            <Link href="/handwerk">
+                                            <Link :href="FORWARD_FORM">
                                                 <Plus class="size-4" />
-                                                Neue Aufgabe
+                                                Neue Weiterleitung
                                             </Link>
                                         </Button>
+                                    </header>
+
+                                    <div v-if="props.standortForwardings.length" class="max-h-[26rem] overflow-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-muted/60 text-muted-foreground sticky top-0 text-left text-xs backdrop-blur">
+                                                <tr>
+                                                    <th class="px-4 py-2 font-medium">Von</th>
+                                                    <th class="px-4 py-2 font-medium">An</th>
+                                                    <th class="px-4 py-2 font-medium">Zeitraum</th>
+                                                    <th class="hidden px-4 py-2 font-medium sm:table-cell">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y">
+                                                <tr v-for="f in props.standortForwardings" :key="f.id" :class="f.own ? 'bg-primary/5' : ''">
+                                                    <td class="px-4 py-2 align-top">
+                                                        <span class="font-medium">{{ f.from }}</span>
+                                                        <span
+                                                            v-if="f.own"
+                                                            class="bg-primary/10 text-primary ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                                                            >Ich</span
+                                                        >
+                                                    </td>
+                                                    <td class="px-4 py-2 align-top">
+                                                        {{ f.to }}
+                                                    </td>
+                                                    <td class="text-muted-foreground px-4 py-2 align-top whitespace-nowrap">
+                                                        {{ fmt(f.start) }} –
+                                                        {{ fmt(f.end) }}
+                                                        <span
+                                                            class="mt-1 block text-xs sm:hidden"
+                                                            :class="f.active ? 'text-emerald-600' : 'text-amber-600'"
+                                                            >{{ f.active ? 'Aktiv' : 'Geplant' }}</span
+                                                        >
+                                                    </td>
+                                                    <td class="hidden px-4 py-2 align-top sm:table-cell">
+                                                        <span
+                                                            class="rounded-full px-2 py-0.5 text-xs font-medium"
+                                                            :class="
+                                                                f.active
+                                                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+                                                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                                                            "
+                                                            >{{ f.active ? 'Aktiv' : 'Geplant' }}</span
+                                                        >
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
-                                </header>
 
-                                <div v-if="props.cityHandwerks.length" class="max-h-[26rem] overflow-auto">
-                                    <table class="w-full text-sm">
-                                        <thead class="bg-muted/60 text-muted-foreground sticky top-0 text-left text-xs backdrop-blur">
-                                            <tr>
-                                                <th v-for="c in HW_COLUMNS" :key="c.key" class="px-4 py-2 font-medium" :class="c.class">
-                                                    <button
-                                                        type="button"
-                                                        class="hover:text-foreground inline-flex items-center gap-1"
-                                                        :class="hwSort.key === c.key ? 'text-foreground' : ''"
-                                                        @click="toggleHwSort(c.key)"
-                                                    >
-                                                        {{ c.label }}
-                                                        <ArrowUp v-if="hwSort.key === c.key && hwSort.dir === 'asc'" class="size-3" />
-                                                        <ArrowDown v-else-if="hwSort.key === c.key" class="size-3" />
-                                                        <ArrowUpDown v-else class="size-3 opacity-40" />
-                                                    </button>
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y">
-                                            <tr
-                                                v-for="h in hwVisible"
-                                                :key="h.id"
-                                                class="hover:bg-accent/60 cursor-pointer"
-                                                @click="router.visit(`/handwerk/${h.id}?from=dashboard`)"
-                                            >
-                                                <td class="px-4 py-2 align-top">
-                                                    <Link :href="`/handwerk/${h.id}?from=dashboard`" class="font-medium hover:underline" @click.stop>
-                                                        {{ h.problem_type }}
-                                                    </Link>
-                                                    <span class="text-muted-foreground block text-xs">#{{ h.id }}</span>
-                                                    <span class="text-muted-foreground block text-xs sm:hidden">{{ h.submitter }}</span>
-                                                </td>
-                                                <td class="hidden px-4 py-2 align-top md:table-cell">
-                                                    {{ h.room ?? '–' }}
-                                                    <span v-if="h.address" class="text-muted-foreground block text-xs">{{ h.address }}</span>
-                                                </td>
-                                                <td class="hidden px-4 py-2 align-top sm:table-cell">
-                                                    {{ h.submitter }}
-                                                </td>
-                                                <td class="text-muted-foreground px-4 py-2 align-top whitespace-nowrap">
-                                                    {{ h.created_at ? fmt(h.created_at) : '–' }}
-                                                </td>
-                                                <td class="hidden px-4 py-2 align-top sm:table-cell">
-                                                    <span v-if="h.assignee">{{ h.assignee }}</span>
-                                                    <span
-                                                        v-else
-                                                        class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
-                                                        >Offen</span
-                                                    >
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <button
-                                    v-if="props.cityHandwerks.length > 1"
-                                    type="button"
-                                    class="text-muted-foreground hover:text-foreground hover:bg-accent/60 flex items-center justify-center gap-1 border-t px-4 py-2 text-xs font-medium transition-colors"
-                                    :aria-expanded="hwExpanded"
-                                    @click="hwExpanded = !hwExpanded"
-                                >
-                                    <ChevronDown class="size-4 transition-transform" :class="hwExpanded ? 'rotate-180' : ''" />
-                                    {{ hwExpanded ? 'Weniger anzeigen' : `Alle ${props.cityHandwerks.length} anzeigen` }}
-                                </button>
-
-                                <div
-                                    v-if="!props.cityHandwerks.length"
-                                    class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center text-sm"
-                                >
-                                    <HardHat class="size-8 opacity-40" />
-                                    <p>
-                                        Keine offenen Handwerkaufgaben in
-                                        {{ props.handwerkCity }}.
-                                    </p>
-                                </div>
-                            </section>
-                        </template>
-
-                        <!-- Verwaltung: own email forwardings -->
-                        <template v-else-if="key === 'myForwardings' && props.myForwardings">
-                            <section class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm">
-                                <header class="flex items-center justify-between gap-3 border-b px-5 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <Mail class="text-primary size-5" />
-                                        <h2 class="font-semibold">Meine E-Mail-Weiterleitungen</h2>
+                                    <div
+                                        v-else
+                                        class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center text-sm"
+                                    >
+                                        <Mail class="size-8 opacity-40" />
+                                        <p>Zurzeit keine aktiven E-Mail-Weiterleitungen an Ihrem Standort.</p>
                                     </div>
-                                    <Button as-child size="sm">
-                                        <Link :href="FORWARD_FORM">
-                                            <Plus class="size-4" />
-                                            Neue Weiterleitung
-                                        </Link>
-                                    </Button>
-                                </header>
+                                </section>
+                            </template>
 
-                                <ul v-if="props.myForwardings.length" class="divide-y">
-                                    <li v-for="f in props.myForwardings" :key="f.id" class="flex flex-col gap-2 px-5 py-4">
-                                        <div class="flex flex-wrap items-center gap-2 text-xs">
-                                            <span
-                                                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
-                                                :class="
-                                                    f.direction === 'out'
-                                                        ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200'
-                                                        : 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200'
-                                                "
-                                            >
-                                                <component :is="f.direction === 'out' ? Forward : Inbox" class="size-3" />
-                                                {{ f.direction === 'out' ? 'Meine E-Mails werden weitergeleitet' : 'Ich erhalte Weiterleitung' }}
-                                            </span>
-                                            <span
-                                                class="rounded-full px-2 py-0.5 font-medium"
-                                                :class="
-                                                    f.active
-                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
-                                                "
-                                            >
-                                                {{ f.active ? 'Aktiv' : 'Geplant' }}
-                                            </span>
+                            <!-- Sekretariat: open Handwerk tasks of their city -->
+                            <template v-else-if="key === 'cityHandwerks' && props.cityHandwerks">
+                                <section class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
+                                    <header class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <HardHat class="size-5 shrink-0 text-amber-600" />
+                                            <div class="min-w-0">
+                                                <h2 class="font-semibold">Handwerkaufgaben</h2>
+                                                <p class="text-muted-foreground truncate text-xs">
+                                                    Offen in {{ props.handwerkCity }} ·
+                                                    {{ props.cityHandwerks.length }}
+                                                </p>
+                                            </div>
                                         </div>
-
-                                        <div class="flex flex-wrap items-center gap-2 text-sm">
-                                            <span class="font-medium">{{ f.from }}</span>
-                                            <ArrowRight class="text-muted-foreground size-4 shrink-0" />
-                                            <span class="font-medium">{{ f.to }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <Button v-if="props.cityHandwerks.length" as-child size="sm" variant="outline">
+                                                <a :href="`/handwerk/${encodeURIComponent(props.handwerkCity ?? '')}/open-tickets-pdf`">
+                                                    <FileDown class="size-4" />
+                                                    PDF
+                                                </a>
+                                            </Button>
+                                            <Button as-child size="sm">
+                                                <Link href="/handwerk">
+                                                    <Plus class="size-4" />
+                                                    Neue Aufgabe
+                                                </Link>
+                                            </Button>
                                         </div>
+                                    </header>
 
-                                        <div class="text-muted-foreground flex items-center gap-1.5 text-sm">
-                                            <CalendarRange class="size-4" />
-                                            vom {{ fmt(f.start) }} bis {{ fmt(f.end) }}
+                                    <div v-if="props.cityHandwerks.length" class="max-h-[26rem] overflow-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-muted/60 text-muted-foreground sticky top-0 text-left text-xs backdrop-blur">
+                                                <tr>
+                                                    <th v-for="c in HW_COLUMNS" :key="c.key" class="px-4 py-2 font-medium" :class="c.class">
+                                                        <button
+                                                            type="button"
+                                                            class="hover:text-foreground inline-flex items-center gap-1"
+                                                            :class="hwSort.key === c.key ? 'text-foreground' : ''"
+                                                            @click="toggleHwSort(c.key)"
+                                                        >
+                                                            {{ c.label }}
+                                                            <ArrowUp v-if="hwSort.key === c.key && hwSort.dir === 'asc'" class="size-3" />
+                                                            <ArrowDown v-else-if="hwSort.key === c.key" class="size-3" />
+                                                            <ArrowUpDown v-else class="size-3 opacity-40" />
+                                                        </button>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y">
+                                                <tr
+                                                    v-for="h in hwVisible"
+                                                    :key="h.id"
+                                                    class="hover:bg-accent/60 cursor-pointer"
+                                                    @click="router.visit(`/handwerk/${h.id}?from=dashboard`)"
+                                                >
+                                                    <td class="px-4 py-2 align-top">
+                                                        <Link
+                                                            :href="`/handwerk/${h.id}?from=dashboard`"
+                                                            class="font-medium hover:underline"
+                                                            @click.stop
+                                                        >
+                                                            {{ h.problem_type }}
+                                                        </Link>
+                                                        <span class="text-muted-foreground block text-xs">#{{ h.id }}</span>
+                                                        <span class="text-muted-foreground block text-xs sm:hidden">{{ h.submitter }}</span>
+                                                    </td>
+                                                    <td class="hidden px-4 py-2 align-top md:table-cell">
+                                                        {{ h.room ?? '–' }}
+                                                        <span v-if="h.address" class="text-muted-foreground block text-xs">{{ h.address }}</span>
+                                                    </td>
+                                                    <td class="hidden px-4 py-2 align-top sm:table-cell">
+                                                        {{ h.submitter }}
+                                                    </td>
+                                                    <td class="text-muted-foreground px-4 py-2 align-top whitespace-nowrap">
+                                                        {{ h.created_at ? fmt(h.created_at) : '–' }}
+                                                    </td>
+                                                    <td class="hidden px-4 py-2 align-top sm:table-cell">
+                                                        <span v-if="h.assignee">{{ h.assignee }}</span>
+                                                        <span
+                                                            v-else
+                                                            class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                                                            >Offen</span
+                                                        >
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <button
+                                        v-if="props.cityHandwerks.length > 1"
+                                        type="button"
+                                        class="text-muted-foreground hover:text-foreground hover:bg-accent/60 flex items-center justify-center gap-1 border-t px-4 py-2 text-xs font-medium transition-colors"
+                                        :aria-expanded="hwExpanded"
+                                        @click="hwExpanded = !hwExpanded"
+                                    >
+                                        <ChevronDown class="size-4 transition-transform" :class="hwExpanded ? 'rotate-180' : ''" />
+                                        {{ hwExpanded ? 'Weniger anzeigen' : `Alle ${props.cityHandwerks.length} anzeigen` }}
+                                    </button>
+
+                                    <div
+                                        v-if="!props.cityHandwerks.length"
+                                        class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-center text-sm"
+                                    >
+                                        <HardHat class="size-8 opacity-40" />
+                                        <p>
+                                            Keine offenen Handwerkaufgaben in
+                                            {{ props.handwerkCity }}.
+                                        </p>
+                                    </div>
+                                </section>
+                            </template>
+
+                            <!-- Verwaltung: own email forwardings -->
+                            <template v-else-if="key === 'myForwardings' && props.myForwardings">
+                                <section class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm">
+                                    <header class="flex items-center justify-between gap-3 border-b px-5 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <Mail class="text-primary size-5" />
+                                            <h2 class="font-semibold">Meine E-Mail-Weiterleitungen</h2>
                                         </div>
-                                    </li>
-                                </ul>
+                                        <Button as-child size="sm">
+                                            <Link :href="FORWARD_FORM">
+                                                <Plus class="size-4" />
+                                                Neue Weiterleitung
+                                            </Link>
+                                        </Button>
+                                    </header>
 
-                                <div
-                                    v-else
-                                    class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 px-5 py-8 text-center text-sm"
-                                >
-                                    <Mail class="size-8 opacity-40" />
-                                    <p>Keine aktuellen oder geplanten E-Mail-Weiterleitungen.</p>
-                                </div>
-                            </section>
-                        </template>
+                                    <ul v-if="props.myForwardings.length" class="divide-y">
+                                        <li v-for="f in props.myForwardings" :key="f.id" class="flex flex-col gap-2 px-5 py-4">
+                                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                                <span
+                                                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                                                    :class="
+                                                        f.direction === 'out'
+                                                            ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200'
+                                                            : 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200'
+                                                    "
+                                                >
+                                                    <component :is="f.direction === 'out' ? Forward : Inbox" class="size-3" />
+                                                    {{ f.direction === 'out' ? 'Meine E-Mails werden weitergeleitet' : 'Ich erhalte Weiterleitung' }}
+                                                </span>
+                                                <span
+                                                    class="rounded-full px-2 py-0.5 font-medium"
+                                                    :class="
+                                                        f.active
+                                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+                                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                                                    "
+                                                >
+                                                    {{ f.active ? 'Aktiv' : 'Geplant' }}
+                                                </span>
+                                            </div>
 
-                        <!-- Kündigungen (HR: all, Super_Admin: only due ones) -->
-                        <TerminationsBox
-                            v-else-if="key === 'terminations' && props.terminations"
-                            :terminations="props.terminations"
-                            :due-only="props.terminationsDueOnly"
-                        />
+                                            <div class="flex flex-wrap items-center gap-2 text-sm">
+                                                <span class="font-medium">{{ f.from }}</span>
+                                                <ArrowRight class="text-muted-foreground size-4 shrink-0" />
+                                                <span class="font-medium">{{ f.to }}</span>
+                                            </div>
 
-                        <!-- Super_Admin: Lizenzen that expire within 30 days -->
-                        <LicensesBox v-else-if="key === 'licenses' && props.licenses" :licenses="props.licenses" />
+                                            <div class="text-muted-foreground flex items-center gap-1.5 text-sm">
+                                                <CalendarRange class="size-4" />
+                                                vom {{ fmt(f.start) }} bis {{ fmt(f.end) }}
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div
+                                        v-else
+                                        class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 px-5 py-8 text-center text-sm"
+                                    >
+                                        <Mail class="size-8 opacity-40" />
+                                        <p>Keine aktuellen oder geplanten E-Mail-Weiterleitungen.</p>
+                                    </div>
+                                </section>
+                            </template>
+
+                            <!-- Kündigungen (HR: all, Super_Admin: only due ones) -->
+                            <TerminationsBox
+                                v-else-if="key === 'terminations' && props.terminations"
+                                :terminations="props.terminations"
+                                :due-only="props.terminationsDueOnly"
+                            />
+
+                            <!-- Super_Admin: Lizenzen that expire within 30 days -->
+                            <LicensesBox v-else-if="key === 'licenses' && props.licenses" :licenses="props.licenses" />
+
+                            <!-- Super_Admin: expired E-Mail-Weiterleitungen still to take down -->
+                            <OverdueForwardingsBox
+                                v-else-if="key === 'overdueForwardings' && props.overdueForwardings"
+                                :forwardings="props.overdueForwardings"
+                            />
+                        </div>
                     </div>
 
                     <!-- Drop zone: free space at the end of the column (also when it's empty) -->
@@ -669,12 +709,6 @@ const SHORTCUTS = [
                     Reihenfolge zurücksetzen
                 </button>
             </div>
-
-            <AdminBoxes
-                v-if="hasAdminBoxes"
-                :active-email-forwarding-tickets="props.activeEmailForwardingTickets as any"
-                :history-email-forwarding-tickets="props.historyEmailForwardingTickets as any"
-            />
         </div>
 
         <!-- Verwaltung: small "Neues Ticket" shortcut box, far right -->
