@@ -10,7 +10,7 @@ import { computed } from 'vue';
  *
  * keys look like "ticket:5", "handwerk:12", "korso:3", "other:<uuid>".
  */
-export type UnreadSummary = { count: number; total: number; keys: string[] };
+export type UnreadSummary = { count: number; total: number; keys: string[]; more?: boolean };
 export type UnreadKind = 'ticket' | 'handwerk' | 'korso';
 
 export function useUnread() {
@@ -20,7 +20,8 @@ export function useUnread() {
 
     return {
         /** Number of tickets/items with something new. */
-        count: computed(() => summary.value.count),
+        // more = only the newest notifications were counted -> show as 99+
+        count: computed(() => (summary.value.more ? Math.max(summary.value.count, 100) : summary.value.count)),
         isUnread: (kind: UnreadKind, id: number | string | null | undefined) => id != null && keySet.value.has(`${kind}:${id}`),
         countFor: (kind: UnreadKind) => summary.value.keys.filter((k) => k.startsWith(`${kind}:`)).length,
     };

@@ -24,6 +24,16 @@ use Illuminate\Support\Collection;
 class NotificationFeed
 {
     /**
+     * Only the newest unread notifications are looked at (2026-10-01).
+     * Super_Admins get every "new ticket" / comment notification and can have
+     * thousands of old unread ones - loading and decoding all of them on every
+     * page (shared prop) made the Dashboard very slow. Anything older than
+     * these is still unread in the DB and cleared by "Alle gelesen".
+     */
+    public const SUMMARY_LIMIT = 300;
+    public const GROUPS_LIMIT = 200;
+
+    /**
      * Map one notification to [key, kind, id] - key like "ticket:5".
      * kind: ticket | handwerk | korso | other
      */
@@ -53,7 +63,8 @@ class NotificationFeed
     {
         $keys = [];
         $total = 0;
-        foreach ($user->unreadNotifications()->get(['id', 'type', 'data']) as $n) {
+        $rows = $user->unreadNotifications()->limit(self::SUMMARY_LIMIT)->get(['id', 'type', 'data']);
+        foreach ($rows as $n) {
             [$kind, $id] = self::target($n);
             $key = ($kind === 'other' || $id === null) ? 'other:' . $n->id : $kind . ':' . $id;
             $keys[$key] = true;
@@ -63,6 +74,8 @@ class NotificationFeed
         return [
             // number of LINES (records), not raw notifications
             'count' => count($keys),
+            // true when there are more unread than we looked at ("99+")
+            'more' => $rows->count() >= self::SUMMARY_LIMIT,
             'total' => $total,
             'keys' => array_keys($keys),
         ];
@@ -72,7 +85,7 @@ class NotificationFeed
     public static function groups($user, int $limit = 50): array
     {
         $groups = [];
-        foreach ($user->unreadNotifications()->get() as $n) {
+        foreach ($user->unreadNotifications()->limit(self::GROUPS_LIMIT)->get(['id', 'type', 'data', 'created_at']) as $n) {
             [$kind, $id] = self::target($n);
             $d = is_array($n->data) ? $n->data : [];
             $key = ($kind === 'other' || $id === null) ? 'other:' . $n->id : $kind . ':' . $id;

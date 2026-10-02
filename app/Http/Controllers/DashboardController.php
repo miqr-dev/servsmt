@@ -80,8 +80,20 @@ class DashboardController extends Controller
                 ->orderBy('valid', 'ASC')
                 ->get();
 
+            // Only the columns/relations the tables show (was: every ticket column
+            // + 5 full user models per row, for every forwarding ever).
+            $userCols = 'id,name,vorname,username';
             $forwardings = Ticket::withTrashed()
-                ->with(['subUser', 'forwardOnUser', 'forwardFromUser', 'forwardRemovedByUser', 'user'])
+                ->select([
+                    'id', 'submitter', 'problem_type', 'forward_from', 'forward_on', 'forward_removed_by',
+                    'forward_required_at', 'forward_to_at', 'forward_removed_at', 'done_by', 'created_at', 'deleted_at',
+                ])
+                ->with([
+                    'subUser:' . $userCols,
+                    'forwardOnUser:' . $userCols,
+                    'forwardFromUser:' . $userCols,
+                    'forwardRemovedByUser:' . $userCols,
+                ])
                 ->where('problem_type', 'Email Weiterleitung')
                 ->orderBy('forward_required_at', 'asc')
                 ->orderByDesc('created_at')
