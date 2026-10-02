@@ -15,7 +15,8 @@ use SoftDeletes;
     protected $casts = [
     'created_at' => 'datetime',
     'updated_at' => 'datetime',
-    'valid' => 'datetime',
+    // plain Y-m-d in JSON (a datetime cast shifts midnight Berlin to the previous day in UTC)
+    'valid' => 'date:Y-m-d',
   ];
 
 }

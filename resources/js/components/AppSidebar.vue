@@ -12,6 +12,7 @@ import {
     FileText,
     FolderKanban,
     HardHat,
+    KeyRound,
     LayoutDashboard,
     ListChecks,
     LayoutGrid,
@@ -150,6 +151,7 @@ const adminItems: NavItem[] = [
     { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Teilnehmer_Info', 'Sekretariat'] },
     { title: 'Mitarbeiter Liste', href: '/employees', icon: Briefcase, roles: ['Super_Admin', 'HR'] },
     { title: 'Kündigungen', href: '/terminations', icon: UserMinus, roles: ['Super_Admin', 'HR'] },
+    { title: 'Lizenzen', href: '/licenses', icon: KeyRound, roles: ['Super_Admin'] },
 ];
 </script>
 

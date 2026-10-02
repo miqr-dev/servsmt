@@ -20,6 +20,7 @@ import {
 } from '@lucide/vue';
 import { computed, h, ref } from 'vue';
 import AdminBoxes from '@/components/dashboard/AdminBoxes.vue';
+import LicensesBox, { type LicenseRow } from '@/components/dashboard/LicensesBox.vue';
 import EmployeeLookup from '@/components/dashboard/EmployeeLookup.vue';
 import NewForYou, { type FeedGroup } from '@/components/dashboard/NewForYou.vue';
 import TerminationsBox, { type TerminationRow } from '@/components/dashboard/TerminationsBox.vue';
@@ -69,12 +70,13 @@ const props = defineProps<{
     handwerkCity?: string;
     // HR / Super_Admin boxes - shapes are typed inside AdminBoxes.vue.
     terminations?: TerminationRow[];
-    licenses?: unknown[];
+    licenses?: LicenseRow[];
+    terminationsDueOnly?: boolean;
     activeEmailForwardingTickets?: unknown[];
     historyEmailForwardingTickets?: unknown[];
 }>();
 
-const hasAdminBoxes = computed(() => !!(props.licenses || props.activeEmailForwardingTickets));
+const hasAdminBoxes = computed(() => !!props.activeEmailForwardingTickets);
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -454,13 +456,15 @@ const SHORTCUTS = [
                 </section>
 
                 <!-- HR: Kündigungen - right column, under the news box, beside the forwardings -->
-                <TerminationsBox v-if="props.terminations" class="lg:self-start" :terminations="props.terminations" />
+                <TerminationsBox v-if="props.terminations" class="lg:self-start" :terminations="props.terminations" :due-only="props.terminationsDueOnly" />
             </div>
 
             <!-- Super_Admin: Lizenzen + all email forwardings -->
+            <!-- Super_Admin: Lizenzen that expire within 30 days (hidden when none) -->
+            <LicensesBox v-if="props.licenses?.length" :licenses="props.licenses" />
+
             <AdminBoxes
                 v-if="hasAdminBoxes"
-                :licenses="props.licenses as any"
                 :active-email-forwarding-tickets="props.activeEmailForwardingTickets as any"
                 :history-email-forwarding-tickets="props.historyEmailForwardingTickets as any"
             />

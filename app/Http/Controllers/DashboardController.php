@@ -68,17 +68,36 @@ class DashboardController extends Controller
             $props['handwerkCity'] = $user->ort;
         }
 
-        // HR: Kündigungen (Super_Admin counts as HR too).
-        if ($user->hasRole('HR')) {
+        // Kündigungen:
+        // - HR (role really assigned): the full list.
+        // - Super_Admin without HR: only the red ones (active, exit today or
+        //   already passed); no box at all when there are none (2026-10-02).
+        //   The full list is on /terminations (sidebar "Kündigungen").
+        if ($user->hasAssignedRole('HR')) {
             $props['terminations'] = Termination::orderBy('exit', 'ASC')->get();
+        } elseif ($user->isSuperAdmin()) {
+            $due = Termination::where('is_active', true)
+                ->whereNotNull('exit')
+                ->whereDate('exit', '<=', Carbon::today())
+                ->orderBy('exit', 'ASC')
+                ->get();
+            if ($due->isNotEmpty()) {
+                $props['terminations'] = $due;
+                $props['terminationsDueOnly'] = true;
+            }
         }
 
         // Super_Admin only: Lizenzen + all email forwardings (active / history).
-        // Moved here from the former /dashboard page (LicenseController@index).
         if ($user->isSuperAdmin()) {
-            $props['licenses'] = License::orderByRaw('CASE WHEN valid IS NULL THEN 0 ELSE 1 END DESC')
+            // Only licences that expire within 30 days (or already expired);
+            // no box when there are none. Full list: /licenses (sidebar "Lizenzen").
+            $expiring = License::whereNotNull('valid')
+                ->whereDate('valid', '<=', Carbon::today()->addDays(30))
                 ->orderBy('valid', 'ASC')
                 ->get();
+            if ($expiring->isNotEmpty()) {
+                $props['licenses'] = $expiring;
+            }
 
             // Only the columns/relations the tables show (was: every ticket column
             // + 5 full user models per row, for every forwarding ever).

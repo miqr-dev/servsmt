@@ -42,6 +42,8 @@ const props = defineProps<{
     terminations: TerminationRow[];
     /** Own page (/terminations): no row limit, no "weitere anzeigen", + Beschäftigung column. */
     fullPage?: boolean;
+    /** Super_Admin Dashboard: only the due (red) entries are sent - say so and link the full list. */
+    dueOnly?: boolean;
 }>();
 
 const MIN_VISIBLE_ROWS = 5;
@@ -250,7 +252,13 @@ watch([() => table.pagedRows, visibleRows], () => nextTick(measure));
 <template>
     <section class="bg-card text-card-foreground flex min-w-0 flex-col rounded-xl border shadow-sm">
         <div class="flex items-center justify-between border-b p-4">
-            <h3 class="font-semibold">Kündigungen</h3>
+            <div class="min-w-0">
+                <h3 class="font-semibold">Kündigungen</h3>
+                <p v-if="dueOnly" class="text-muted-foreground text-xs">
+                    Nur fällige ·
+                    <Link href="/terminations" class="text-primary hover:underline">alle anzeigen</Link>
+                </p>
+            </div>
             <div class="flex items-center gap-2">
                 <Button as-child size="sm" variant="outline">
                     <Link href="/terminations/history">

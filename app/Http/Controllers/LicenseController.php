@@ -18,9 +18,15 @@ class LicenseController extends Controller
    */
   // The former /dashboard page (licenses, terminations, forwardings) moved
   // to the unified Dashboard (DashboardController / pages/Home.vue).
+  // Own page for all licences (sidebar "Lizenzen", Super_Admin only via
+  // route_access 'licenses*'). The Dashboard box shows only the expiring ones.
   public function index()
   {
-    return redirect()->route('home');
+    return \Inertia\Inertia::render('Licenses/Index', [
+      'licenses' => License::orderByRaw('CASE WHEN valid IS NULL THEN 1 ELSE 0 END')
+        ->orderBy('valid', 'ASC')
+        ->get(),
+    ]);
   }
 
   /**
@@ -28,9 +34,10 @@ class LicenseController extends Controller
    *
    * @return \Illuminate\Http\Response
    */
+  // Neu / Bearbeiten are dialogs (components/dashboard/LicensesBox.vue).
   public function create()
   {
-    return view('licenses.create');
+    return redirect()->route('licenses.index');
   }
 
   /**
@@ -41,13 +48,9 @@ class LicenseController extends Controller
    */
   public function store(Request $request)
   {
-    $request->validate([
-      'name' => 'required',
-    ]);
+    License::create($this->validated($request));
 
-    License::create($request->all());
-
-    return redirect()->route('dashboard')->with('success', 'Product created successfully.');
+    return back()->with('success', 'Lizenz hinzugefügt.');
   }
 
 
@@ -70,7 +73,7 @@ class LicenseController extends Controller
    */
   public function edit(License $license)
   {
-    return view('licenses.edit', compact('license'));
+    return redirect()->route('licenses.index');
   }
 
   /**
@@ -82,13 +85,9 @@ class LicenseController extends Controller
    */
   public function update(Request $request, License $license)
   {
-    $request->validate([
-      'name' => 'required',
-    ]);
+    $license->update($this->validated($request));
 
-    $license->update($request->all());
-
-    return redirect()->route('dashboard')->with('success', 'License updated successfully');
+    return back()->with('success', 'Lizenz gespeichert.');
   }
 
   /**
@@ -101,7 +100,18 @@ class LicenseController extends Controller
   {
     $license->delete();
 
-    return redirect()->route('dashboard')
-      ->with('success', 'Product deleted successfully');
+    return back()->with('success', 'Lizenz gelöscht.');
+  }
+
+  /** Shared rules for the Neu / Bearbeiten dialog. */
+  private function validated(Request $request): array
+  {
+    return $request->validate([
+      'name' => 'required|string|max:255',
+      'where' => 'nullable|string|max:255',
+      'version' => 'nullable|string|max:255',
+      'valid' => 'nullable|date',
+      'comment' => 'nullable|string|max:2000',
+    ]);
   }
 }

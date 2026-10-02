@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from '@lucide/vue';
+import { router } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
-import RowActions, { type RowAction } from '@/components/RowActions.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
 import TablePagination from '@/components/table/TablePagination.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
-import { Button } from '@/components/ui/button';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
 
 /**
@@ -14,19 +11,10 @@ import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
  * 2026-09-29 from the former /dashboard page (pages/Dashboard.vue, removed).
  * (HR Kündigungen: components/dashboard/TerminationsBox.vue.)
  * Every box renders only when its prop is sent - DashboardController decides:
- * - licenses (Lizenzen): Super_Admin only (your decision 2026-09-29)
+ * (Lizenzen: components/dashboard/LicensesBox.vue, 2026-10-02.)
  * - active/history email forwardings: Super_Admin only (as in the old app)
  * Tables use the shared useDataTable standard (sort, search, paging).
  */
-
-type LicenseRow = {
-    id: number;
-    name: string;
-    where: string | null;
-    comment: string | null;
-    valid: string | null;
-    version: string | null;
-};
 
 type ForwardingUser = { name: string; vorname: string | null } | null;
 
@@ -47,7 +35,6 @@ type ForwardingTicketRow = {
 };
 
 const props = defineProps<{
-    licenses?: LicenseRow[];
     activeEmailForwardingTickets?: ForwardingTicketRow[];
     historyEmailForwardingTickets?: ForwardingTicketRow[];
 }>();
@@ -76,59 +63,9 @@ function isOverdue(ticket: ForwardingTicketRow): boolean {
     return !!ticket.forward_to_at && new Date(ticket.forward_to_at) < new Date();
 }
 
-const now = Date.now();
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
-
-function dateColorClass(value: string | null, inactive = false): string {
-    if (inactive) return 'font-semibold text-neutral-500';
-    if (!value) return '';
-
-    const diff = new Date(value).getTime() - now;
-
-    if (diff <= WEEK_MS) return 'font-semibold text-red-600 dark:text-red-400';
-    if (diff <= MONTH_MS) return 'font-semibold text-orange-500 dark:text-orange-400';
-
-    return 'font-semibold text-green-600 dark:text-green-400';
-}
-
-function deleteLicense(license: LicenseRow) {
-    if (!confirm(`"${license.name}" wirklich löschen?`)) return;
-
-    router.delete(`/licenses/${license.id}`, { preserveScroll: true });
-}
-
 function markForwardingRemoved(ticket: ForwardingTicketRow) {
     router.post(`/ticket/${ticket.id}/forwarding-removed`, {}, { preserveScroll: true });
 }
-
-function licenseActions(license: LicenseRow): RowAction[] {
-    return [
-        {
-            icon: Pencil,
-            label: 'Bearbeiten',
-            href: `/licenses/${license.id}/edit`,
-        },
-        {
-            icon: Trash2,
-            label: 'Löschen',
-            variant: 'destructive',
-            onClick: () => deleteLicense(license),
-        },
-    ];
-}
-
-// --- Licenses table ---
-const LICENSE_COLUMNS: DataTableColumn<LicenseRow>[] = [
-    { key: 'name' },
-    { key: 'where' },
-    { key: 'comment' },
-    { key: 'valid', searchable: false },
-    { key: 'version' },
-    { key: 'actions', sortable: false, searchable: false },
-];
-const licenses = computed(() => props.licenses ?? []);
-const licenseTable = reactive(useDataTable(licenses, LICENSE_COLUMNS));
 
 // --- Active email forwarding table ---
 const ACTIVE_FORWARDING_COLUMNS: DataTableColumn<ForwardingTicketRow>[] = [
@@ -159,100 +96,6 @@ const historyForwardingTable = reactive(useDataTable(historyForwarding, HISTORY_
 
 <template>
     <div class="flex flex-col gap-6">
-        <div v-if="props.licenses" class="grid gap-6">
-            <!-- Licenses (Super_Admin) -->
-            <div class="bg-card text-card-foreground min-w-0 rounded-xl border shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b p-4">
-                    <h3 class="font-semibold">Lizenzen</h3>
-                    <Button as-child size="sm">
-                        <Link href="/licenses/create">
-                            <Plus class="size-4" />
-                            Neue Lizenz
-                        </Link>
-                    </Button>
-                </div>
-                <div class="p-3">
-                    <TableToolbar
-                        v-model:search="licenseTable.search"
-                        v-model:page-size="licenseTable.pageSize"
-                        search-placeholder="Lizenz suchen..."
-                    />
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-muted-foreground text-left">
-                            <tr>
-                                <TableHeadCell
-                                    label="Lizenzname"
-                                    sort-key="name"
-                                    :active-key="licenseTable.sortKey"
-                                    :direction="licenseTable.sortDir"
-                                    @sort="licenseTable.toggleSort('name')"
-                                />
-                                <TableHeadCell
-                                    label="Wo"
-                                    sort-key="where"
-                                    :active-key="licenseTable.sortKey"
-                                    :direction="licenseTable.sortDir"
-                                    @sort="licenseTable.toggleSort('where')"
-                                />
-                                <TableHeadCell
-                                    label="Bemerkung"
-                                    sort-key="comment"
-                                    :active-key="licenseTable.sortKey"
-                                    :direction="licenseTable.sortDir"
-                                    @sort="licenseTable.toggleSort('comment')"
-                                />
-                                <TableHeadCell
-                                    label="Gültig"
-                                    sort-key="valid"
-                                    :active-key="licenseTable.sortKey"
-                                    :direction="licenseTable.sortDir"
-                                    @sort="licenseTable.toggleSort('valid')"
-                                />
-                                <TableHeadCell
-                                    label="Version"
-                                    sort-key="version"
-                                    :active-key="licenseTable.sortKey"
-                                    :direction="licenseTable.sortDir"
-                                    @sort="licenseTable.toggleSort('version')"
-                                />
-                                <TableHeadCell label="Ändern" align="right" />
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="license in licenseTable.pagedRows" :key="license.id">
-                                <td class="p-3">{{ license.name }}</td>
-                                <td class="p-3">{{ license.where }}</td>
-                                <td class="p-3">{{ license.comment }}</td>
-                                <td class="p-3" :class="dateColorClass(license.valid)">
-                                    {{ formatDate(license.valid) }}
-                                </td>
-                                <td class="p-3">{{ license.version }}</td>
-                                <td class="p-3">
-                                    <RowActions :actions="licenseActions(license)" />
-                                </td>
-                            </tr>
-                            <tr v-if="!licenseTable.pagedRows.length">
-                                <td colspan="6" class="text-muted-foreground p-3 text-center">
-                                    {{ licenseTable.search ? 'Keine Lizenzen gefunden.' : 'Keine Lizenzen vorhanden.' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <TablePagination
-                    :page="licenseTable.page"
-                    :page-count="licenseTable.pageCount"
-                    :range-from="licenseTable.rangeFrom"
-                    :range-to="licenseTable.rangeTo"
-                    :total="licenseTable.total"
-                    item-label="Lizenzen"
-                    @update:page="licenseTable.page = $event"
-                />
-            </div>
-        </div>
-
         <!-- Email forwarding - Super_Admin only, matches the old @if(hasRole('Super_Admin')) -->
         <template v-if="props.activeEmailForwardingTickets">
             <div class="bg-card text-card-foreground rounded-xl border shadow-sm">
