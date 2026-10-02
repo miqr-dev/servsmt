@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\User;
+use App\AdSyncLog;
+use App\Jobs\SyncUserToActiveDirectory;
+use App\Support\ActiveDirectoryWriteback;
 use App\InvItems;
 use App\Location;
-use App\Exports\UserExport;
-use App\Imports\UserImport;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
-use Maatwebsite\Excel\Facades\Excel;
 
 class SettingController extends Controller
 {
@@ -54,26 +54,6 @@ class SettingController extends Controller
         'title' => 'required',
         ]);
 
-        // Row for storage/app/user/updateuser.csv (AD sync) - same columns as
-        // before (see App\Exports\UserExport headings), values trimmed.
-        $v = fn ($k) => is_string($request->input($k)) ? trim($request->input($k)) : $request->input($k);
-        $row = [
-          $target->username, $v('position'), $v('abteilung'), $v('tel'), $v('fax'), $v('ort'), $v('straße'),
-          $v('plz'), $v('title'), $v('vorname'), $v('name'), $v('mobil'), $v('privat'), $v('email_privat'),
-          $v('abschluss'), $v('office'),
-        ];
-        $importuser = [$row];
-        try {
-          // append to the existing file (first sheet), if there is one
-          $existing = Excel::toArray(new UserImport, 'updateuser.csv','user');
-          $importuser = $existing[0];
-          $importuser[] = $row;
-        }
-        catch (\Exception $e) {
-          ;
-        }
-        Excel::store(new UserExport($importuser), 'updateuser.csv','user');
-
         // Only the profile fields - $request->all() let a user set any
         // fillable column (e.g. password, email, status) via the request.
         $input = collect($request->only([
@@ -81,6 +61,26 @@ class SettingController extends Controller
           'mobil', 'privat', 'email_privat', 'abschluss', 'office',
         ]))->map(fn ($v) => is_string($v) ? trim($v) : $v)->all();
         $target->update($input);     
+
+        // AD sync: write the fields straight to the AD account
+        // (config/ad_writeback.php, App\Jobs\SyncUserToActiveDirectory).
+        // A failing AD never breaks the save - it is logged and retried.
+        if (ActiveDirectoryWriteback::enabled()) {
+          $log = AdSyncLog::create(['user_id' => $target->id, 'changed_by' => auth()->id(), 'status' => AdSyncLog::PENDING]);
+          SyncUserToActiveDirectory::dispatch($log->id);
+          $log->refresh();
+          if ($log->status === AdSyncLog::SUCCESS) {
+            return back()->with('success', 'Profil gespeichert und im Active Directory aktualisiert.');
+          }
+          if (in_array($log->status, [AdSyncLog::FAILED, AdSyncLog::NOT_FOUND], true)) {
+            return back()->with('error', $log->status === AdSyncLog::FAILED
+              ? 'Profil gespeichert, aber das Active Directory konnte nicht aktualisiert werden. Es wird automatisch erneut versucht.'
+              : 'Profil gespeichert, aber kein passendes Active-Directory-Konto gefunden. Bitte die IT informieren.');
+          }
+
+          return back()->with('success', 'Profil gespeichert. Die Änderungen werden ins Active Directory übertragen.');
+        }
+
         // Back to the profile page with a toast (was: redirect to home).
         return back()->with('success', 'Profil gespeichert.');
     }

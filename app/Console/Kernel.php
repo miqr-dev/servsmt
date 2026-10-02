@@ -31,6 +31,12 @@ class Kernel extends ConsoleKernel
       ])->everySixHours();
 
       $schedule->command('reminders:show')->everySixHours();
+
+      // Profile -> Active Directory write-back: retry failed ones (does
+      // nothing while AD_WRITEBACK is off). Hourly, so a failed change
+      // normally reaches AD before the next ldap:import reads AD back into
+      // servsmt (which would otherwise overwrite the profile edit).
+      $schedule->command('ad:writeback --failed')->hourly()->withoutOverlapping();
     }
 
     protected function commands()

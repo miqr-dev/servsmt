@@ -12,9 +12,9 @@ class UserController extends Controller
 {
 
   // Profil (user menu > Profil). Converted from user/profile.blade.php
-  // (2026-10-02). Saving still goes to SettingController@firstupdate, which
-  // updates the user and appends the row to storage/app/user/updateuser.csv
-  // (the export the AD signature/attribute sync reads).
+  // (2026-10-02). Saving goes to SettingController@firstupdate, which
+  // updates the user and writes the fields to Active Directory
+  // (config/ad_writeback.php).
   public function profile()
   {
       $user = Auth()->user();
@@ -25,7 +25,19 @@ class UserController extends Controller
           $profile[$f === 'straße' ? 'strasse' : $f] = is_string($user->$f) ? trim($user->$f) : $user->$f;
       }
 
-      return \Inertia\Inertia::render('Profile/Edit', ['profile' => $profile]);
+      // Last profile -> AD write-back (only while AD_WRITEBACK is on). The
+      // technical error text is only shown to Super_Admin.
+      $adSync = null;
+      if (\App\Support\ActiveDirectoryWriteback::enabled()) {
+          $log = \App\AdSyncLog::where('user_id', $user->id)->latest('id')->first();
+          $adSync = $log ? [
+              'status' => $log->status,
+              'at' => ($log->synced_at ?? $log->updated_at)?->toIso8601String(),
+              'error' => $user->isSuperAdmin() ? $log->error : null,
+          ] : ['status' => 'none', 'at' => null, 'error' => null];
+      }
+
+      return \Inertia\Inertia::render('Profile/Edit', ['profile' => $profile, 'adSync' => $adSync]);
   }
   /**
   * Display a listing of the resource.

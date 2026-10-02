@@ -1,6 +1,20 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { AtSign, Briefcase, Building2, GraduationCap, MapPin, Phone, Printer, Save, Smartphone, UserRound } from '@lucide/vue';
+import {
+    AlertTriangle,
+    AtSign,
+    Briefcase,
+    CheckCircle2,
+    Clock,
+    Building2,
+    GraduationCap,
+    MapPin,
+    Phone,
+    Printer,
+    Save,
+    Smartphone,
+    UserRound,
+} from '@lucide/vue';
 import { computed, h } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Auth, BreadcrumbItem } from '@/types';
@@ -10,9 +24,8 @@ import type { Auth, BreadcrumbItem } from '@/types';
  * resources/views/user/profile.blade.php (2026-10-02).
  *
  * Saving: PATCH /settings/firstpage/{id} -> SettingController@firstupdate,
- * unchanged in what it does: updates the user and appends the row to
- * storage/app/user/updateuser.csv (Excel export read by the AD sync for the
- * Outlook signature). Vorname / Name / Benutzername come from AD and are
+ * updates the user and writes the fields straight to Active Directory when
+ * AD_WRITEBACK is on (config/ad_writeback.php; `adSync` = last result). Vorname / Name / Benutzername come from AD and are
  * read-only. The old "Replication" switch had no function (no name, no
  * script) and was dropped.
  */
@@ -37,7 +50,30 @@ type Profile = {
     office: string | null;
 };
 
-const props = defineProps<{ profile: Profile }>();
+type AdSync = { status: 'none' | 'pending' | 'success' | 'failed' | 'not_found'; at: string | null; error: string | null };
+
+const props = defineProps<{ profile: Profile; adSync?: AdSync | null }>();
+
+// Last profile -> Active Directory write-back (only sent while it is enabled).
+const adSyncInfo = computed(() => {
+    const s = props.adSync;
+    if (!s || s.status === 'none') return null;
+    const at = s.at ? new Date(s.at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    switch (s.status) {
+        case 'success':
+            return { icon: CheckCircle2, cls: 'text-green-600 dark:text-green-400', text: `Active Directory aktualisiert${at ? ` am ${at}` : ''}` };
+        case 'pending':
+            return { icon: Clock, cls: 'text-muted-foreground', text: 'Wird ins Active Directory übertragen…' };
+        case 'not_found':
+            return { icon: AlertTriangle, cls: 'text-destructive', text: 'Kein Active-Directory-Konto gefunden - bitte die IT informieren' };
+        default:
+            return {
+                icon: AlertTriangle,
+                cls: 'text-orange-600 dark:text-orange-400',
+                text: 'Active Directory noch nicht aktualisiert - wird automatisch erneut versucht',
+            };
+    }
+});
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -208,7 +244,11 @@ const inputCls = 'border-input bg-background h-9 w-full rounded-md border px-3 t
             </section>
         </div>
 
-        <div class="flex items-center justify-end gap-3">
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <span v-if="adSyncInfo" class="mr-auto flex items-center gap-1.5 text-xs" :class="adSyncInfo.cls" :title="adSync?.error ?? undefined">
+                <component :is="adSyncInfo.icon" class="size-4 shrink-0" />
+                {{ adSyncInfo.text }}
+            </span>
             <span v-if="form.isDirty" class="text-muted-foreground text-xs">Ungespeicherte Änderungen</span>
             <button
                 type="submit"

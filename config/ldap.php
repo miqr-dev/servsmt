@@ -39,6 +39,21 @@ return [
             'use_starttls' => env('LDAP_STARTTLS', false),
         ],
 
+        // Profile -> AD write-back (config/ad_writeback.php). Separate service
+        // account that may write ONLY the profile attributes (delegated in AD);
+        // the import account above stays read-only. Same server, LDAPS.
+        'writer' => [
+            'hosts' => [trim((string) env('LDAP_WRITE_HOST', env('LDAP_HOST', '127.0.0.1')))],
+            'username' => env('LDAP_WRITE_USERNAME', ''),
+            'password' => env('LDAP_WRITE_PASSWORD', ''),
+            'port' => env('LDAP_WRITE_PORT', 636),
+            'base_dn' => env('LDAP_WRITE_BASE_DN', env('LDAP_BASE_DN', 'dc=local,dc=com')),
+            'timeout' => env('LDAP_TIMEOUT', 5),
+            // ldaps:// (LdapRecord 4: use_tls = LDAPS on port 636)
+            'use_tls' => env('LDAP_WRITE_TLS', true),
+            'use_starttls' => false,
+        ],
+
     ],
 
     /*

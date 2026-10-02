@@ -51,10 +51,6 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/room'),
         ],
-        'user' => [
-            'driver' => 'local',
-            'root' => storage_path('app/user'),
-        ],
 
         'public' => [
             'driver' => 'local',
