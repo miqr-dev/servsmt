@@ -15,13 +15,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { getInitials } = useInitials();
 
-const fullName = computed(() =>
-    [props.user.vorname, props.user.name].filter(Boolean).join(' '),
-);
+const fullName = computed(() => [props.user.vorname, props.user.name].filter(Boolean).join(' '));
 
-const showAvatar = computed(
-    () => props.user.avatar && props.user.avatar !== '',
-);
+const displayRoles = computed<string[]>(() => props.user.assignedRoles ?? props.user.roles ?? []);
+
+const showAvatar = computed(() => props.user.avatar && props.user.avatar !== '');
 </script>
 
 <template>
@@ -34,10 +32,13 @@ const showAvatar = computed(
 
     <div class="grid flex-1 text-left text-sm leading-tight">
         <span class="truncate font-medium">{{ fullName }}</span>
-        <span
-            v-if="showRoles && user.roles?.length"
-            class="text-muted-foreground truncate text-xs"
-            >{{ user.roles.join(', ') }}</span
-        >
+        <!-- one role per row; the roles really assigned (a Super_Admin's
+             effective `roles` list contains every role, which isn't useful here) -->
+        <ul v-if="showRoles && displayRoles.length" class="text-muted-foreground mt-1 flex flex-col gap-0.5 text-xs">
+            <li v-for="role in displayRoles" :key="role" class="flex items-center gap-1.5">
+                <span class="bg-primary/60 size-1.5 shrink-0 rounded-full" />
+                <span class="truncate">{{ role.replace(/_/g, ' ') }}</span>
+            </li>
+        </ul>
     </div>
 </template>

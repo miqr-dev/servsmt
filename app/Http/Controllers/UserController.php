@@ -11,12 +11,21 @@ use Hash;
 class UserController extends Controller
 {
 
+  // Profil (user menu > Profil). Converted from user/profile.blade.php
+  // (2026-10-02). Saving still goes to SettingController@firstupdate, which
+  // updates the user and appends the row to storage/app/user/updateuser.csv
+  // (the export the AD signature/attribute sync reads).
   public function profile()
   {
-      $hour = date('H');
-      $dayTerm = ($hour > 17) ? "Guten Abend" : (($hour > 12) ? "Guten Tag" : "Guten Morgen");
       $user = Auth()->user();
-      return view('user.profile',compact('user','dayTerm'));
+      $fields = ['title', 'vorname', 'name', 'username', 'email', 'position', 'abteilung', 'tel', 'fax',
+        'ort', 'straße', 'plz', 'mobil', 'privat', 'email_privat', 'abschluss', 'office'];
+      $profile = ['id' => $user->id];
+      foreach ($fields as $f) {
+          $profile[$f === 'straße' ? 'strasse' : $f] = is_string($user->$f) ? trim($user->$f) : $user->$f;
+      }
+
+      return \Inertia\Inertia::render('Profile/Edit', ['profile' => $profile]);
   }
   /**
   * Display a listing of the resource.

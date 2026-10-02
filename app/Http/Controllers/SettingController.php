@@ -35,6 +35,13 @@ class SettingController extends Controller
 
   public function firstupdate(Request $request,$id) 
     {
+      // Profile page: everyone may update THEIR OWN profile (Super_Admin any).
+      abort_unless((int) $id === (int) auth()->id() || auth()->user()->isSuperAdmin(), 403);
+      $target = User::findOrFail($id);
+      // Name, Vorname and Benutzername come from AD and are read-only on the
+      // page - take them from the record, never from the request.
+      $request->merge(['vorname' => $target->vorname, 'name' => $target->name]);
+
       $this->validate($request, [
         'position' => 'required',
         'abteilung' => 'required',
@@ -47,60 +54,35 @@ class SettingController extends Controller
         'title' => 'required',
         ]);
 
-        $importuser = [[
-          $request->username,
-          $request->position,
-          $request->abteilung,
-          $request->tel,
-          $request->fax,
-          $request->ort,
-          $request->straße,
-          $request->plz,
-          $request->title,
-          $request->vorname,
-          $request->name,
-          $request->mobil,
-          $request->privat,
-          $request->email_privat,
-          $request->abschluss,
-          $request->office,
-          ]];
+        // Row for storage/app/user/updateuser.csv (AD sync) - same columns as
+        // before (see App\Exports\UserExport headings), values trimmed.
+        $v = fn ($k) => is_string($request->input($k)) ? trim($request->input($k)) : $request->input($k);
+        $row = [
+          $target->username, $v('position'), $v('abteilung'), $v('tel'), $v('fax'), $v('ort'), $v('straße'),
+          $v('plz'), $v('title'), $v('vorname'), $v('name'), $v('mobil'), $v('privat'), $v('email_privat'),
+          $v('abschluss'), $v('office'),
+        ];
+        $importuser = [$row];
         try {
-          $importuser = Excel::toArray(new UserImport, 'updateuser.csv','user');
-          $importuser = $importuser[0];
-          $importuser[] = [
-            $request->username,
-            $request->position,
-            $request->abteilung,
-            $request->tel,
-            $request->fax,
-            $request->ort,
-            $request->straße,
-            $request->plz,
-            $request->title,
-            $request->vorname,
-            $request->name,
-            $request->mobil,
-            $request->privat,
-            $request->email_privat,
-            $request->abschluss,
-            $request->office,
-          ];
+          // append to the existing file (first sheet), if there is one
+          $existing = Excel::toArray(new UserImport, 'updateuser.csv','user');
+          $importuser = $existing[0];
+          $importuser[] = $row;
         }
         catch (\Exception $e) {
           ;
         }
         Excel::store(new UserExport($importuser), 'updateuser.csv','user');
 
-        $input = $request->all();
-        $user = User::find($id);
-        $user->update($input);     
-        $sucMsg = array(
-          'message' => 'Erfolgreich bearbeitet',
-          'alert-type' => 'success'
-        );
-        
-        return redirect()->route('home')->with($sucMsg);
+        // Only the profile fields - $request->all() let a user set any
+        // fillable column (e.g. password, email, status) via the request.
+        $input = collect($request->only([
+          'position', 'abteilung', 'tel', 'fax', 'ort', 'straße', 'plz', 'title',
+          'mobil', 'privat', 'email_privat', 'abschluss', 'office',
+        ]))->map(fn ($v) => is_string($v) ? trim($v) : $v)->all();
+        $target->update($input);     
+        // Back to the profile page with a toast (was: redirect to home).
+        return back()->with('success', 'Profil gespeichert.');
     }
 		//** Settings index **//
 

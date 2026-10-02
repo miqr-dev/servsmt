@@ -170,6 +170,7 @@ return [
     'device-statuses*' => $SUPER,
 
     // ─── Settings & admin tools (Super_Admin) ───────────────────────────
+    'settings/firstpage/*' => $VERWALTUNG,          // own profile (Profil) - controller checks the id
     'settings/*' => $SUPER,
     'create_city' => $SUPER,
     'create_address' => $SUPER,
