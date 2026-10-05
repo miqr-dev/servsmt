@@ -16,7 +16,8 @@ class TicketAccess
 {
     public const IT_STAFF = ['Super_Admin', 'admin'];
     public const KORSO_STAFF = ['Korso_ma', 'Korso_Admin'];
-    public const HANDWERK_STAFF = ['handwerk_admin', 'handwerk', 'Sekretariat'];
+    // handwerk is NOT staff: they only get tickets of their cities (below).
+    public const HANDWERK_STAFF = ['handwerk_admin', 'Sekretariat'];
 
     public static function authorize($ticket, array $staffRoles): void
     {
@@ -27,9 +28,9 @@ class TicketAccess
             return;
         }
 
-        // Handwerk-Zuständigkeiten: users who see a city's Handwerk tickets in
-        // Meine Tickets may open them (App\Support\HandwerkResponsibility).
-        if ($ticket instanceof \App\Handwerk && HandwerkResponsibility::canView($user, $ticket->submitter_standort)) {
+        // Handwerk: role handwerk -> own city; "Sieht Standorte" (Rollen &
+        // Berechtigungen > Handwerk) -> those cities. Open + restore.
+        if ($ticket instanceof \App\Handwerk && HandwerkCityAccess::allows($ticket->submitter_standort, $user)) {
             return;
         }
 

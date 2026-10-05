@@ -33,13 +33,15 @@ class HandwerkController extends Controller
     $citySlugs = [];
 
     // City badges (links to /handwerker/{city}):
-    // Super_Admin / handwerk_admin see every city, handwerk only their own.
+    // Super_Admin / handwerk_admin see every city, handwerk their own city +
+    // "Sieht Standorte" (Rollen & Berechtigungen > Handwerk).
     $user = auth()->user();
     if (HandwerkCityAccess::allCities($user) || $user->hasRole('handwerk')) {
       $query = Handwerk::select('submitter_standort', DB::raw('count(*) as total'))
         ->groupBy('submitter_standort');
-      if (! HandwerkCityAccess::allCities($user)) {
-        $query->where('submitter_standort', $user->ort ?: '__none__');
+      $cities = HandwerkCityAccess::cities($user);
+      if ($cities !== null) {
+        $query->whereIn('submitter_standort', $cities ?: ['__none__']);
       }
       $cityCounts = $query->pluck('total', 'submitter_standort');
 
@@ -472,7 +474,8 @@ class HandwerkController extends Controller
       ->when($handwerk->assignedUser, fn ($c) => $c->push($handwerk->assignedUser))
       ->unique('id')->sortBy('username', SORT_NATURAL | SORT_FLAG_CASE)->values()
       ->map(fn ($u) => ['id' => $u->id, 'username' => $u->username, 'vorname' => $u->vorname, 'name' => $u->name]);
-    // Handwerk staff (+ Sekretariat, who see the submitter panel) or the submitter.
+    // handwerk_admin / Sekretariat, the submitter, or a user whose cities
+    // include this ticket's city (handwerk: own city + "Sieht Standorte").
     TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
     // Opening the ticket = seen (all unread notifications about this Handwerk ticket).
     NotificationLookup::markReadFor($user, 'handwerk', $id);
@@ -480,6 +483,7 @@ class HandwerkController extends Controller
     return Inertia::render('Handwerk/Show', [
       'handwerk' => $handwerk,
       'admins' => $admins,
+      'canComplete' => $this->canComplete($handwerk, $user),
     ]);
   }
 
@@ -592,11 +596,18 @@ class HandwerkController extends Controller
    */
   private function authorizeComplete(Handwerk $handwerk): void
   {
-    $user = auth()->user();
+    abort_unless($this->canComplete($handwerk, auth()->user()), 403, 'Keine Berechtigung für diese Stadt.');
+  }
+
+  /** Same rule for the server check and the button on the ticket page. */
+  private function canComplete(Handwerk $handwerk, $user): bool
+  {
     if ($user->hasAnyRole(['Super_Admin', 'handwerk_admin', 'Sekretariat'])) {
-      return;
+      return true;
     }
-    abort_unless(HandwerkCityAccess::allows($handwerk->submitter_standort, $user), 403, 'Keine Berechtigung für diese Stadt.');
+
+    // handwerk: own city + "Sieht Standorte" (route_access limits Erledigt to the handwerk role)
+    return $user->hasRole('handwerk') && HandwerkCityAccess::allows($handwerk->submitter_standort, $user);
   }
 
   public function destroy(Request $request, $id)
@@ -635,13 +646,14 @@ class HandwerkController extends Controller
   }
 
   /**
-   * Erledigt by someone outside the Handwerk team (e.g. Sekretariat) ->
+   * Erledigt by someone outside the Handwerk team (Sekretariat, handwerk) ->
    * tell Handwerk_verwaltung (was user 327).
    */
   private function notifyVerwaltungIfDoneByOthers(array $notifications): void
   {
     $user = auth()->user();
-    if ($user->hasAnyRole(['handwerk', 'handwerk_admin', HandwerkResponsibility::VERWALTUNG_ROLE])) {
+    // handwerk (city viewers) are not the Handwerk team -> Verwaltung is told.
+    if ($user->hasAnyRole(['handwerk_admin', HandwerkResponsibility::VERWALTUNG_ROLE])) {
       return;
     }
     Notify::send(HandwerkResponsibility::verwaltungUsers($user), new HandwerkNotification($notifications));

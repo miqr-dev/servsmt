@@ -126,19 +126,11 @@ const isSuperAdmin = computed(() => roles.value.includes('Super_Admin'));
 // Unread notifications (all systems) - dot on rows with news.
 const { isUnread } = useUnread();
 const canSeeHandwerk = computed(
-    () =>
-        isSuperAdmin.value ||
-        roles.value.includes('handwerk') ||
-        roles.value.includes('handwerk_admin') ||
-        roles.value.includes('Verwaltung'),
+    () => isSuperAdmin.value || roles.value.includes('handwerk') || roles.value.includes('handwerk_admin') || roles.value.includes('Verwaltung'),
 );
 const canSeeKorso = computed(() => roles.value.includes('Verwaltung'));
 const canDownloadHandwerkPdf = computed(
-    () =>
-        isSuperAdmin.value ||
-        roles.value.includes('handwerk_admin') ||
-        roles.value.includes('Sekretariat') ||
-        roles.value.includes('handwerk'), // own city (the link uses auth.user.ort)
+    () => isSuperAdmin.value || roles.value.includes('handwerk_admin') || roles.value.includes('Sekretariat') || roles.value.includes('handwerk'), // own city (the link uses auth.user.ort)
 );
 
 // --- Tabs ---
@@ -148,7 +140,16 @@ const tabs = computed(() => {
     // unread = this tab's tickets that have unread notifications (dot on the tab)
     const unreadIn = (kind: 'ticket' | 'handwerk' | 'korso', ids: number[]) => ids.filter((id) => isUnread(kind, id)).length;
     const list: { key: TabKey; label: string; icon: typeof TicketIcon; count: number; unread: number }[] = [
-        { key: 'it', label: 'IT Tickets', icon: TicketIcon, count: props.myTicketsCount, unread: unreadIn('ticket', props.myTickets.map((t) => t.id)) },
+        {
+            key: 'it',
+            label: 'IT Tickets',
+            icon: TicketIcon,
+            count: props.myTicketsCount,
+            unread: unreadIn(
+                'ticket',
+                props.myTickets.map((t) => t.id),
+            ),
+        },
     ];
     if (canSeeHandwerk.value)
         list.push({
@@ -156,10 +157,22 @@ const tabs = computed(() => {
             label: 'Handwerk',
             icon: HardHat,
             count: props.myhandwerkTicketsCount,
-            unread: unreadIn('handwerk', props.myHandwerkTickets.map((t) => t.id)),
+            unread: unreadIn(
+                'handwerk',
+                props.myHandwerkTickets.map((t) => t.id),
+            ),
         });
     if (canSeeKorso.value)
-        list.push({ key: 'korso', label: 'Korso', icon: Users, count: korsoTickets.value.length, unread: unreadIn('korso', korsoTickets.value.map((t) => t.id)) });
+        list.push({
+            key: 'korso',
+            label: 'Korso',
+            icon: Users,
+            count: korsoTickets.value.length,
+            unread: unreadIn(
+                'korso',
+                korsoTickets.value.map((t) => t.id),
+            ),
+        });
 
     return list;
 });
@@ -355,12 +368,49 @@ const korsoFolderLinks = computed(() => [
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Status" sort-key="status" :active-key="ticketTable.sortKey" :direction="ticketTable.sortDir" @sort="ticketTable.toggleSort('status')" />
-                                <TableHeadCell :label="isSuperAdmin ? 'Erstellt von' : 'Zugewiesen an'" sort-key="assignee" :active-key="ticketTable.sortKey" :direction="ticketTable.sortDir" @sort="ticketTable.toggleSort('assignee')" />
-                                <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="ticketTable.sortKey" :direction="ticketTable.sortDir" @sort="ticketTable.toggleSort('problem_type')" />
-                                <TableHeadCell label="Das Gerät" sort-key="device" :active-key="ticketTable.sortKey" :direction="ticketTable.sortDir" @sort="ticketTable.toggleSort('device')" />
-                                <TableHeadCell label="Priorität" sort-key="priority" :active-key="ticketTable.sortKey" :direction="ticketTable.sortDir" @sort="ticketTable.toggleSort('priority')" />
-                                <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="ticketTable.sortKey" :direction="ticketTable.sortDir" align="right" @sort="ticketTable.toggleSort('created_at')" />
+                                <TableHeadCell
+                                    label="Status"
+                                    sort-key="status"
+                                    :active-key="ticketTable.sortKey"
+                                    :direction="ticketTable.sortDir"
+                                    @sort="ticketTable.toggleSort('status')"
+                                />
+                                <TableHeadCell
+                                    :label="isSuperAdmin ? 'Erstellt von' : 'Zugewiesen an'"
+                                    sort-key="assignee"
+                                    :active-key="ticketTable.sortKey"
+                                    :direction="ticketTable.sortDir"
+                                    @sort="ticketTable.toggleSort('assignee')"
+                                />
+                                <TableHeadCell
+                                    label="Anfrage"
+                                    sort-key="problem_type"
+                                    :active-key="ticketTable.sortKey"
+                                    :direction="ticketTable.sortDir"
+                                    @sort="ticketTable.toggleSort('problem_type')"
+                                />
+                                <TableHeadCell
+                                    label="Das Gerät"
+                                    sort-key="device"
+                                    :active-key="ticketTable.sortKey"
+                                    :direction="ticketTable.sortDir"
+                                    @sort="ticketTable.toggleSort('device')"
+                                />
+                                <TableHeadCell
+                                    label="Priorität"
+                                    sort-key="priority"
+                                    :active-key="ticketTable.sortKey"
+                                    :direction="ticketTable.sortDir"
+                                    @sort="ticketTable.toggleSort('priority')"
+                                />
+                                <TableHeadCell
+                                    label="Erstellt am"
+                                    sort-key="created_at"
+                                    :active-key="ticketTable.sortKey"
+                                    :direction="ticketTable.sortDir"
+                                    align="right"
+                                    @sort="ticketTable.toggleSort('created_at')"
+                                />
                                 <TableHeadCell label="" />
                             </tr>
                         </thead>
@@ -377,7 +427,10 @@ const korsoFolderLinks = computed(() => [
                                 <td class="p-3">
                                     <UnreadDot :show="isUnread('ticket', ticket.id)" />
                                     <Link :href="`/ticket/${ticket.id}`" class="text-primary font-semibold hover:underline">
-                                        {{ (isSuperAdmin ? ticket.subUser?.username : ticket.user?.username) ?? (isSuperAdmin ? 'Unbekannt' : 'nicht zugewiesen') }}
+                                        {{
+                                            (isSuperAdmin ? ticket.subUser?.username : ticket.user?.username) ??
+                                            (isSuperAdmin ? 'Unbekannt' : 'nicht zugewiesen')
+                                        }}
                                     </Link>
                                 </td>
                                 <td class="p-3">
@@ -385,10 +438,7 @@ const korsoFolderLinks = computed(() => [
                                 </td>
                                 <td class="p-3 font-semibold">{{ ticket.invitem?.gname ?? '—' }}</td>
                                 <td class="p-3">
-                                    <span
-                                        class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                        :class="ticketPriorityBadgeClass(ticket.priority_id)"
-                                    >
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="ticketPriorityBadgeClass(ticket.priority_id)">
                                         {{ ticketPriorityLabel(ticket.priority_id) }}
                                     </span>
                                 </td>
@@ -432,7 +482,7 @@ const korsoFolderLinks = computed(() => [
                     </h3>
                     <a
                         v-if="canDownloadHandwerkPdf"
-                        :href="`/handwerk/${currentUser?.ort}/open-tickets-pdf`"
+                        :href="`/handwerk/${encodeURIComponent(props.city || currentUser?.ort || '')}/open-tickets-pdf`"
                         class="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm"
                     >
                         <FileDown class="h-4 w-4" />
@@ -446,13 +496,56 @@ const korsoFolderLinks = computed(() => [
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" @sort="handwerkTable.toggleSort('problem_type')" />
-                                <TableHeadCell label="Ersteller" sort-key="submitter_name" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" @sort="handwerkTable.toggleSort('submitter_name')" />
-                                <TableHeadCell label="Standort" sort-key="submitter_standort" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" @sort="handwerkTable.toggleSort('submitter_standort')" />
-                                <TableHeadCell label="Adresse" sort-key="location.address" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" @sort="handwerkTable.toggleSort('location.address')" />
-                                <TableHeadCell label="Raum" sort-key="room" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" @sort="handwerkTable.toggleSort('room')" />
-                                <TableHeadCell label="Priorität" sort-key="priority" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" @sort="handwerkTable.toggleSort('priority')" />
-                                <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="handwerkTable.sortKey" :direction="handwerkTable.sortDir" align="right" @sort="handwerkTable.toggleSort('created_at')" />
+                                <TableHeadCell
+                                    label="Anfrage"
+                                    sort-key="problem_type"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    @sort="handwerkTable.toggleSort('problem_type')"
+                                />
+                                <TableHeadCell
+                                    label="Ersteller"
+                                    sort-key="submitter_name"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    @sort="handwerkTable.toggleSort('submitter_name')"
+                                />
+                                <TableHeadCell
+                                    label="Standort"
+                                    sort-key="submitter_standort"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    @sort="handwerkTable.toggleSort('submitter_standort')"
+                                />
+                                <TableHeadCell
+                                    label="Adresse"
+                                    sort-key="location.address"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    @sort="handwerkTable.toggleSort('location.address')"
+                                />
+                                <TableHeadCell
+                                    label="Raum"
+                                    sort-key="room"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    @sort="handwerkTable.toggleSort('room')"
+                                />
+                                <TableHeadCell
+                                    label="Priorität"
+                                    sort-key="priority"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    @sort="handwerkTable.toggleSort('priority')"
+                                />
+                                <TableHeadCell
+                                    label="Erstellt am"
+                                    sort-key="created_at"
+                                    :active-key="handwerkTable.sortKey"
+                                    :direction="handwerkTable.sortDir"
+                                    align="right"
+                                    @sort="handwerkTable.toggleSort('created_at')"
+                                />
                             </tr>
                         </thead>
                         <tbody class="divide-y">
@@ -468,10 +561,7 @@ const korsoFolderLinks = computed(() => [
                                 <td class="p-3">{{ ticket.location?.address }}</td>
                                 <td class="p-3">{{ ticket.room?.rname }} {{ ticket.room?.altrname }}</td>
                                 <td class="p-3">
-                                    <span
-                                        class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                        :class="ticketPriorityBadgeClass(ticket.priority)"
-                                    >
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="ticketPriorityBadgeClass(ticket.priority)">
                                         {{ ticketPriorityLabel(ticket.priority) }}
                                     </span>
                                 </td>
@@ -514,12 +604,49 @@ const korsoFolderLinks = computed(() => [
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Ersteller" sort-key="submitter_name" :active-key="korsoTable.sortKey" :direction="korsoTable.sortDir" @sort="korsoTable.toggleSort('submitter_name')" />
-                                <TableHeadCell label="Status" sort-key="status" :active-key="korsoTable.sortKey" :direction="korsoTable.sortDir" @sort="korsoTable.toggleSort('status')" />
-                                <TableHeadCell label="Zugewiesen an" sort-key="assignedUser" :active-key="korsoTable.sortKey" :direction="korsoTable.sortDir" @sort="korsoTable.toggleSort('assignedUser')" />
-                                <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="korsoTable.sortKey" :direction="korsoTable.sortDir" @sort="korsoTable.toggleSort('problem_type')" />
-                                <TableHeadCell label="Priorität" sort-key="priority" :active-key="korsoTable.sortKey" :direction="korsoTable.sortDir" @sort="korsoTable.toggleSort('priority')" />
-                                <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="korsoTable.sortKey" :direction="korsoTable.sortDir" align="right" @sort="korsoTable.toggleSort('created_at')" />
+                                <TableHeadCell
+                                    label="Ersteller"
+                                    sort-key="submitter_name"
+                                    :active-key="korsoTable.sortKey"
+                                    :direction="korsoTable.sortDir"
+                                    @sort="korsoTable.toggleSort('submitter_name')"
+                                />
+                                <TableHeadCell
+                                    label="Status"
+                                    sort-key="status"
+                                    :active-key="korsoTable.sortKey"
+                                    :direction="korsoTable.sortDir"
+                                    @sort="korsoTable.toggleSort('status')"
+                                />
+                                <TableHeadCell
+                                    label="Zugewiesen an"
+                                    sort-key="assignedUser"
+                                    :active-key="korsoTable.sortKey"
+                                    :direction="korsoTable.sortDir"
+                                    @sort="korsoTable.toggleSort('assignedUser')"
+                                />
+                                <TableHeadCell
+                                    label="Anfrage"
+                                    sort-key="problem_type"
+                                    :active-key="korsoTable.sortKey"
+                                    :direction="korsoTable.sortDir"
+                                    @sort="korsoTable.toggleSort('problem_type')"
+                                />
+                                <TableHeadCell
+                                    label="Priorität"
+                                    sort-key="priority"
+                                    :active-key="korsoTable.sortKey"
+                                    :direction="korsoTable.sortDir"
+                                    @sort="korsoTable.toggleSort('priority')"
+                                />
+                                <TableHeadCell
+                                    label="Erstellt am"
+                                    sort-key="created_at"
+                                    :active-key="korsoTable.sortKey"
+                                    :direction="korsoTable.sortDir"
+                                    align="right"
+                                    @sort="korsoTable.toggleSort('created_at')"
+                                />
                                 <TableHeadCell label="" />
                             </tr>
                         </thead>

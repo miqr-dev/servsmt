@@ -847,6 +847,11 @@ class TicketController extends Controller
     // (view_cities, App\Support\HandwerkResponsibility). Was a hardcoded
     // array for users 1, 63 and 327. Same shape for the page: [userId => cities].
     $viewCities = \App\Support\HandwerkResponsibility::viewCities($user);
+    // handwerk role: own city first, then the extra ones
+    if ($viewCities && $user->hasAssignedRole('handwerk') && $user->ort) {
+      $viewCities = collect([$user->ort, ...$viewCities])
+        ->unique(fn ($c) => \App\Support\HandwerkCityAccess::slug($c))->values()->all();
+    }
     $userCities = $viewCities ? [$user->id => $viewCities] : [];
 
     $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user'])->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();

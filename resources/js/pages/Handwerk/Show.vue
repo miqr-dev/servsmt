@@ -56,6 +56,8 @@ type Admin = { id: number; username: string };
 const props = defineProps<{
     handwerk: HandwerkDetail;
     admins: Admin[];
+    /** Server rule (HandwerkController::canComplete): incl. "Sieht Standorte". */
+    canComplete?: boolean;
 }>();
 
 defineOptions({
@@ -84,7 +86,9 @@ const isOwnCityWorker = computed(
         !!page.props.auth.user?.ort &&
         citySlug(page.props.auth.user?.ort as string) === citySlug(props.handwerk.submitter_standort),
 );
-const canComplete = computed(() => isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat') || isOwnCityWorker.value);
+const canComplete = computed(
+    () => props.canComplete ?? (isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat') || isOwnCityWorker.value),
+);
 
 const query = new URLSearchParams(window.location.search);
 const fromCity = query.get('from_city');
