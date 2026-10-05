@@ -27,6 +27,12 @@ class TicketAccess
             return;
         }
 
+        // Handwerk-Zuständigkeiten: users who see a city's Handwerk tickets in
+        // Meine Tickets may open them (App\Support\HandwerkResponsibility).
+        if ($ticket instanceof \App\Handwerk && HandwerkResponsibility::canView($user, $ticket->submitter_standort)) {
+            return;
+        }
+
         if (! empty($ticket->sek_group_id) && method_exists($ticket, 'sekGroup')) {
             $group = $ticket->sekGroup;
             if ($group && $group->users()->where('users.id', $user->id)->exists()) {

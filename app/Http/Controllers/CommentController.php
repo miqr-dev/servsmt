@@ -101,9 +101,8 @@ class CommentController extends Controller
       if ($comment->commenter_id == $model->submitter) {
         // Submitter commented
         if (! $model->assignedTo) {
-          // No one assigned → send to fallback user 327
-          $user327 = User::find(327);
-          Notify::send($user327, new CommentNotification($notifications));
+          // No one assigned → Handwerk_verwaltung (was user 327)
+          Notify::send(\App\Support\HandwerkResponsibility::verwaltungUsers($comment->commenter_id), new CommentNotification($notifications));
         } else {
           // Assigned → send only to assigned
           $assigned = User::find($model->assignedTo);

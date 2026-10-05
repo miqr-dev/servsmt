@@ -22,6 +22,7 @@ use Inertia\Inertia;
 use App\Support\Notify;
 use App\Support\TicketAccess;
 use App\Support\HandwerkCityAccess;
+use App\Support\HandwerkResponsibility;
 use App\Support\NotificationLookup;
 
 class HandwerkController extends Controller
@@ -378,9 +379,8 @@ class HandwerkController extends Controller
     ];
 
 
-    // $furr = User::find(1);
-    $furr = User::find(327);
-    Notify::send($furr, new HandwerkNotification($notifications));
+    // Handwerk_verwaltung (Rollen & Berechtigungen > Handwerk), was user 327.
+    Notify::send(HandwerkResponsibility::verwaltungUsers(auth()->id()), new HandwerkNotification($notifications));
 
     $sucMsg = array(
       'message' => 'Ticket erfolgreich hinzugefügt',
@@ -463,8 +463,15 @@ class HandwerkController extends Controller
   public function show($id)
   {
     $user = Auth()->user();
-    $admins = User::role('handwerk_admin')->get();
     $handwerk = Handwerk::with('room.location.place')->with('subUser')->with('assignedUser:id,username,vorname,name')->with('comments')->withTrashed()->findorFail($id);
+    // "Zuweisen": handwerk_admin + users assignable for this ticket's city
+    // (Rollen & Berechtigungen > Handwerk; was a fixed Leipzig option for 14441)
+    // + the current assignee, so the select always shows them.
+    $admins = User::role('handwerk_admin')->get()
+      ->merge(HandwerkResponsibility::assigneesFor($handwerk->submitter_standort))
+      ->when($handwerk->assignedUser, fn ($c) => $c->push($handwerk->assignedUser))
+      ->unique('id')->sortBy('username', SORT_NATURAL | SORT_FLAG_CASE)->values()
+      ->map(fn ($u) => ['id' => $u->id, 'username' => $u->username, 'vorname' => $u->vorname, 'name' => $u->name]);
     // Handwerk staff (+ Sekretariat, who see the submitter panel) or the submitter.
     TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
     // Opening the ticket = seen (all unread notifications about this Handwerk ticket).
@@ -519,7 +526,8 @@ class HandwerkController extends Controller
         'problem_type' => $handwerk->problem_type,
     ];
 
-    if ($assignedTo && ($assignedTo->id == 1473 || $assignedTo->id == 14441 || $assignedTo->id == 1 || $assignedTo->id == 23192)) {
+    // "PDF per Mail" (Rollen & Berechtigungen > Handwerk), was users 1, 1473, 14441, 23192.
+    if ($assignedTo && HandwerkResponsibility::pdfByMail($assignedTo)) {
         // Generate PDF
         $pdf = PDF::loadView('handwerk.ticket_details', compact('handwerk'));
         $pdfPath = storage_path('app/public/ticket_' . $handwerk->id . '.pdf');
@@ -609,6 +617,7 @@ class HandwerkController extends Controller
     ];
     $submitter = $handwerk->subUser;
     Notify::send($submitter, new HandwerkNotification($notifications));
+    $this->notifyVerwaltungIfDoneByOthers($notifications);
 
     $handwerk->delete();
     Comment::withTrashed()->where('commentable_type', Handwerk::class)->where('commentable_id', $id)->restore();
@@ -625,12 +634,23 @@ class HandwerkController extends Controller
     return redirect()->route('ticket.usertickets', ['tab' => 'handwerk']);
   }
 
+  /**
+   * Erledigt by someone outside the Handwerk team (e.g. Sekretariat) ->
+   * tell Handwerk_verwaltung (was user 327).
+   */
+  private function notifyVerwaltungIfDoneByOthers(array $notifications): void
+  {
+    $user = auth()->user();
+    if ($user->hasAnyRole(['handwerk', 'handwerk_admin', HandwerkResponsibility::VERWALTUNG_ROLE])) {
+      return;
+    }
+    Notify::send(HandwerkResponsibility::verwaltungUsers($user), new HandwerkNotification($notifications));
+  }
+
   public function restore($id)
   {
-    // Notify user 327 (hardcoded, to be replaced later). Was
-    // User::find(327)->first(), which returned the first user in the table
-    // and crashed when 327 didn't exist. Notify::send skips null/removed users.
-    $admin = User::find(327);
+    // Handwerk_verwaltung (Rollen & Berechtigungen > Handwerk), was user 327.
+    $admin = HandwerkResponsibility::verwaltungUsers(auth()->id());
 
     $handwerk = Handwerk::withTrashed()->findOrFail($id);
     TicketAccess::authorize($handwerk, TicketAccess::HANDWERK_STAFF);
@@ -672,6 +692,7 @@ class HandwerkController extends Controller
 
         $submitter = $handwerk->subUser;
         Notify::send($submitter, new HandwerkNotification($notifications));
+        $this->notifyVerwaltungIfDoneByOthers($notifications);
 
         // Delete the handwerk and restore related comments
         $handwerk->delete();

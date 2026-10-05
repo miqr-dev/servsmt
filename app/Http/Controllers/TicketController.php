@@ -843,12 +843,11 @@ class TicketController extends Controller
       $query->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
     })->count();
 
-    // Define which users have access to which cities
-    $userCities = [
-      1 => ['erfurt', 'dresden', 'berlin', 'leipzig', 'chemntiz', 'döbeln'],    //Ara
-      63 => ['dresden', 'berlin', 'leipzig', 'chemntiz', 'döbeln'],             //Lehnert
-      327 => ['dresden', 'berlin', 'leipzig', 'chemntiz', 'döbeln', 'erfurt', 'suhl'], //Fuierer
-    ];
+    // Which Handwerk cities the user sees: Rollen & Berechtigungen > Handwerk
+    // (view_cities, App\Support\HandwerkResponsibility). Was a hardcoded
+    // array for users 1, 63 and 327. Same shape for the page: [userId => cities].
+    $viewCities = \App\Support\HandwerkResponsibility::viewCities($user);
+    $userCities = $viewCities ? [$user->id => $viewCities] : [];
 
     $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user'])->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();
 
@@ -862,7 +861,7 @@ class TicketController extends Controller
     // City-wide lists only for Handwerk staff and Sekretariat (2026-09-30).
     // Everyone else (Verwaltung) sees only their own Handwerk tickets.
     $cityHandwerkCounts = [];
-    $handwerkCityWide = $user->hasAnyRole(['Sekretariat', 'handwerk', 'handwerk_admin']);
+    $handwerkCityWide = $viewCities || $user->hasAnyRole(['Sekretariat', 'handwerk', 'handwerk_admin']);
 
     if (! $handwerkCityWide) {
       $userCities = [];

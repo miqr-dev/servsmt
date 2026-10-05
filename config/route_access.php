@@ -24,7 +24,7 @@
 | that in their controller instead, because a role alone can't express it.
 |
 | Controllers that already had their own checks keep them (roles/users/
-| permissions, settings index, contacts index, matrix, inventory index,
+| permissions, settings index, matrix, inventory index,
 | ticket picker, Teilnehmer Liste, Evaluationen, Printmarketing Verwaltung,
 | special tickets).
 */
@@ -177,7 +177,6 @@ return [
     'create_room' => $SUPER,
     'popup_update/1' => $SUPER,
     'newsbar_update/1' => $SUPER,
-    'contacts/*' => 'Super_Admin|admin',
     'address' => 'Super_Admin|admin',
     'rooms' => 'Super_Admin|admin',
     'searchbyname' => 'Super_Admin|admin',
@@ -190,6 +189,9 @@ return [
     'practice-companies*' => 'Terminal',
 
     // ─── HR ─────────────────────────────────────────────────────────────
+    'handwerk-zustaendigkeiten*' => $SUPER,        // Rollen & Berechtigungen > Handwerk (2026-10-02)
+    'korso-zustaendigkeiten*' => $SUPER,           // Rollen & Berechtigungen > Korso (2026-10-02)
+    'role-members/*' => $SUPER,                    // add/remove role members on those pages
     'licenses*' => 'Super_Admin',                 // Lizenzen: Super_Admin only (2026-09-29)
     'terminations*' => $HR,
     'terminations.delete/{id}' => $HR,

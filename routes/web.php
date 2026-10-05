@@ -157,6 +157,14 @@ Route::group(['middleware' => ['auth', 'role:Super_Admin']], function () {
   Route::resource('roles', 'RoleController');
   Route::resource('users', 'UserController'); //add to User Modal protected $guard_name = 'web';
   Route::resource('permissions', 'PermissionController');
+  // Rollen & Berechtigungen > Handwerk (App\Support\HandwerkResponsibility, 2026-10-02)
+  Route::get('handwerk-zustaendigkeiten', 'HandwerkResponsibilityController@index')->name('handwerk.responsibilities');
+  Route::put('handwerk-zustaendigkeiten/{user}', 'HandwerkResponsibilityController@update')->name('handwerk.responsibilities.update');
+  Route::delete('handwerk-zustaendigkeiten/{user}', 'HandwerkResponsibilityController@destroy')->name('handwerk.responsibilities.destroy');
+  // Rollen & Berechtigungen > Korso + add/remove members of RoleMembers::MANAGED roles
+  Route::get('korso-zustaendigkeiten', 'KorsoResponsibilityController@index')->name('korso.responsibilities');
+  Route::post('role-members/{role}', 'RoleMemberController@store')->name('role-members.store');
+  Route::delete('role-members/{role}/{user}', 'RoleMemberController@destroy')->name('role-members.destroy');
 });
 
 
@@ -301,14 +309,8 @@ Route::get('/profile', 'UserController@profile')->name('profile');
 //******************************************  Matrix  ******************************************************/
 Route::get('/matrix/berlin', 'Matrix\BerlinController@index')->name('matrix.berlin');
 
-//******************************************  Contact  ******************************************************/
-Route::get('/contacts', 'ContactController@index')->name('contact.index');
-Route::post('/contacts/location', 'ContactController@contacts_phones_in_location')->name('contacts_phones_in_location');
-Route::post('/contacts/room', 'ContactController@contacts_phones_in_room')->name('contacts_phones_in_room');
-Route::post('/address', 'ContactController@dynamicAddresses')->name('address'); //generate address list from Cities list
-Route::post('/rooms', 'ContactController@dynamicrooms')->name('rooms'); // generate rooms list from addresses list
-Route::post('/searchbyname', 'ContactController@searchByName')->name('searchByName'); //search contact by name
-Route::post('/searchbyusername', 'ContactController@searchByUsername')->name('searchByUsername'); //search contact by username
+// MIQR Mitarbeiter (/contacts, ContactController) removed 2026-10-05 -
+// replaced by the Mitarbeiter Info box on the Dashboard.
 
 
 //******************************************  Ticket  ******************************************************/

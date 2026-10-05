@@ -84,9 +84,7 @@ const isOwnCityWorker = computed(
         !!page.props.auth.user?.ort &&
         citySlug(page.props.auth.user?.ort as string) === citySlug(props.handwerk.submitter_standort),
 );
-const canComplete = computed(
-    () => isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat') || isOwnCityWorker.value,
-);
+const canComplete = computed(() => isSuperAdmin.value || isHandwerkAdmin.value || roles.value.includes('Sekretariat') || isOwnCityWorker.value);
 
 const query = new URLSearchParams(window.location.search);
 const fromCity = query.get('from_city');
@@ -103,9 +101,7 @@ function formatDate(value: string): string {
 // Shared with the "Mobiliar" creation forms - see resources/js/lib/handwerkItems.ts.
 
 const itemGroups = computed(() =>
-    (ITEM_GROUPS_BY_TYPE[props.handwerk.problem_type] ?? []).filter((group) =>
-        group.items.some((item) => isChecked(props.handwerk[item.key])),
-    ),
+    (ITEM_GROUPS_BY_TYPE[props.handwerk.problem_type] ?? []).filter((group) => group.items.some((item) => isChecked(props.handwerk[item.key]))),
 );
 const showSubject = computed(() => SUBJECT_TYPES.includes(props.handwerk.problem_type));
 
@@ -136,16 +132,16 @@ async function onAssignChange() {
 }
 
 function markDone() {
-    router.post(
-        `/handwerk.delete/${props.handwerk.id}`,
-        fromCity ? { from_city: fromCity } : fromDashboard ? { from_dashboard: 1 } : {},
-        { preserveScroll: true },
-    );
+    router.post(`/handwerk.delete/${props.handwerk.id}`, fromCity ? { from_city: fromCity } : fromDashboard ? { from_dashboard: 1 } : {}, {
+        preserveScroll: true,
+    });
 }
 
 function restore() {
     // keep from_city / from=dashboard so "Zurück" still leads back there
-    router.post(`/handwerk.restore/${props.handwerk.id}`, fromCity ? { from_city: fromCity } : fromDashboard ? { from: 'dashboard' } : {}, { preserveScroll: true });
+    router.post(`/handwerk.restore/${props.handwerk.id}`, fromCity ? { from_city: fromCity } : fromDashboard ? { from: 'dashboard' } : {}, {
+        preserveScroll: true,
+    });
 }
 </script>
 
@@ -204,11 +200,9 @@ function restore() {
                                 <option v-for="admin in admins" :key="admin.id" :value="admin.id">
                                     {{ admin.username }}
                                 </option>
-                                <!-- Matches the special-case option the old Blade template hardcoded
-                                     for Leipzig tickets (id 14441, "Steven Stefanowsky") -->
-                                <option v-if="handwerk.submitter_standort === 'Leipzig'" :value="14441">
-                                    Steven Stefanowsky
-                                </option>
+                                <!-- admins = handwerk_admin + users assignable for this city
+                                     (Rollen & Berechtigungen > Handwerk) - the fixed Leipzig
+                                     option for 14441 is now configured there -->
                             </select>
                         </div>
                     </template>
@@ -304,11 +298,7 @@ function restore() {
                     <div v-for="group in itemGroups" :key="group.title">
                         <h4 class="font-semibold" style="color: #004873">{{ group.title }}</h4>
                         <div class="mt-1 grid gap-x-4 gap-y-1 sm:grid-cols-3">
-                            <p
-                                v-for="item in group.items.filter((i) => isChecked(handwerk[i.key]))"
-                                :key="item.key"
-                                class="text-sm font-medium"
-                            >
+                            <p v-for="item in group.items.filter((i) => isChecked(handwerk[i.key]))" :key="item.key" class="text-sm font-medium">
                                 {{ item.label }} →
                                 <span style="color: #008e5e">{{ handwerk[`${item.key}_qty`] }}</span>
                             </p>
@@ -324,12 +314,7 @@ function restore() {
 
                 <div class="mt-6 border-t pt-4">
                     <h5 class="mb-2 text-sm font-semibold" style="color: #661421">Kommentare</h5>
-                    <CommentThread
-                        model-type="App\Handwerk"
-                        :model-id="handwerk.id"
-                        :comments="handwerk.comments"
-                        :is-done="!!handwerk.deleted_at"
-                    />
+                    <CommentThread model-type="App\Handwerk" :model-id="handwerk.id" :comments="handwerk.comments" :is-done="!!handwerk.deleted_at" />
                 </div>
             </div>
         </div>

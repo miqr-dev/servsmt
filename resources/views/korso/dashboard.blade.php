@@ -91,8 +91,8 @@
             <span class="badge badge-primary ml-2" id="allDone-count">{{ $allDoneCount }}</span>
           </a>
         </li>
-        <!-- Id 312 is Frau Dreyße -->
-        @if(auth()->user()->id === 1 ||auth()->user()->id === 312)
+        <!-- role Printmarketing (was users 1 + 312) -->
+        @if(auth()->user()->hasRole('Printmarketing'))
         <li class="nav-item">
           <a href="{{ route('printmarketing.management') }}" class="nav-link">
             <i class="fa-solid fa-paint-roller"></i> Printmarketing Verwaltung

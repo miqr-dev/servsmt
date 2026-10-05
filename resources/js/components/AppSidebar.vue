@@ -8,7 +8,6 @@ import {
     Building2,
     ClipboardCheck,
     ClipboardList,
-    Contact,
     FileText,
     FolderKanban,
     Forward,
@@ -53,7 +52,6 @@ const baseGeneralItems: NavItem[] = [
     { title: 'Dokumente', href: '/documents', icon: FileText, roles: ['Super_Admin'] },
     { title: 'Einstellungen', href: '/settings', icon: Settings, roles: ['Super_Admin'] },
     { title: 'Inventar', href: '/inventory', icon: Boxes, roles: ['Super_Admin', 'INV'] },
-    { title: 'MIQR Mitarbeiter', href: '/contacts', icon: Contact, roles: ['admin', 'Super_Admin'] },
 ];
 
 // Unread notifications (all systems): counter on "Dashboard", where the
@@ -147,6 +145,8 @@ const adminItems: NavItem[] = [
             { title: 'Rollen', href: '/roles' },
             { title: 'Berechtigungen', href: '/permissions' },
             { title: 'Benutzer', href: '/users' },
+            { title: 'Handwerk', href: '/handwerk-zustaendigkeiten' },
+            { title: 'Korso', href: '/korso-zustaendigkeiten' },
         ],
     },
     { title: 'Teilnehmer Liste', href: '/participants', icon: UsersRound, roles: ['Super_Admin', 'Teilnehmer_Info', 'Sekretariat'] },

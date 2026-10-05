@@ -901,17 +901,16 @@ class KorsoController extends Controller
 
     if ($restoredBy->id == $korso->submitter) {
       // Restored by the submitter:
-      // If an assigned user exists, notify that user; otherwise, fallback to user with ID 37.
+      // If an assigned user exists, notify that user; otherwise the role
+      // Korso_verwaltung (Rollen & Berechtigungen > Korso; was hardcoded user 39).
       if ($korso->assignedTo) {
         $assignedUser = $korso->assignedUser;
         if ($assignedUser) {
           \App\Support\Notify::one($assignedUser, new \App\Notifications\KorsoNotification($notificationData));
         }
       } else {
-        $fallbackUser = \App\User::find(39);
-        if ($fallbackUser) {
-          \App\Support\Notify::one($fallbackUser, new \App\Notifications\KorsoNotification($notificationData));
-        }
+        $korsoVerwaltung = User::role('Korso_verwaltung')->where('id', '!=', $restoredBy->id)->get();
+        \App\Support\Notify::send($korsoVerwaltung, new \App\Notifications\KorsoNotification($notificationData));
       }
     } else {
       // Restored by Korso_ma or the assigned user:
@@ -960,15 +959,13 @@ class KorsoController extends Controller
     return redirect()->route('user.management')->with('success', 'Rolle erfolgreich entfernt.');
   }
 
-  // The only two users allowed into Printmarketing Verwaltung (1 = admin,
-  // 312 = Frau Dreyße). The old app only hid the dashboard link for everyone
-  // else - the page, the PDF export and the "ordered" toggle themselves were
-  // reachable by any logged-in user who knew the URL. Now enforced here too.
-  const PRINTMARKETING_MANAGERS = [1, 312];
-
+  // Printmarketing Verwaltung: role "Printmarketing" (Rollen & Berechtigungen >
+  // Korso; was hardcoded users 1 + 312). Super_Admin passes too. The old app
+  // only hid the dashboard link - the page, the PDF export and the "ordered"
+  // toggle are enforced here.
   private function authorizePrintmarketingManagement()
   {
-    abort_unless(in_array((int) auth()->id(), self::PRINTMARKETING_MANAGERS, true), 403);
+    abort_unless(auth()->user()->hasRole('Printmarketing'), 403);
   }
 
   /**

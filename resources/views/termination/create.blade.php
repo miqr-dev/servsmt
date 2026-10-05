@@ -90,9 +90,6 @@
                         <a href="{{route ('profile')}}"
                           class="list-group-item list-group-item-action list-group-item-primary py-1"><i
                             class="far fa-user fa-lg"></i><strong> Eigenes Profil bearbeiten</strong></a>
-                        <a href="{{ url('/contacts') }}"
-                          class="list-group-item list-group-item-action list-group-item-primary py-1"><i
-                            class="far fa-address-book fa-lg"></i><strong> Adressbuch</strong></a>
                         <a href="{{ route('ticket.index') }}"
                           class="list-group-item list-group-item-action list-group-item-primary py-1"><i
                             class="fas fa-ticket-alt fa-lg"></i><strong> Ticket erstellen</strong>

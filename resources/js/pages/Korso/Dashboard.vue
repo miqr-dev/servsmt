@@ -123,9 +123,9 @@ const page = usePage<{ auth: Auth }>();
 const currentUser = computed(() => page.props.auth.user);
 const roles = computed(() => currentUser.value?.roles ?? []);
 const isKorsoAdmin = computed(() => roles.value.includes('Korso_Admin'));
-// The old page hardcoded these two ids ("Id 312 is Frau Dreyße") - carried
-// over as-is rather than guessing at a role that isn't actually checked.
-const canSeePrintmarketingManagement = computed(() => currentUser.value?.id === 1 || currentUser.value?.id === 312);
+// Role "Printmarketing" (Rollen & Berechtigungen > Korso; was users 1 + 312).
+// Super_Admin has every role name in auth.user.roles, so it sees it too.
+const canSeePrintmarketingManagement = computed(() => roles.value.includes('Printmarketing'));
 
 // Local, mutable copies of the sidebar counts and per-admin badge counts.
 // These come from props (computed server-side on the initial page load), but
@@ -213,8 +213,7 @@ function ticketHref(ticket: TicketRow): string {
 }
 
 function buildFetchParams(pageNum: number): Record<string, string | number> {
-    const params: Record<string, string | number> =
-        activeUserId.value !== null ? { user_id: activeUserId.value } : { filter: activeFilter.value };
+    const params: Record<string, string | number> = activeUserId.value !== null ? { user_id: activeUserId.value } : { filter: activeFilter.value };
 
     if (search.value.trim()) {
         params.search = search.value.trim();
@@ -516,11 +515,7 @@ function attachmentUrl(path: string): string {
                             :key="u.id"
                             type="button"
                             class="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs"
-                            :class="
-                                activeUserId === u.id
-                                    ? 'bg-primary text-primary-foreground border-primary'
-                                    : 'border-border hover:bg-accent'
-                            "
+                            :class="activeUserId === u.id ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'"
                             @click="selectAdminUser(u)"
                         >
                             {{ (u.vorname ?? '').charAt(0).toUpperCase() }}. {{ u.name }}
@@ -651,7 +646,12 @@ function attachmentUrl(path: string): string {
     </div>
 
     <!-- Ticket details sideslide -->
-    <Transition enter-active-class="transition-opacity duration-200" leave-active-class="transition-opacity duration-200" enter-from-class="opacity-0" leave-to-class="opacity-0">
+    <Transition
+        enter-active-class="transition-opacity duration-200"
+        leave-active-class="transition-opacity duration-200"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+    >
         <div v-if="detailOpen" class="fixed inset-0 z-50 flex justify-end">
             <div class="absolute inset-0 bg-black/30" @click="closeDetails"></div>
             <Transition
@@ -672,7 +672,11 @@ function attachmentUrl(path: string): string {
                         <div v-else-if="detailTicket" class="flex flex-col gap-2">
                             <p>
                                 <strong>Ersteller:</strong>
-                                {{ `${detailTicket.subUser?.vorname ?? ''} ${detailTicket.subUser?.name ?? ''}`.trim() || detailTicket.submitter_name?.trim() || 'Unbekannt' }}
+                                {{
+                                    `${detailTicket.subUser?.vorname ?? ''} ${detailTicket.subUser?.name ?? ''}`.trim() ||
+                                    detailTicket.submitter_name?.trim() ||
+                                    'Unbekannt'
+                                }}
                             </p>
                             <p><strong>Standort:</strong> {{ detailTicket.subUser?.ort || detailTicket.submitter_standort || '—' }}</p>
                             <p><strong>Position:</strong> {{ detailTicket.subUser?.position ?? '—' }}</p>
@@ -715,7 +719,9 @@ function attachmentUrl(path: string): string {
                                 <ul class="flex flex-col gap-1 pl-3">
                                     <li v-for="(kc, idx) in detailTicket.kcourses" :key="idx">
                                         <strong>{{ kc.payer?.name }}</strong> → {{ kc.name }}
-                                        <span class="bg-green-100 text-green-800 ml-1 rounded-full px-1.5 py-0.5 text-xs">{{ kc.pivot.quantity }}</span>
+                                        <span class="bg-green-100 text-green-800 ml-1 rounded-full px-1.5 py-0.5 text-xs">{{
+                                            kc.pivot.quantity
+                                        }}</span>
                                     </li>
                                 </ul>
                             </template>
@@ -739,12 +745,23 @@ function attachmentUrl(path: string): string {
                                 </ul>
                             </template>
 
-                            <template v-if="(detailTicket.korsoAttachments ?? []).some((a) => a.file_type?.includes('image') || a.file_type === 'application/pdf')">
+                            <template
+                                v-if="
+                                    (detailTicket.korsoAttachments ?? []).some(
+                                        (a) => a.file_type?.includes('image') || a.file_type === 'application/pdf',
+                                    )
+                                "
+                            >
                                 <hr />
                                 <h4 class="font-semibold" style="color: #65a30d">Anhänge</h4>
                                 <div class="flex flex-wrap gap-2">
                                     <template v-for="(att, idx) in detailTicket.korsoAttachments" :key="idx">
-                                        <a v-if="att.file_type?.includes('image')" :href="attachmentUrl(att.file_path)" target="_blank" rel="noopener">
+                                        <a
+                                            v-if="att.file_type?.includes('image')"
+                                            :href="attachmentUrl(att.file_path)"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
                                             <img :src="attachmentUrl(att.file_path)" class="h-20 w-20 rounded border object-cover" />
                                         </a>
                                         <a
