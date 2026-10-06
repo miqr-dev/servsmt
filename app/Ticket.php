@@ -120,4 +120,16 @@ class Ticket extends Model
   {
     return $this->hasMany(TicketSpecialComment::class)->latest('created_at');
   }
+
+  // AD room / computer (2026-10-05, step 2 - see App\Support\AdInventoryLinker).
+  // withTrashed: a room/computer removed from AD still shows on old tickets.
+  public function adRoom()
+  {
+    return $this->belongsTo(AdOu::class, 'ad_room_id')->withTrashed();
+  }
+
+  public function adComputer()
+  {
+    return $this->belongsTo(AdComputer::class, 'ad_computer_id')->withTrashed();
+  }
 }

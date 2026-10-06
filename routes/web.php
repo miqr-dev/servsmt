@@ -146,6 +146,15 @@ Route::get('/', 'DashboardController@index')->name('home'); // unified Dashboard
 Route::get('/notifications/summary', 'NotificationController@summary')->name('notifications.summary');
 Route::post('/notifications/read-all', 'NotificationController@readAll')->name('notifications.readAll'); // "Alle gelesen"
 Route::get('/notifications/{id}/open', 'NotificationController@open')->name('notifications.open');
+Route::get('/ad-inventory', 'AdInventoryController@index')->name('ad_inventory.index'); // AD Räume & Computer - IT admin (route_access)
+Route::post('/ad-inventory/import', 'AdInventoryController@import')->name('ad_inventory.import'); // "Jetzt aktualisieren"
+Route::get('/ad-inventory/zuordnung', 'AdInventoryController@links')->name('ad_inventory.links'); // old inventory <-> AD
+Route::put('/ad-inventory/zuordnung/room/{id}', 'AdInventoryController@linkRoom')->name('ad_inventory.link_room');
+Route::put('/ad-inventory/zuordnung/item/{id}', 'AdInventoryController@linkItem')->name('ad_inventory.link_item');
+// rooms that are not in AD (kitchen, WC, ...), kept in ad_ous with source 'app'
+Route::post('/ad-inventory/rooms', 'AdInventoryController@storeRoom')->name('ad_inventory.rooms.store');
+Route::put('/ad-inventory/rooms/{id}', 'AdInventoryController@updateRoom')->name('ad_inventory.rooms.update');
+Route::delete('/ad-inventory/rooms/{id}', 'AdInventoryController@destroyRoom')->name('ad_inventory.rooms.destroy');
 Route::get('/email-forwardings', 'DashboardController@emailForwardings')->name('email_forwardings.index'); // Super_Admin (route_access)
 Route::get('/dashboard/mitarbeiter-suche', 'DashboardController@employeeSearch')->name('dashboard.employeeSearch'); // Mitarbeiter Info box
 Route::redirect('/dashboard', '/')->name('dashboard'); // was LicenseController@index - everything is on the unified Dashboard now

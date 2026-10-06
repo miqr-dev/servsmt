@@ -95,6 +95,7 @@ return [
     'korso-dashboard' => $KORSO_STAFF,
     'dashboard/filter-tickets' => $KORSO_STAFF,
     'dashboard/mitarbeiter-suche' => $VERWALTUNG,
+    'ad-inventory*' => $IT_ADMIN,                 // AD Räume & Computer + "Jetzt aktualisieren" (2026-10-05)
     'email-forwardings' => 'Super_Admin',           // E-Mail-Weiterleitungen page (2026-10-02)   // Mitarbeiter Info (Dashboard)
     'korso/{id}/details' => $KORSO_STAFF,
     'korso/assign' => $KORSO_STAFF,

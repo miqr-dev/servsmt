@@ -16,6 +16,7 @@ import {
     LayoutDashboard,
     ListChecks,
     LayoutGrid,
+    Network,
     Settings,
     ShieldCheck,
     Ticket as TicketIcon,
@@ -154,6 +155,7 @@ const adminItems: NavItem[] = [
     { title: 'Kündigungen', href: '/terminations', icon: UserMinus, roles: ['Super_Admin', 'HR'] },
     { title: 'Lizenzen', href: '/licenses', icon: KeyRound, roles: ['Super_Admin'] },
     { title: 'E-Mail-Weiterleitungen', href: '/email-forwardings', icon: Forward, roles: ['Super_Admin'] },
+    { title: 'AD Räume & Computer', href: '/ad-inventory', icon: Network, roles: ['Super_Admin', 'admin'] },
 ];
 </script>
 

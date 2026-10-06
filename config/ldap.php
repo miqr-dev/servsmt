@@ -29,7 +29,7 @@ return [
     'connections' => [
 
         'default' => [
-            'hosts' => [env('LDAP_HOST', '127.0.0.1')],
+            'hosts' => [trim((string) env('LDAP_HOST', '127.0.0.1'))], // .env had a leading space
             'username' => env('LDAP_USERNAME', 'cn=user,dc=local,dc=com'),
             'password' => env('LDAP_PASSWORD', 'secret'),
             'port' => env('LDAP_PORT', 389),

@@ -32,6 +32,10 @@ class Kernel extends ConsoleKernel
 
       $schedule->command('reminders:show')->everySixHours();
 
+      // Rooms (AD OUs) + computers from AD -> ad_ous / ad_computers (read-only on AD).
+      // Hourly; also "Jetzt aktualisieren" on /ad-inventory.
+      $schedule->command('ad:import-inventory')->hourly()->withoutOverlapping();
+
       // Profile -> Active Directory write-back: retry failed ones (does
       // nothing while AD_WRITEBACK is off). Hourly, so a failed change
       // normally reaches AD before the next ldap:import reads AD back into

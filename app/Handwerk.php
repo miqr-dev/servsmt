@@ -50,4 +50,10 @@ class Handwerk extends Model
   {
     return $this->hasMany(HandwerkTodo::class, 'ticket_id');
   }
+
+  // AD room (2026-10-05, step 2). withTrashed: deleted rooms still show on old tickets.
+  public function adRoom()
+  {
+    return $this->belongsTo(AdOu::class, 'ad_room_id')->withTrashed();
+  }
 }
