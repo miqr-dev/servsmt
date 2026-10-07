@@ -8,9 +8,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\InvAbItemController;
 // use App\Http\Controllers\PracticeCompanyController;
-
-Auth::routes();
-
+// Auth::routes(); // Disabled - ServSMT uses IIS Windows Authentication
 Route::get('city/{city}/tickets/pdf', 'TicketController@generateCityTicketsPdf')->name('city.tickets.pdf');
 
 //! Special ticket view for Mr. Lorenz
