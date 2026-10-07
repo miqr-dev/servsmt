@@ -25,7 +25,7 @@
 |
 | Controllers that already had their own checks keep them (roles/users/
 | permissions, settings index, matrix, inventory index,
-| ticket picker, Teilnehmer Liste, Evaluationen, Printmarketing Verwaltung,
+| ticket picker, Teilnehmer Liste, Printmarketing Verwaltung,
 | special tickets).
 */
 
@@ -167,8 +167,6 @@ return [
     'send_unordered_computers' => $INV,
     'print_inventur' => $INV,
     'inventoryblade' => $INV,
-    'devices*' => $SUPER,
-    'device-statuses*' => $SUPER,
 
     // ─── Settings & admin tools (Super_Admin) ───────────────────────────
     'settings/firstpage/*' => $VERWALTUNG,          // own profile (Profil) - controller checks the id
@@ -182,11 +180,7 @@ return [
     'rooms' => 'Super_Admin|admin',
     'searchbyname' => 'Super_Admin|admin',
     'searchbyusername' => 'Super_Admin|admin',
-    'tasks' => $SUPER,
-    'projects*' => $SUPER,
     'reminders*' => $SUPER,
-    'umcategories*' => $SUPER,
-    'documents*' => $SUPER,
     'practice-companies*' => 'Terminal',
 
     // ─── HR ─────────────────────────────────────────────────────────────

@@ -40,20 +40,6 @@
             </p>
           </a>
         </li>
-        <li class="nav-item">
-          <a href="{{ route('umfrages.index') }}" class="nav-link">
-            <i class="fa-brands fa-wpforms nav-icon" style="color:#E5D0E3;"></i>
-            <p>Evaluationen</p>
-          </a>
-        </li>
-        @if(auth()->user()->hasRole('Super_Admin') || auth()->user()->id == 39)
-        <li class="nav-item">
-          <a href="{{ route('documents.index') }}" class="nav-link">
-            <i class="fa-solid fa-feather-pointed nav-icon" style="color:#ff9999;"></i>
-            <p>Dokumente</p>
-          </a>
-        </li>
-        @endif
         <li class="nav-item has-treeview">
           <a href="{{ url('/settings') }}" class="nav-link">
             <i class="nav-icon fas fa-cogs" style="color: #5bc0de"></i>
@@ -282,26 +268,6 @@
             <i class="nav-icon fas fa-earth-americas" style="color:#5aa9d1;"></i>
             <p>
               Standort Tickets
-            </p>
-          </a>
-        </li>
-        @endif
-        @if(auth()->user()->hasRole('Super_Admin'))
-        <li class="nav-item has-treeview">
-          <a href="{{route ('tasks.index')}}" class="nav-link">
-            <i class="nav-icon fas fa-desktop" style="color:#d97706;"></i>
-            <p>
-              Bedarf
-            </p>
-          </a>
-        </li>
-        @endif
-        @if(auth()->user()->hasRole('Super_Admin'))
-        <li class="nav-item has-treeview">
-          <a href="{{route ('projects.index')}}" class="nav-link">
-            <i class="nav-icon fas fa-project-diagram" style="color:#E0FF4F;"></i>
-            <p>
-              Project
             </p>
           </a>
         </li>

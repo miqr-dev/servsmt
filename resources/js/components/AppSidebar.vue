@@ -6,10 +6,6 @@ import {
     Boxes,
     Briefcase,
     Building2,
-    ClipboardCheck,
-    ClipboardList,
-    FileText,
-    FolderKanban,
     Forward,
     HardHat,
     KeyRound,
@@ -49,8 +45,6 @@ const baseGeneralItems: NavItem[] = [
     { title: 'Dashboard', href: '/', icon: LayoutGrid },
     // Roles below match what the server allows (2026-09-28): Verwaltung - the
     // default role of every employee - no longer sees these three.
-    { title: 'Evaluationen', href: '/umfrages', icon: ClipboardList, roles: ['Super_Admin'] },
-    { title: 'Dokumente', href: '/documents', icon: FileText, roles: ['Super_Admin'] },
     { title: 'Einstellungen', href: '/settings', icon: Settings, roles: ['Super_Admin'] },
     { title: 'Inventar', href: '/inventory', icon: Boxes, roles: ['Super_Admin', 'INV'] },
 ];
@@ -136,8 +130,6 @@ const practiceCompanyItems: NavItem[] = [
 ];
 
 const adminItems: NavItem[] = [
-    { title: 'Bedarf', href: '/tasks', icon: ClipboardCheck, roles: ['Super_Admin'] },
-    { title: 'Project', href: '/projects', icon: FolderKanban, roles: ['Super_Admin'] },
     {
         title: 'Rollen & Berechtigungen',
         icon: ShieldCheck,

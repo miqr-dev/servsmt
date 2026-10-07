@@ -445,18 +445,7 @@ Route::get('participants/export-rows', 'ParticipantTicketTableController@exportR
 Route::get('participants/export/{type}', 'ParticipantTicketTableController@export')->name('participants.export');
 Route::resource('participants', 'ParticipantTicketTableController');
 
-//****************************************  Tasks  *************************************************/
-Route::get('/tasks', 'TaskController@index')->name('tasks.index'); //!tasks
-
-//! Project
-Route::post('projects/{project}/detach-ticket/{ticket}', 'ProjectController@detachTicket')->name('projects.detach-ticket');
-Route::post('projects/{project}/store-devices', 'ProjectController@storeDevices')->name('projects.store-devices');
-Route::post('projects/{project}/attach-tickets', 'ProjectController@attachTickets')->name('projects.attach-tickets');
-Route::resource('projects', 'ProjectController');
-
-
-Route::get('projects/{project}/jobs/create', 'JobController@create')->name('job.create');
-Route::post('projects/{project}/jobs', 'JobController@store')->name('job.store');
+// Bedarf (/tasks) and Project (/projects incl. jobs and devices) removed 2026-10-06 - not needed anymore.
 
 
 
@@ -486,20 +475,9 @@ Route::resource('reminders', 'ReminderController');
 
 
 
-Route::resource('umfrages', 'UmfrageController');
-Route::get('/umfrages/getByPlace/{place}', 'UmfrageController@getByPlace');
-
-Route::post('/umcategories/store', 'UmcategoryController@store')->name('umcategories.store');
-Route::post('/umcategories/{umcategory}', 'UmcategoryController@edit')->name('umcategories.edit');
-Route::patch('/umcategories/{umcategory}', 'UmcategoryController@update')->name('umcategories.update');
-Route::delete('/umcategories/{umcategory}', 'UmcategoryController@destroy')->name('umcategories.destroy');
+// Evaluationen (umfrages / umcategories) removed 2026-10-06 - not needed anymore.
 
 
-//! devices
-Route::resource('devices', 'DeviceController');
-
-//! devie status
-Route::resource('device-statuses', 'DeviceStatusController');
 
 //! PracticeController
 use App\Http\Controllers\StandortbesuchController;
@@ -520,12 +498,7 @@ Route::resource('practice-companies', 'PracticeCompanyController');
 
 
 
-//! word documents
-// Document routes
-Route::get('/documents', 'DocumentController@index')->name('documents.index');
-Route::get('/documents/variables/{bundesland}', 'DocumentController@showVariables'); // New route
-Route::post('/documents/edit', 'DocumentController@edit');
-Route::post('/documents/update', 'DocumentController@update');
+// Dokumente (documents / document_variables) removed 2026-10-06 - not needed anymore.
 
 //! comments (first-party replacement for the abandoned laravelista/comments package)
 Route::model('comment', \App\Comment::class);
