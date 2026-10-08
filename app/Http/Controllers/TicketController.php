@@ -12,7 +12,6 @@ use App\Ticket;
 use App\InvRoom;
 use App\License;
 use App\Problem;
-use App\CityNote;
 use App\Employee;
 use App\Handwerk;
 use App\InvItems;
@@ -837,7 +836,6 @@ class TicketController extends Controller
       ->whereIn('submitter', $memberIds)
       ->orderBy('updated_at', 'DESC')
       ->get();
-    $korso_ma_users = User::role('Korso_ma')->get();
     $assignedCount = Korso::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     $myDoneCount = Korso::onlyTrashed()->where(function ($query) use ($user) {
       $query->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
@@ -1007,21 +1005,15 @@ class TicketController extends Controller
   public function opentickets()
   {
     $user = Auth()->user();
-    $admins = User::role('Super_Admin')->get();
+    $admins = User::role('Super_Admin')->get(['users.id', 'users.name', 'users.vorname', 'users.username']); // list only needs names
     // subUser was already eager-loaded here; invitem wasn't - under Blade
     // that just meant a lazy per-row query, but Inertia JSON-encodes this
     // collection as a prop, so a relation that isn't eager-loaded is simply
     // missing from the payload (Tickets/AdminList.vue reads
     // ticket.invitem.gname for the "Das Gerät" column).
-    $myTickets = Ticket::with(['subUser', 'invitem'])->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
-    $AllTicketsCount = Ticket::whereNull('on_location')->count();
-    $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
-    $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    $ticketCounts = [];
-    foreach ($admins as $admin) {
-      $ticketCounts[$admin->id] = Ticket::Where('assignedTo', $admin->id)->whereNull('on_location')->count();
-      $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    }
+    $myTickets = $this->adminListQuery()->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
+    ['AllTicketsCount' => $AllTicketsCount, 'UnassignedTicketsCount' => $UnassignedTicketsCount,
+      'myTicketsCount' => $myTicketsCount, 'ticketCounts' => $ticketCounts] = $this->adminListCounts($user, $admins);
 
     $activeForwardingCount = $this->getActiveForwardingCountForHeader();
     $dueForwardingCount = $this->getDueForwardingCountForHeader();
@@ -1048,16 +1040,12 @@ class TicketController extends Controller
   public function userTicketsAdmins($userId = null)
   {
     $user = Auth()->user();
-    $admins = User::role('Super_Admin')->get();
-    $AllTicketsCount = Ticket::whereNull('on_location')->count();
+    $admins = User::role('Super_Admin')->get(['users.id', 'users.name', 'users.vorname', 'users.username']); // list only needs names
     $userId = $userId ?? $user->id; // Use provided userId or authenticated user's ID
-    $myTickets = Ticket::with(['subUser', 'invitem'])->where('assignedTo', $userId)->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
-    $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
-    $ticketCounts = [];
-    foreach ($admins as $admin) {
-      $ticketCounts[$admin->id] = Ticket::Where('assignedTo', $admin->id)->whereNull('on_location')->count();
-      $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    }
+    // assignedTo is a VARCHAR column: compare as string so the index is used
+    $myTickets = $this->adminListQuery()->where('assignedTo', (string) $userId)->whereNull('on_location')->orderBy('created_at', 'DESC')->get();
+    ['AllTicketsCount' => $AllTicketsCount, 'UnassignedTicketsCount' => $UnassignedTicketsCount,
+      'myTicketsCount' => $myTicketsCount, 'ticketCounts' => $ticketCounts] = $this->adminListCounts($user, $admins);
     $cityTicketCounts = $this->getCityTicketCounts();
     $mode = 'admin';
     return Inertia::render('Tickets/AdminList', compact(
@@ -1078,18 +1066,12 @@ class TicketController extends Controller
   {
     $name = 'unassigned';
     $user = Auth()->user();
-    $admins = User::role('Super_Admin')->get();
+    $admins = User::role('Super_Admin')->get(['users.id', 'users.name', 'users.vorname', 'users.username']); // list only needs names
     // Eager-loaded for the same reason as opentickets() above - required by
     // the Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
-    $myTickets = Ticket::with(['subUser', 'invitem'])->whereNull('assignedTo')->whereNull('on_location')->orderBy('updated_at', 'DESC')->get();
-    $AllTicketsCount = Ticket::whereNull('on_location')->count();
-    $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
-    $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    $ticketCounts = [];
-    foreach ($admins as $admin) {
-      $ticketCounts[$admin->id] = Ticket::Where('assignedTo', $admin->id)->whereNull('on_location')->count();
-      $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
-    }
+    $myTickets = $this->adminListQuery()->whereNull('assignedTo')->whereNull('on_location')->orderBy('updated_at', 'DESC')->get();
+    ['AllTicketsCount' => $AllTicketsCount, 'UnassignedTicketsCount' => $UnassignedTicketsCount,
+      'myTicketsCount' => $myTicketsCount, 'ticketCounts' => $ticketCounts] = $this->adminListCounts($user, $admins);
     $activeForwardingCount = $this->getActiveForwardingCountForHeader();
     $dueForwardingCount = $this->getDueForwardingCountForHeader();
     $dueTerminationCount = $this->getDueTerminationCountForHeader();
@@ -1162,26 +1144,18 @@ class TicketController extends Controller
   public function cityTickets($cityName)
   {
     $user = Auth()->user();
-    $admins = User::role('Super_Admin')->get();
+    $admins = User::role('Super_Admin')->get(['users.id', 'users.name', 'users.vorname', 'users.username']); // list only needs names
 
     // Eager-loaded for the same reason as opentickets() above - required by
     // the Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
     // whereHas() alone only filters by the relation, it doesn't eager-load it.
-    $myTickets = Ticket::with(['subUser', 'invitem'])->whereHas('subUser', function ($query) use ($cityName) {
-      return $query->where('ort', '=', $cityName);
-    })->whereNotNull('on_location')->get();
+    // submitter IN (users of that city) instead of a correlated whereHas per row
+    $cityUserIds = User::withTrashed()->where('ort', $cityName)->pluck('id');
+    $myTickets = $this->adminListQuery()->whereIn('submitter', $cityUserIds)->whereNotNull('on_location')->get();
 
-    $AllTicketsCount = Ticket::whereNull('on_location')->count();
-    $UnassignedTicketsCount = Ticket::whereNull('assignedTo')->whereNull('on_location')->count();
-    $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
     $city = Place::with('notes')->where('pnname', $cityName)->first();
-
-
-    // Admin ticket counts
-    $ticketCounts = [];
-    foreach ($admins as $admin) {
-      $ticketCounts[$admin->id] = Ticket::Where('assignedTo', $admin->id)->whereNull('on_location')->count();
-    }
+    ['AllTicketsCount' => $AllTicketsCount, 'UnassignedTicketsCount' => $UnassignedTicketsCount,
+      'myTicketsCount' => $myTicketsCount, 'ticketCounts' => $ticketCounts] = $this->adminListCounts($user, $admins);
 
     // City ticket counts
     $cityTicketCounts = $this->getCityTicketCounts();
@@ -1203,14 +1177,55 @@ class TicketController extends Controller
 
   private function getCityTicketCounts()
   {
-    $cities = Place::whereNotIn('id', [1])->pluck('pnname');
+    // One grouped query instead of one whereHas() count per city (2026-10-07).
+    $byOrt = Ticket::query()
+      ->join('users', 'users.id', '=', 'tickets.submitter')
+      ->whereNotNull('tickets.on_location')
+      ->groupBy('users.ort')
+      ->selectRaw('users.ort as ort, count(*) as n')
+      ->pluck('n', 'ort');
+
     $counts = [];
-    foreach ($cities as $city) {
-      $counts[$city] = Ticket::whereHas('subUser', function ($query) use ($city) {
-        return $query->where('ort', '=', $city);
-      })->whereNotNull('on_location')->count();
+    foreach (Place::whereNotIn('id', [1])->pluck('pnname') as $city) {
+      $counts[$city] = (int) ($byOrt[$city] ?? 0);
     }
     return $counts;
+  }
+
+  /**
+   * Admin ticket lists (Tickets/AdminList.vue): only the columns and
+   * relation columns the table shows - the full ticket row has ~80 columns
+   * and the full user ~40, which made the page payload many MB (2026-10-07).
+   */
+  private function adminListQuery()
+  {
+    return Ticket::query()
+      ->select(['id', 'submitter', 'assignedTo', 'gname_id', 'ticket_status_id', 'priority_id', 'problem_type',
+        'tel_number', 'custom_tel_number', 'notizen', 'on_location', 'created_at', 'updated_at', 'deleted_at'])
+      ->with(['subUser:id,username,ort', 'invitem:id,gname']);
+  }
+
+  /**
+   * Header counts of the admin lists in 4 queries (was 2 queries per admin
+   * plus the "my tickets" count repeated inside that loop).
+   */
+  private function adminListCounts($user, $admins): array
+  {
+    $perAdmin = Ticket::whereNull('on_location')->whereNotNull('assignedTo')
+      ->groupBy('assignedTo')->selectRaw('assignedTo, count(*) as n')->pluck('n', 'assignedTo');
+    $ticketCounts = [];
+    foreach ($admins as $admin) {
+      $ticketCounts[$admin->id] = (int) ($perAdmin[(string) $admin->id] ?? 0);
+    }
+
+    return [
+      'AllTicketsCount' => Ticket::whereNull('on_location')->count(),
+      'UnassignedTicketsCount' => Ticket::whereNull('assignedTo')->whereNull('on_location')->count(),
+      'myTicketsCount' => Ticket::where(function ($q) use ($user) {
+        $q->where('submitter', $user->id)->orWhere('assignedTo', (string) $user->id);
+      })->count(),
+      'ticketCounts' => $ticketCounts,
+    ];
   }
 
   public function tickethistory(Request $request)
@@ -1218,7 +1233,7 @@ class TicketController extends Controller
 
     $name = 'ticket history';
     $user = Auth()->user();
-    $admins = User::role('Super_Admin')->get();
+    $admins = User::role('Super_Admin')->get(['users.id', 'users.name', 'users.vorname', 'users.username']); // list only needs names
 
     // Server-side paginated (2026-09-28). This used to be ->take(200)->get(),
     // a cap carried over unchanged from the old Blade page, so only the
@@ -1227,7 +1242,7 @@ class TicketController extends Controller
     // run here instead of in useDataTable - same approach as
     // KorsoController@filterTickets. Eager-loads kept for the
     // Tickets/AdminList.vue table (Erstellt von / Das Gerät columns).
-    $query = Ticket::with(['subUser', 'invitem'])->onlyTrashed();
+    $query = $this->adminListQuery()->onlyTrashed();
 
     $search = trim((string) $request->input('search', ''));
     if ($search !== '') {
@@ -1290,8 +1305,10 @@ class TicketController extends Controller
     ];
 
     $done = Ticket::onlyTrashed()->count();
-    $AllTicketsCount = Ticket::all()->count();
-    $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
+    $AllTicketsCount = Ticket::count(); // was Ticket::all()->count(): loaded every open ticket just to count
+    $myTicketsCount = Ticket::where(function ($q) use ($user) {
+      $q->where('submitter', $user->id)->orWhere('assignedTo', (string) $user->id);
+    })->count();
     $mode = 'history';
     return Inertia::render('Tickets/AdminList', compact('user', 'myTickets', 'done', 'admins', 'myTicketsCount', 'AllTicketsCount', 'mode', 'pagination', 'filters'));
   }
@@ -1443,29 +1460,6 @@ class TicketController extends Controller
     $employee_ISusername->employee_ISusername = $request->employee_ISusername;
     $employee_ISusername->save();
     return $employee_ISusername;
-  }
-  public function updateRemark(Request $request, $city)
-  {
-    $validCities = [
-      'berlin',
-      'berlin2',
-      'dresden',
-      'chemnitz',
-      'leipzig',
-      'suhl',
-      'döbeln',
-      'erfurt'
-    ];
-
-    if (!in_array($city, $validCities)) {
-      return response()->json(['error' => 'Invalid city'], 400);
-    }
-
-    $remark = CityNote::find(1);
-    $remark->{$city} = $request->input($city);
-    $remark->save();
-
-    return response()->json($remark);
   }
   public function on_location(Request $request)
   {

@@ -58,7 +58,6 @@ return [
     'ticket/{ticketId}/forwarding-removed' => $IT_ADMIN,
     'ticket/admin_notes' => $IT_ADMIN,
     'ticket/employee_*' => $IT_ADMIN,
-    'ticket/update-remark/{city}' => $IT_ADMIN,
     'ticket/on_location*' => $IT_ADMIN,
     'ticket/set-reminder' => $IT_ADMIN,
     'participant.username' => $IT_ADMIN,

@@ -31,11 +31,12 @@ class LocalDevAuthBypass
     public function handle($request, Closure $next)
     {
         if (config('app.local_dev_auth_bypass') === true && ! Auth::check()) {
+            // LOCAL_DEV_AUTH_USERNAME (e.g. a test account) > LOCAL_DEV_AUTH_USER_ID > first user
+            $username = config('app.local_dev_auth_username');
             $userId = config('app.local_dev_auth_user_id');
-
-            $user = $userId
-                ? User::find($userId)
-                : User::query()->orderBy('id')->first();
+            $user = $username
+                ? User::where('username', $username)->first()
+                : ($userId ? User::find($userId) : User::query()->orderBy('id')->first());
 
             if ($user) {
                 Auth::login($user);

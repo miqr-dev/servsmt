@@ -15,9 +15,15 @@ trackNavigation();
 createInertiaApp({
     // "(3) …" when there are unread notifications (see composables/useUnread.ts).
     title: (title) => withUnreadPrefix(title ? `${title} - ${appName}` : appName),
-    resolve: (name) => {
-        const pages = import.meta.glob<DefineComponent>('./pages/**/*.vue', { eager: true });
-        const page = pages[`./pages/${name}.vue`];
+    // Pages are loaded on demand (2026-10-07). Before, `eager: true` put all
+    // ~70 pages into the first download, so every full page load had to
+    // fetch and parse the whole app (and, with the Vite dev server, hundreds
+    // of separate modules). Now each page is its own chunk.
+    resolve: async (name) => {
+        const pages = import.meta.glob<DefineComponent>('./pages/**/*.vue');
+        const loader = pages[`./pages/${name}.vue`];
+        if (!loader) throw new Error(`Page not found: ${name}`);
+        const page = await loader();
 
         // Every page uses the sidebar shell unless it opts out with
         // `defineOptions({ layout: false })` (e.g. pages/Error.vue, which is

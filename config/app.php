@@ -41,6 +41,10 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    // Performance log (App\Http\Middleware\PerformanceLog), off by default.
+    'perf_log' => (bool) env('PERF_LOG', false),
+    'perf_log_slow_ms' => (int) env('PERF_LOG_SLOW_MS', 0),
+
     /*
     |--------------------------------------------------------------------------
     | Local Dev Auth Bypass (Herd / no-LDAP-reachable machines only)
@@ -62,6 +66,8 @@ return [
 
     'local_dev_auth_bypass' => env('LOCAL_DEV_AUTH_BYPASS', false),
     'local_dev_auth_user_id' => env('LOCAL_DEV_AUTH_USER_ID'),
+    // or by username (e.g. a test account) - takes precedence over the id
+    'local_dev_auth_username' => env('LOCAL_DEV_AUTH_USERNAME'),
 
     /*
     |--------------------------------------------------------------------------

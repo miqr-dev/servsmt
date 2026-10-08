@@ -30,6 +30,8 @@ class Kernel extends HttpKernel
      */
     protected $middlewareGroups = [
         'web' => [
+            // Performance measurement, off unless PERF_LOG=true (2026-10-07).
+            \App\Http\Middleware\PerformanceLog::class,
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
