@@ -264,16 +264,6 @@
         </li>
         @if(auth()->user()->hasRole('Super_Admin'))
         <li class="nav-item has-treeview">
-          <a href="{{route ('special-tickets.index')}}" class="nav-link">
-            <i class="nav-icon fas fa-earth-americas" style="color:#5aa9d1;"></i>
-            <p>
-              Standort Tickets
-            </p>
-          </a>
-        </li>
-        @endif
-        @if(auth()->user()->hasRole('Super_Admin'))
-        <li class="nav-item has-treeview">
           <a href="#" class="nav-link">
             <i class="nav-icon fas fa-user-shield" style="color:#f472b6;"></i>
             <p>

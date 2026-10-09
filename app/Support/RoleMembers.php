@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
  */
 class RoleMembers
 {
-    public const MANAGED = ['Handwerk_verwaltung', 'Korso_verwaltung', 'Korso_Admin', 'Printmarketing'];
+    public const MANAGED = ['Handwerk_verwaltung', 'Korso_verwaltung', 'Korso_Admin', 'Printmarketing', 'Onlinemarketing'];
 
     /** Users that really have the role (Super_Admin is not listed implicitly). */
     public static function of(string $role): Collection

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { BellRing, Printer, ShieldCheck } from '@lucide/vue';
+import { BellRing, Megaphone, Printer, ShieldCheck } from '@lucide/vue';
 import { h } from 'vue';
 import RoleMembersCard, { type MemberOption } from '@/components/RoleMembersCard.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -15,6 +15,7 @@ import type { BreadcrumbItem } from '@/types';
 defineProps<{
     korsoVerwaltung: MemberOption[];
     korsoAdmins: MemberOption[];
+    onlinemarketing: MemberOption[];
     printmarketing: MemberOption[];
     users: MemberOption[];
 }>();
@@ -48,6 +49,16 @@ defineOptions({
             :members="korsoVerwaltung"
             :users="users"
             empty-warning="Niemand hat diese Rolle - Wiederherstellungen ohne Zuweisung gehen an niemanden."
+        />
+
+        <RoleMembersCard
+            role="Onlinemarketing"
+            title="Onlinemarketing"
+            description="bekommt eine Benachrichtigung bei jedem neuen Korso-Ticket vom Typ Onlinemarketing. Nur Benachrichtigung, keine Rechte."
+            :icon="Megaphone"
+            :members="onlinemarketing"
+            :users="users"
+            empty-warning="Niemand hat diese Rolle - neue Onlinemarketing-Tickets gehen nur an die üblichen Korso-Empfänger."
         />
 
         <RoleMembersCard

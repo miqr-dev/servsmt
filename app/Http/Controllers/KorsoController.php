@@ -48,8 +48,9 @@ class KorsoController extends Controller
       ->orderBy('vorname', 'asc')
       ->get();
 
-    Korso::whereNotIn('assignedTo', $korso_ma_users->pluck('id'))
-      ->update(['assignedTo' => null]);
+    // (The UPDATE that un-assigned tickets of non-Korso_ma users ran here on
+    // every visit. Moved to App\Support\KorsoAssignments: on role removal +
+    // nightly, logged, Korso_Admin counts as allowed - 2026-10-08.)
 
     // Fetch unassigned tickets by default, sorted by priority
     $tickets = Korso::with(['subUser', 'assignedUser', 'ticket_status'])
@@ -205,12 +206,6 @@ class KorsoController extends Controller
   public function index()
   {
     return Inertia::render('Korso/Index');
-  }
-
-  public function checkIfUserIsException()
-  {
-    $exceptions = User::findMany([1, 4, 119, 63, 16]);
-    return $exceptions->contains(auth()->user());
   }
 
   public function printmarketing()
@@ -422,19 +417,19 @@ class KorsoController extends Controller
       foreach ($korsoUsers as $user)
         \App\Support\Notify::one($user, new \App\Notifications\KorsoNotification($notifications));
     }
-    // 🔔 Onlinemarketing-spezifische Benachrichtigung
+    // 🔔 Onlinemarketing tickets: everyone with the role "Onlinemarketing"
+    // (Rollen & Berechtigungen > Korso; was hardcoded user 163). Users already
+    // notified above (Korso_ma on priority 3) don't get it twice.
     if ($korso->problem_type === 'Onlinemarketing') {
-      $onlinemarketingUser = User::find(163);
-      if ($onlinemarketingUser) {
-        $notifications = [
-          'title' => 'Neues Korso Ticket',
-          'korso_id' => $korso->id,
-          'submitter' => $korso->submitter_name,
-          'problem_type' => $korso->problem_type,
-        ];
-
-        \App\Support\Notify::one($onlinemarketingUser, new \App\Notifications\KorsoNotification($notifications));
-      }
+      $alreadyNotified = $korso->priority == 3 ? User::role('Korso_ma')->pluck('users.id') : collect();
+      $onlinemarketingUsers = User::role('Onlinemarketing')->whereNotIn('users.id', $alreadyNotified)->get();
+      $notifications = [
+        'title' => 'Neues Korso Ticket',
+        'korso_id' => $korso->id,
+        'submitter' => $korso->submitter_name,
+        'problem_type' => $korso->problem_type,
+      ];
+      \App\Support\Notify::send($onlinemarketingUsers, new \App\Notifications\KorsoNotification($notifications));
     }
 
     return redirect()->route('ticket.usertickets', ['tab' => 'korso'])->with('success', 'Korso ticket created successfully!');
@@ -955,6 +950,8 @@ class KorsoController extends Controller
   {
     $user = User::findOrFail($request->user_id);
     $user->removeRole('Korso_ma');
+    // open Korso tickets of this user go back to "Nicht zugewiesen" (unless still Korso_Admin)
+    \App\Support\KorsoAssignments::release($user->id, 'Korso_ma entfernt (Rechtevergabe)');
 
     return redirect()->route('user.management')->with('success', 'Rolle erfolgreich entfernt.');
   }

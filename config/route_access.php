@@ -25,8 +25,7 @@
 |
 | Controllers that already had their own checks keep them (roles/users/
 | permissions, settings index, matrix, inventory index,
-| ticket picker, Teilnehmer Liste, Printmarketing Verwaltung,
-| special tickets).
+| ticket picker, Teilnehmer Liste, Printmarketing Verwaltung).
 */
 
 $IT_ADMIN = 'Super_Admin|admin';

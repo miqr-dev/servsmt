@@ -33,6 +33,9 @@ class RoleMemberController extends Controller
         $user = User::withTrashed()->findOrFail($userId);
         $user->removeRole($role);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        if (in_array($role, \App\Support\KorsoAssignments::ROLES, true)) {
+            \App\Support\KorsoAssignments::release($user->id, "{$role} entfernt (Rollen & Berechtigungen)");
+        }
 
         return back()->with('success', "Rolle {$role} von {$this->name($user)} entfernt.");
     }

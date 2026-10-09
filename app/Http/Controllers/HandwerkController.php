@@ -120,10 +120,14 @@ class HandwerkController extends Controller
     return response()->json($todo);
   }
 
+  /**
+   * "Standort ändern" in the Handwerk ticket forms (create a ticket for
+   * another city): handwerk_admin (+ Super_Admin, who has every role).
+   * Was hardcoded users 1, 4, 119, 63, 16 (2026-10-08).
+   */
   public function checkIfUserIsException()
   {
-    $exceptions = User::findMany([1, 4, 119, 63, 16]);
-    return $exceptions->contains(auth()->user());
+    return (bool) auth()->user()?->hasRole('handwerk_admin');
   }
 
 

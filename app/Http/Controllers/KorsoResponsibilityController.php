@@ -11,6 +11,7 @@ use Inertia\Inertia;
  * - Korso_verwaltung: notified when a submitter restores an unassigned Korso
  *   ticket (was user 39). Notification only, no rights.
  * - Korso_Admin: the Korso admin rights (members managed here too).
+ * - Onlinemarketing: notified about new Onlinemarketing tickets (was user 163).
  * - Printmarketing: may open Printmarketing Verwaltung (was users 1 + 312).
  */
 class KorsoResponsibilityController extends Controller
@@ -20,6 +21,7 @@ class KorsoResponsibilityController extends Controller
         return Inertia::render('Roles/KorsoResponsibilities', [
             'korsoVerwaltung' => RoleMembers::of('Korso_verwaltung'),
             'korsoAdmins' => RoleMembers::of('Korso_Admin'),
+            'onlinemarketing' => RoleMembers::of('Onlinemarketing'),
             'printmarketing' => RoleMembers::of('Printmarketing'),
             'users' => RoleMembers::allUsers(),
         ]);

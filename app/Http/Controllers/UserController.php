@@ -129,6 +129,9 @@ class UserController extends Controller
     $user->update($input);
     DB::table('model_has_roles')->where('model_id',$id)->delete();
     $user->assignRole($request->input('roles'));
+    app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+    // lost Korso_ma / Korso_Admin? -> release their open Korso tickets
+    \App\Support\KorsoAssignments::release((int) $user->id, 'Rollen geändert (Benutzer bearbeiten)');
 
     $sucMsg = array(
       'message' => 'Erfolgreich bearbeitet',
@@ -146,6 +149,7 @@ class UserController extends Controller
 
   {
   User::find($id)->delete();
+  \App\Support\KorsoAssignments::release((int) $id, 'Benutzer gelöscht');
 
   $sucMsg = array(
     'message' => 'Erfolgreich bearbeitet',

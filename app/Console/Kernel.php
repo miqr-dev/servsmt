@@ -32,6 +32,10 @@ class Kernel extends ConsoleKernel
 
       $schedule->command('reminders:show')->everySixHours();
 
+      // Korso tickets of users without Korso_ma / Korso_Admin (or deactivated
+      // by ldap:import) back to "Nicht zugewiesen" - logged (2026-10-08).
+      $schedule->command('korso:release-assignments')->dailyAt('02:30');
+
       // Rooms (AD OUs) + computers from AD -> ad_ous / ad_computers (read-only on AD).
       // Hourly; also "Jetzt aktualisieren" on /ad-inventory.
       $schedule->command('ad:import-inventory')->hourly()->withoutOverlapping();

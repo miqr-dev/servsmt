@@ -116,10 +116,6 @@ class Ticket extends Model
     return $this->belongsTo('App\User', 'forward_removed_by', 'id')->withTrashed();
   }
 
-  public function specialComments()
-  {
-    return $this->hasMany(TicketSpecialComment::class)->latest('created_at');
-  }
 
   // AD room / computer (2026-10-05, step 2 - see App\Support\AdInventoryLinker).
   // withTrashed: a room/computer removed from AD still shows on old tickets.
