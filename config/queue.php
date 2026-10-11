@@ -36,7 +36,10 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'table' => 'jobs',
+            // NOT "jobs": in this app "jobs" is an old project/task table
+            // (2022_02_04_111832_create_jobs_table), not a queue table.
+            // Queue table: queue_jobs (2026_10_12_100000_create_queue_jobs_table).
+            'table' => env('DB_QUEUE_TABLE', 'queue_jobs'),
             'queue' => 'default',
             'retry_after' => 90,
         ],

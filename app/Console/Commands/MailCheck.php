@@ -7,6 +7,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * E-mail status and switch-over helper (2026-10-12).
@@ -60,15 +61,25 @@ class MailCheck extends Command
 
         $this->line('');
         $this->info('Warteschlange');
-        $waiting = DB::table('jobs')->where('payload', 'like', self::MAIL_JOB);
-        $waitingCount = (clone $waiting)->count();
-        $oldest = (clone $waiting)->min('created_at');
-        $other = DB::table('jobs')->where('payload', 'not like', self::MAIL_JOB)->count();
-        $failed = DB::table('failed_jobs')->where('payload', 'like', self::MAIL_JOB)->count();
-        $this->line('  Wartende Mails    : '.$waitingCount
-            .($oldest ? ' (älteste von '.Carbon::createFromTimestamp((int) $oldest)->format('d.m.Y H:i').')' : ''));
+        // queue table from config/queue.php ("queue_jobs" - "jobs" is an old task table in this app)
+        $table = (string) config('queue.connections.database.table', 'queue_jobs');
+        $hasQueue = Schema::hasTable($table) && Schema::hasColumn($table, 'payload');
+        $waitingCount = 0;
+        if ($hasQueue) {
+            $waiting = DB::table($table)->where('payload', 'like', self::MAIL_JOB);
+            $waitingCount = (clone $waiting)->count();
+            $oldest = (clone $waiting)->min('created_at');
+            $other = DB::table($table)->where('payload', 'not like', self::MAIL_JOB)->count();
+            $this->line("  Wartende Mails    : {$waitingCount}"
+                .($oldest ? ' (älteste von '.Carbon::createFromTimestamp((int) $oldest)->format('d.m.Y H:i').')' : '')
+                ." - Tabelle {$table}");
+            $this->line('  Andere Jobs       : '.$other.' (z. B. AD-Rückschreiben, werden nicht angefasst)');
+        } else {
+            $this->line("  Tabelle {$table}   : fehlt - \"php artisan migrate\" ausführen, bevor QUEUE_CONNECTION=database gesetzt wird"
+                .($queue === 'sync' ? ' (mit sync wird sie nicht gebraucht)' : ''));
+        }
+        $failed = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->where('payload', 'like', self::MAIL_JOB)->count() : 0;
         $this->line('  Fehlgeschlagen    : '.$failed);
-        $this->line('  Andere Jobs       : '.$other.' (z. B. AD-Rückschreiben, werden nicht angefasst)');
 
         $beat = Cache::get('servsmt:scheduler-heartbeat');
         $this->line('  Scheduler         : '.($beat
@@ -97,7 +108,10 @@ class MailCheck extends Command
         if (! $this->confirm("{$waiting} wartende und {$failed} fehlgeschlagene Mails löschen? Sie werden dann nie verschickt.", true)) {
             return;
         }
-        $deleted = DB::table('jobs')->where('payload', 'like', self::MAIL_JOB)->delete();
+        $table = (string) config('queue.connections.database.table', 'queue_jobs');
+        $deleted = Schema::hasTable($table) && Schema::hasColumn($table, 'payload')
+            ? DB::table($table)->where('payload', 'like', self::MAIL_JOB)->delete()
+            : 0;
         $deletedFailed = DB::table('failed_jobs')->where('payload', 'like', self::MAIL_JOB)->delete();
         $this->info("Gelöscht: {$deleted} wartende, {$deletedFailed} fehlgeschlagene Mails.");
     }
