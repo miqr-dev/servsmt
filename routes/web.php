@@ -132,7 +132,7 @@ Route::get('/room/list/{city?}', 'HandwerkController@room_list')->name('room_lis
 
 // Route::patch('/handwerker/{city}/todos/{todo}/done', 'HandwerkTodoController@done')->name('handwerk.city.todos.done');
 
-Route::get('/handwerk/{id}', ['HandwerkController@show'])->name('handwerk_show');
+// (duplicate of the 'handwerk_show' route above - removed 2026-10-12, it made "php artisan optimize" / route:cache fail)
 // room list ajax request
 Route::get('/room/lists', 'HandwerkController@roomsList')->name('rooms.lists');
 
