@@ -49,6 +49,12 @@ class Kernel extends ConsoleKernel
       // servsmt (which would otherwise overwrite the profile edit).
       $schedule->command('ad:writeback --failed')->hourly()->withoutOverlapping();
 
+      // Heartbeat: shows in "php artisan servsmt:mail-check" whether the
+      // scheduler (Windows task "php artisan schedule:run", every minute) runs.
+      $schedule->call(fn () => \Illuminate\Support\Facades\Cache::put('servsmt:scheduler-heartbeat', now()->toIso8601String(), 86400))
+        ->everyMinute()
+        ->name('scheduler-heartbeat');
+
       // Mails go through the queue (App\Support\Notify, QUEUE_CONNECTION=database):
       // send what is waiting, every minute; stops as soon as the queue is
       // empty, failed mails are retried 3 times (then table failed_jobs).
