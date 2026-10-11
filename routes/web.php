@@ -8,20 +8,18 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\InvAbItemController;
 // use App\Http\Controllers\PracticeCompanyController;
-// Auth::routes(); // Disabled - ServSMT uses IIS Windows Authentication
+
+// Login form only on local development machines (APP_ENV=local). Production
+// signs users in through IIS Windows Authentication - no login routes there.
+// (2026-10-12: before, this line was switched by hand and routes/web.php was
+// excluded from git with "skip-worktree", so no route change reached the server.)
+if (app()->environment('local')) {
+    Auth::routes();
+}
+
 Route::get('city/{city}/tickets/pdf', 'TicketController@generateCityTicketsPdf')->name('city.tickets.pdf');
 
-//! Special ticket view for Mr. Lorenz
-Route::middleware('auth')->group(function () {
-    // create (works already)
-    Route::post('/ticket/{ticket}/special-comments', 'SpecialTicketController@storeSpecialComment')
-        ->name('tickets.specialComments.store');
-    // update/delete with unique param name {sc} and explicit suffixes
-    Route::post('/ticket/{ticket}/special-comments/{sc}/update', 'SpecialTicketController@updateSpecialComment')
-        ->name('tickets.specialComments.update');
-    Route::post('/ticket/{ticket}/special-comments/{sc}/delete', 'SpecialTicketController@destroySpecialComment')
-        ->name('tickets.specialComments.destroy');
-});
+// Standort Tickets / Sondertickets (/special-tickets + special comments) removed 2026-10-08.
 
 
 
@@ -36,7 +34,7 @@ Route::post('/korso/assign', 'KorsoController@assignUser')->name('korso.assign')
 Route::get('printmarketing', 'KorsoController@printmarketing')->name('printmarketing');
 Route::get('onlinemarketing', 'KorsoController@onlinemarketing')->name('onlinemarketing');
 Route::get('zertifizierung', 'KorsoController@zertifizierung')->name('zertifizierung');
-Route::post('form_store_korso', 'KorsoController@form_store_korso')->name('form_store_korso');
+Route::post('form_store_korso', 'KorsoController@form_store_korso')->name('form_store_korso')->middleware('single.submit:ticket.usertickets,korso');
 Route::get('/dashboard/filter-tickets', 'KorsoController@filterTickets')->name('dashboard.filterTickets');
 Route::post('/korso/{korso}/done', 'KorsoController@markAsDone')->name('korso.markDone');  //softDelete ticket
 Route::post('/korso/{korso}/restore', 'KorsoController@restore')->name('korso.restore');  //restore softDeleted ticket
@@ -98,7 +96,7 @@ Route::get('reparatur_mobiliar', 'HandwerkController@reparatur_mobiliar')->name(
 // modifikation
 Route::get('modifikation', 'HandwerkController@modifikation')->name('modifikation');
 
-Route::post('form_store_handwerk', 'HandwerkController@form_store_handwerk')->name('form_store_handwerk');
+Route::post('form_store_handwerk', 'HandwerkController@form_store_handwerk')->name('form_store_handwerk')->middleware('single.submit:ticket.usertickets,handwerk');
 
 Route::get('/my-handwerks-tickets', 'HandwerkController@myHandwerks')->name('my_handwerks');
 
@@ -153,6 +151,10 @@ Route::put('/ad-inventory/zuordnung/item/{id}', 'AdInventoryController@linkItem'
 Route::post('/ad-inventory/rooms', 'AdInventoryController@storeRoom')->name('ad_inventory.rooms.store');
 Route::put('/ad-inventory/rooms/{id}', 'AdInventoryController@updateRoom')->name('ad_inventory.rooms.update');
 Route::delete('/ad-inventory/rooms/{id}', 'AdInventoryController@destroyRoom')->name('ad_inventory.rooms.destroy');
+// AD pickers of the ticket forms (AD switch step 4) - every logged-in user
+Route::get('/ad-locations', 'AdLocationController@index')->name('ad_locations.index');
+Route::get('/ad-locations/items', 'AdLocationController@items')->name('ad_locations.items');
+Route::post('/ad-locations/devices', 'AdLocationController@storeDevice')->name('ad_locations.devices.store'); // "Gerät hinzufügen" in the forms
 Route::get('/email-forwardings', 'DashboardController@emailForwardings')->name('email_forwardings.index'); // Super_Admin (route_access)
 Route::get('/dashboard/mitarbeiter-suche', 'DashboardController@employeeSearch')->name('dashboard.employeeSearch'); // Mitarbeiter Info box
 Route::redirect('/dashboard', '/')->name('dashboard'); // was LicenseController@index - everything is on the unified Dashboard now
@@ -170,6 +172,7 @@ Route::group(['middleware' => ['auth', 'role:Super_Admin']], function () {
   Route::delete('handwerk-zustaendigkeiten/{user}', 'HandwerkResponsibilityController@destroy')->name('handwerk.responsibilities.destroy');
   // Rollen & Berechtigungen > Korso + add/remove members of RoleMembers::MANAGED roles
   Route::get('korso-zustaendigkeiten', 'KorsoResponsibilityController@index')->name('korso.responsibilities');
+  Route::get('rollen-uebersicht', 'RoleOverviewController@index')->name('roles.overview'); // Rollen & Berechtigungen > Übersicht (2026-10-11)
   Route::post('role-members/{role}', 'RoleMemberController@store')->name('role-members.store');
   Route::delete('role-members/{role}/{user}', 'RoleMemberController@destroy')->name('role-members.destroy');
 });
@@ -259,6 +262,23 @@ Route::get('/inventoryblade', 'InvAbItemController@inventoryblade')->name('inven
 //******************************************  Settings  ******************************************************/
 Route::get('/settings', 'SettingController@index')->name('setting_index');
 Route::get('/settings/legacy', 'SettingController@legacyIndex')->name('setting_index.legacy');
+// Einstellungen > Standorte & Adressen: app-only settings on the AD OUs (2026-10-09, Super_Admin)
+Route::get('/settings/ad-standorte', 'AdLocationSettingsController@index')->name('settings.ad_locations');
+// Einstellungen > Neuer Mitarbeiter: default Windows password of the mail (Super_Admin via 'settings/*', 2026-10-11)
+Route::get('/settings/neuer-mitarbeiter', 'NewEmployeeSettingsController@index')->name('settings.new_employee');
+Route::put('/settings/neuer-mitarbeiter', 'NewEmployeeSettingsController@update')->name('settings.new_employee.update');
+Route::put('/settings/ad-standorte/{id}/state', 'AdLocationSettingsController@updateState')->name('settings.ad_locations.state');
+Route::put('/settings/ad-standorte/{id}/hidden', 'AdLocationSettingsController@updateHidden')->name('settings.ad_locations.hidden');
+Route::post('/settings/ad-standorte/addresses', 'AdLocationSettingsController@storeAddress')->name('settings.ad_locations.addresses');
+Route::post('/settings/ad-standorte/rooms', 'AdLocationSettingsController@storeRoom')->name('settings.ad_locations.rooms');
+Route::post('/settings/ad-standorte/{id}/flure', 'AdLocationSettingsController@storeHallways')->name('settings.ad_locations.hallways');
+Route::post('/settings/ad-standorte/devices', 'AdLocationSettingsController@storeDevice')->name('settings.ad_locations.devices.store');
+Route::put('/settings/ad-standorte/devices/{id}/check', 'AdLocationSettingsController@checkDevice')->name('settings.ad_locations.devices.check');
+Route::delete('/settings/ad-standorte/devices/{id}', 'AdLocationSettingsController@destroyDevice')->name('settings.ad_locations.devices.destroy');
+Route::get('/settings/ad-standorte/alt-inventar', 'AdLocationSettingsController@adoptPreview')->name('settings.ad_locations.adopt_preview');
+Route::post('/settings/ad-standorte/alt-inventar', 'AdLocationSettingsController@adopt')->name('settings.ad_locations.adopt');
+Route::put('/settings/ad-standorte/app/{id}', 'AdLocationSettingsController@updateApp')->name('settings.ad_locations.app.update');
+Route::delete('/settings/ad-standorte/app/{id}', 'AdLocationSettingsController@destroyApp')->name('settings.ad_locations.app.destroy');
 /* Add City */
 Route::post('/create_city', 'PlaceController@addCity')->name('addCity');
 /* Add Location City list *AJAX* */
@@ -328,7 +348,7 @@ Route::get('/landingPage', 'TicketController@landingPage')->name('ticket.landing
 Route::post('/problem_type', 'TicketController@problem_type')->name('problem_type');
 Route::post('/dependant_forms', 'TicketController@dependant_forms')->name('forms');
 Route::post('/problem_type_machine', 'TicketController@problem_type_machine')->name('problem_type_machine');
-Route::post('/form_store', 'TicketController@store')->name('form_store');
+Route::post('/form_store', 'TicketController@store')->name('form_store')->middleware('single.submit:ticket.usertickets'); // double click = 1 ticket (2026-10-12)
 Route::get('/ticket/address', 'TicketController@address')->name('ticket.address');
 Route::get('/ticket/allRead', 'TicketController@allRead')->name('allRead');
 Route::get('/individual/{$id}', 'TicketController@individualtickets')->name('ticket.ownticket');
@@ -337,11 +357,8 @@ Route::get('/mammach', 'TicketController@mammach')->name('ticket.mammach');
 Route::get('/tickets/{userId?}', 'TicketController@userTicketsAdmins')->name('userTicketsAdmins');  //! test merge admins
 Route::get('/tickets/city/{cityName}', 'TicketController@cityTickets')->name('city.tickets');
 
-Route::get('/special-tickets', 'SpecialTicketController@index')->name('special-tickets.index');
 
-Route::patch('/notes/{note}', 'NoteController@update')->name('notes.update');
-Route::post('/notes', 'NoteController@store')->name('notes.store');
-Route::delete('/notes/{note}', 'NoteController@destroy')->name('notes.destroy');
+// city "Hinweise" (notes) removed 2026-10-09 - table `notes` is on the db-cleanup list
 
 
 
@@ -357,7 +374,6 @@ Route::get('/suhl', 'TicketController@suhl')->name('ticket.suhl');
 Route::get('/döbeln', 'TicketController@döbeln')->name('ticket.döbeln');
 
 
-Route::get('/getCityTicketsDetails/{cityName}','StandortbesuchController@getCityTicketDetail')->name('city.tickets.details');
 
 
 
@@ -449,8 +465,7 @@ Route::resource('participants', 'ParticipantTicketTableController');
 
 //******************************************  Termination  ******************************************************/
 Route::POST('terminations.delete/{id}', 'TerminationController@destroyed')->name('termination_delete');
-Route::POST('terminations/upload', 'TerminationController@storeUpload')->name('termination_upload');
-Route::GET('terminations/upload_terminations', 'TerminationController@createUpload')->name('terminationCreate_upload');
+// Kündigungen Excel upload (terminations/upload, terminations/upload_terminations) removed 2026-10-09
 Route::GET('terminations/history', 'TerminationController@history')->name('termination_history');
 Route::match(['get', 'post'], 'terminations/restore/{id}', 'TerminationController@restore')->name('termination.restore');
 Route::POST('terminations/{id}/remove', 'TerminationController@remove')->name('termination.remove'); // Entfernen (not needed anymore)
