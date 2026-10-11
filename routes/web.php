@@ -9,11 +9,13 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\InvAbItemController;
 // use App\Http\Controllers\PracticeCompanyController;
 
-// Login form only on local development machines (APP_ENV=local). Production
-// signs users in through IIS Windows Authentication - no login routes there.
+// Login routes only on a local development machine: LOCAL_DEV_AUTH_BYPASS=true
+// (see config/app.php) and laravel/ui installed (a dev package, not on the
+// server). Production signs users in through IIS Windows Authentication.
+// APP_ENV is not used - it is not reliable on the server (it said "local").
 // (2026-10-12: before, this line was switched by hand and routes/web.php was
 // excluded from git with "skip-worktree", so no route change reached the server.)
-if (app()->environment('local')) {
+if (config('app.local_dev_auth_bypass') === true && class_exists(\Laravel\Ui\UiServiceProvider::class)) {
     Auth::routes();
 }
 
