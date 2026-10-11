@@ -39,6 +39,18 @@ class EnforceRouteAccess
     /** First matching entry wins; null = not restricted here. */
     protected function requiredRoles(string $method, string $uri): ?string
     {
+        return self::rolesFor($method, $uri);
+    }
+
+    /**
+     * Same lookup, public for Rollen & Berechtigungen > Übersicht
+     * (App\Support\RoleOverview), so the overview always shows what this
+     * middleware really enforces. $uri = the route's URI as defined in
+     * routes/web.php ("ticket/assignTo", "korso/{id}/details").
+     */
+    public static function rolesFor(string $method, string $uri): ?string
+    {
+        $method = strtoupper($method);
         foreach (config('route_access', []) as $key => $roles) {
             $pattern = $key;
             if (preg_match('/^(GET|POST|PUT|PATCH|DELETE) (.+)$/', $key, $m)) {

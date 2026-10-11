@@ -49,7 +49,7 @@
 								<a href="{{ route('settings.usersList')}}" class="list-group-item list-group-item-action list-group-item-primary py-1"><i class="fas fa-users"></i> Benutzerverwaltung</a>
 								<a href="{{ url ('/roles')}}" class="list-group-item list-group-item-action list-group-item-primary py-1"><i class="fas fa-user-tag"></i> Rollen & Berechtigungen</a>
 								@endif
-								<a href="{{ route ('terminationCreate_upload')}}" class="list-group-item list-group-item-action list-group-item-primary py-1"><i class="fas fa-user-tag"></i> Mitarbeiteraustritt</a>
+								<a href="{{ route ('terminations.index')}}" class="list-group-item list-group-item-action list-group-item-primary py-1"><i class="fas fa-user-tag"></i> Mitarbeiteraustritt</a>
                 </a>
 							</div><!-- End Linst Group -->
 						</div><!-- End Card Text -->

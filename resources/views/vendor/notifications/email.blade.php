@@ -1,16 +1,17 @@
 @component('mail::message')
-{{-- Greeting --}}
+{{-- Greeting (2026-10-12: a normal line instead of a big heading) --}}
 @if (! empty($greeting))
-# {{ $greeting }}
+<p>{{ $greeting }}</p>
 @else
-@if ($level === 'error')
-# @lang('Whoops!')
-@else
-# @lang('Guten Tag !')
-@endif
+<p>Guten Tag,</p>
 @endif
 
-{{-- Intro Lines --}}
+{{--
+    Intro / outro lines are printed unescaped: they are our own HTML. Everything
+    users typed is escaped by the notifications (App\Support\MailText,
+    App\Support\TicketMail) and sent as one HTML block per line, so Markdown
+    does not touch it.
+--}}
 @foreach ($introLines as $line)
 {!! $line !!}
 
@@ -39,26 +40,13 @@
 
 @endforeach
 
-{{-- Salutation --}}
-@if (! empty($salutation))
-{{ $salutation }}
-@else
-@lang('Mit freundlichen Grüßen'),<br>
-<p>Ihre IT</p>
-<!-- {{ config('app.name') }} -->
-@endif
+{{-- Salutation: "Mit freundlichen Grüßen\nIhre IT" / "…\nIhr Korso-Team" (TicketMail::salutation) --}}
+<p>{!! nl2br(e(! empty($salutation) ? $salutation : "Mit freundlichen Grüßen\nIhre IT")) !!}</p>
 
 {{-- Subcopy --}}
 @isset($actionText)
 @slot('subcopy')
-@lang(
-    "Sollten Sie Probleme haben, auf die Schaltfläche \":actionText\" zu klicken, kopieren Sie die folgende URL und fügen Sie diese".
-    ' in Ihren Webbrowser ein:',
-    [
-        'actionText' => $actionText,
-    ]
-) <span class="break-all">[{{ $displayableActionUrl }}]({{ $actionUrl }})</span>
-
+Falls die Schaltfläche „{{ $actionText }}“ nicht funktioniert, kopieren Sie diese Adresse in Ihren Browser: <span class="break-all">[{{ $displayableActionUrl }}]({{ $actionUrl }})</span>
 @endslot
 @endisset
 @endcomponent

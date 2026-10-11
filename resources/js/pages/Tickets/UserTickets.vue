@@ -15,6 +15,7 @@ import UnreadDot from '@/components/UnreadDot.vue';
 import { useUnread } from '@/composables/useUnread';
 import type { Auth, BreadcrumbItem } from '@/types';
 import { ticketStatusMeta, ticketPriorityLabel, ticketPriorityBadgeClass, korsoStatusBadgeClass } from '@/lib/ticketStatus';
+import { handwerkAddress, handwerkRoom, type HandwerkAdRoom } from '@/lib/handwerkRoom';
 
 /**
  * Converted from resources/views/tickets/usertickets.blade.php
@@ -58,6 +59,11 @@ type TicketRow = {
     subUser: NamedUser;
     user: NamedUser;
     invitem: InvItem;
+    /** AD computer (AD switch step 3); shown instead of the old device when set */
+    adComputer?: { name: string } | null;
+    /** devices added in the form (2026-10-09) */
+    adPcDevice?: { name: string } | null;
+    adDevice?: { name: string } | null;
     [key: string]: unknown;
 };
 
@@ -74,6 +80,8 @@ type HandwerkRow = {
     notizen: string | null;
     location: HandwerkLocation;
     room: HandwerkRoom;
+    ad_room?: HandwerkAdRoom;
+    custom_room?: string | null;
 };
 
 type KorsoTicketStatus = { id: number; name: string } | null;
@@ -238,7 +246,7 @@ const TICKET_COLUMNS: DataTableColumn<TicketRow>[] = [
     { key: 'status', value: (t) => ticketStatusMeta(t.ticket_status_id).label },
     { key: 'assignee', value: (t) => (isSuperAdmin.value ? t.subUser?.username : t.user?.username) ?? 'Unbekannt' },
     { key: 'problem_type' },
-    { key: 'device', value: (t) => t.invitem?.gname ?? '—' },
+    { key: 'device', value: (t) => t.adComputer?.name ?? t.adPcDevice?.name ?? t.invitem?.gname ?? t.adDevice?.name ?? '—' },
     { key: 'priority', value: (t) => ticketPriorityLabel(t.priority_id) },
     { key: 'created_at', searchable: false },
     { key: 'actions', sortable: false, searchable: false },
@@ -266,8 +274,8 @@ const HANDWERK_COLUMNS: DataTableColumn<HandwerkRow>[] = [
     { key: 'problem_type' },
     { key: 'submitter_name' },
     { key: 'submitter_standort' },
-    { key: 'location.address' },
-    { key: 'room', value: (t) => `${t.room?.rname ?? ''} ${t.room?.altrname ?? ''}`.trim() },
+    { key: 'location.address', value: handwerkAddress },
+    { key: 'room', value: handwerkRoom },
     { key: 'priority', value: (t) => ticketPriorityLabel(t.priority) },
     { key: 'created_at', searchable: false },
 ];
@@ -436,7 +444,9 @@ const korsoFolderLinks = computed(() => [
                                 <td class="p-3">
                                     <Link :href="`/ticket/${ticket.id}`" class="hover:underline">{{ ticket.problem_type }}</Link>
                                 </td>
-                                <td class="p-3 font-semibold">{{ ticket.invitem?.gname ?? '—' }}</td>
+                                <td class="p-3 font-semibold">
+                                    {{ ticket.adComputer?.name ?? ticket.adPcDevice?.name ?? ticket.invitem?.gname ?? ticket.adDevice?.name ?? '—' }}
+                                </td>
                                 <td class="p-3">
                                     <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="ticketPriorityBadgeClass(ticket.priority_id)">
                                         {{ ticketPriorityLabel(ticket.priority_id) }}
@@ -558,8 +568,8 @@ const korsoFolderLinks = computed(() => [
                                 </td>
                                 <td class="p-3">{{ ticket.submitter_name }}</td>
                                 <td class="p-3">{{ ticket.submitter_standort }}</td>
-                                <td class="p-3">{{ ticket.location?.address }}</td>
-                                <td class="p-3">{{ ticket.room?.rname }} {{ ticket.room?.altrname }}</td>
+                                <td class="p-3">{{ handwerkAddress(ticket) }}</td>
+                                <td class="p-3">{{ handwerkRoom(ticket) }}</td>
                                 <td class="p-3">
                                     <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="ticketPriorityBadgeClass(ticket.priority)">
                                         {{ ticketPriorityLabel(ticket.priority) }}

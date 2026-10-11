@@ -80,7 +80,7 @@
                   <td>{{ @$myHandwerkTicket->deleted_at }}</td>
                   <td class="text-right"><span class="d-none">{{$myHandwerkTicket->created_at->format('Ymd')}}</span>
                     {{$myHandwerkTicket->created_at->diffForHumans()}}</td>
-                  <td>{!!$myHandwerkTicket->notizen!!}</td>
+                  <td>{!! \App\Support\SafeHtml::clean($myHandwerkTicket->notizen) !!}</td>
                 </tr>
                 @empty
                 <td class="text-center">

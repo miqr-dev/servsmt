@@ -85,7 +85,7 @@
     @if(!empty(trim(strip_tags($cleanNotes ?? ''))))
     <div class="section">
         <h2>Beschreibung</h2>
-        <p>{!! $cleanNotes !!}</p>
+        <p>{!! \App\Support\SafeHtml::clean($cleanNotes) !!}</p>
     </div>
     @endif
 
@@ -158,7 +158,7 @@
                         <!-- Using the "commenter" relationship (Laravelista Comments v3.6) -->
                         <strong>{{ $comment->commenter->name ?? 'Anonymous' }}</strong>:
                         <div class="comment-content">
-                            {!! html_entity_decode($comment->comment) !!}
+                            {!! \App\Support\SafeHtml::clean($comment->comment) !!}
                         </div>
                         <small>({{ $comment->created_at->format('d M Y H:i') }})</small>
                     </li>

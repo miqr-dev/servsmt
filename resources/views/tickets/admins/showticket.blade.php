@@ -177,7 +177,7 @@
                       <div class="col-md-12 invoice-col mt-2">
                         <strong style="color:#661421;">Beschreibung <i class="far fa-comment-dots fa-lg"></i></strong>
                         <div class="col-md-12 mt-2 wrapNext" id="wrapNext">
-                          {!!@$ticket->notizen!!}
+                          {!! \App\Support\SafeHtml::clean(@$ticket->notizen) !!}
                         </div>
                       </div>
                     </div>

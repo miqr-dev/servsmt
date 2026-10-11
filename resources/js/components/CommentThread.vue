@@ -82,7 +82,8 @@ const newCommentText = ref('');
 const submittingNew = ref(false);
 
 async function submitNewComment() {
-    if (!newCommentText.value.trim()) return;
+    // also while the first one is still being sent (double click / Enter twice)
+    if (!newCommentText.value.trim() || submittingNew.value) return;
 
     submittingNew.value = true;
     try {

@@ -7,10 +7,6 @@ use App\Termination;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
-use App\Imports\TerminationsImport;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\TerminationDeletedNotification;
 
@@ -37,11 +33,6 @@ class TerminationController extends Controller
     return redirect()->route('home');
   }
 
-  public function createUpload()
-  {
-    return view('termination.upload_termination');
-  }
-
   public function store(Request $request)
   {
     Termination::create($this->validated($request));
@@ -50,20 +41,8 @@ class TerminationController extends Controller
   }
 
 
-  public function storeUpload(Request $request)
-  {
-
-    $validator = Validator::make($request->all(), [
-      'file' => 'required|max:20000|mimes:xlsx,xls',
-    ]);
-    if ($validator->fails()) {
-      return back()
-        ->withErrors($validator);
-    }
-    DB::table('terminations')->truncate();
-    Excel::import(new TerminationsImport, $request->file('file'));
-    return redirect()->route('dashboard');
-  }
+  // createUpload() / storeUpload() (Kündigungen Excel upload, emptied the table
+  // before importing) removed 2026-10-09 - not needed anymore.
 
   public function show(Termination $termination)
   {

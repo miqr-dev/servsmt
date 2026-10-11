@@ -8,6 +8,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
 import CommentThread from '@/components/CommentThread.vue';
 import { htmlToText } from '@/lib/htmlToText';
+import { safeHtml } from '@/lib/safeHtml';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type { CommentItem } from '@/components/CommentThread.vue';
 
@@ -555,7 +556,7 @@ function commentTimeAgo(value: string): string {
                 <div v-if="hasCleanNotes" class="mt-4">
                     <h5 class="mb-1 text-sm font-semibold" style="color: #65a30d">Beschreibung</h5>
                     <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div class="text-sm whitespace-pre-wrap" v-html="cleanNotes"></div>
+                    <div class="text-sm whitespace-pre-wrap" v-html="safeHtml(cleanNotes)"></div>
                 </div>
 
                 <div v-if="korso.problem_in_city || korso.location?.place?.pnname" class="mt-4">

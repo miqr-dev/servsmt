@@ -99,25 +99,33 @@ class AdInventoryLinker
         if (! Schema::hasColumn('tickets', 'ad_room_id')) {
             return $done; // step 2 migration not run yet
         }
+        // Step 4: rows whose AD room / PC was picked in the form are never
+        // re-derived from the old ids (ad_picked = 1).
+        $tPicked = Schema::hasColumn('tickets', 'ad_picked');
+        $hPicked = Schema::hasColumn('handwerks', 'ad_picked');
 
         $done['tickets.ad_room_id'] = DB::table('tickets')
             ->join('inv_rooms', 'inv_rooms.id', '=', 'tickets.room_id')
             ->whereRaw('NOT (tickets.ad_room_id <=> inv_rooms.ad_ou_id)')
+            ->when($tPicked, fn ($q) => $q->where('tickets.ad_picked', false))
             ->update(['tickets.ad_room_id' => DB::raw('inv_rooms.ad_ou_id')]);
 
         $done['tickets.ad_computer_id'] = DB::table('tickets')
             ->join('inv_items', 'inv_items.id', '=', 'tickets.gname_id')
             ->whereRaw('NOT (tickets.ad_computer_id <=> inv_items.ad_computer_id)')
+            ->when($tPicked, fn ($q) => $q->where('tickets.ad_picked', false))
             ->update(['tickets.ad_computer_id' => DB::raw('inv_items.ad_computer_id')]);
 
         $done['ticket_pcs.ad_computer_id'] = DB::table('ticket_pcs')
             ->join('inv_items', 'inv_items.id', '=', 'ticket_pcs.inv_item_id')
             ->whereRaw('NOT (ticket_pcs.ad_computer_id <=> inv_items.ad_computer_id)')
+            ->when($tPicked, fn ($q) => $q->join('tickets', 'tickets.id', '=', 'ticket_pcs.ticket_id')->where('tickets.ad_picked', false))
             ->update(['ticket_pcs.ad_computer_id' => DB::raw('inv_items.ad_computer_id')]);
 
         $done['handwerks.ad_room_id'] = DB::table('handwerks')
             ->join('inv_rooms', 'inv_rooms.id', '=', 'handwerks.room_id')
             ->whereRaw('NOT (handwerks.ad_room_id <=> inv_rooms.ad_ou_id)')
+            ->when($hPicked, fn ($q) => $q->where('handwerks.ad_picked', false))
             ->update(['handwerks.ad_room_id' => DB::raw('inv_rooms.ad_ou_id')]);
 
         return $done;

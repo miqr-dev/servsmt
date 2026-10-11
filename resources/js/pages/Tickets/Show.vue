@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { isChecked } from '@/lib/checkbox';
+import { safeHtml } from '@/lib/safeHtml';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, ref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
-import { Check, Trash2, X } from '@lucide/vue';
+import { Check, Trash2 } from '@lucide/vue';
 import BackButton from '@/components/BackButton.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CommentThread from '@/components/CommentThread.vue';
 import type { CommentItem } from '@/components/CommentThread.vue';
-import { TICKET_VIEW_GROUPS, type Participant, type TicketDetail, type TicketViewContext } from '@/lib/ticketViewFields';
+import { TICKET_VIEW_GROUPS, type AdContext, type Participant, type TicketDetail, type TicketViewContext } from '@/lib/ticketViewFields';
 import type { Auth, BreadcrumbItem } from '@/types';
 
 /**
@@ -61,6 +62,10 @@ const props = defineProps<{
     telNewRoom: { rname: string | null; altrname: string | null } | null;
     telNewAddress: { address: string | null } | null;
     participantRequiredAtFormatted: string | null;
+    /** AD room / PC of the ticket (null for old tickets without a link) */
+    ad: AdContext | null;
+    /** "Neuer Mitarbeiter", IT only: the Windows password the Erledigt-2 mail sends (Einstellungen > Neuer Mitarbeiter) */
+    employeePassword?: { value: string; outdated: boolean; year: number } | null;
 }>();
 
 defineOptions({
@@ -152,26 +157,8 @@ async function onStatusChange() {
     }
 }
 
-// --- reminder modal ---
-
-const reminderModalOpen = ref(false);
-const reminderDate = ref('');
-const submittingReminder = ref(false);
-
-async function submitReminder() {
-    if (!reminderDate.value) return;
-    submittingReminder.value = true;
-    try {
-        await axios.post('/ticket/set-reminder', { date: reminderDate.value, ticketId: props.ticket.id });
-        toast.success('Reminder gesetzt.');
-        reminderModalOpen.value = false;
-        reminderDate.value = '';
-    } catch {
-        toast.error('Reminder konnte nicht gesetzt werden.');
-    } finally {
-        submittingReminder.value = false;
-    }
-}
+// Reminder button + modal removed 2026-10-12 (the reminder mail was English and
+// failed for deleted tickets); a global reminder comes later.
 
 // --- dynamic per-type fields (33 of 35 types - see ticketViewFields.ts) ---
 
@@ -179,6 +166,7 @@ const viewContext = computed<TicketViewContext>(() => ({
     ticket: props.ticket,
     telNewRoom: props.telNewRoom,
     telNewAddress: props.telNewAddress,
+    ad: props.ad,
 }));
 const viewGroup = computed(() => TICKET_VIEW_GROUPS[props.viewKey] ?? null);
 const groupHeading = computed(() => viewGroup.value?.heading?.(viewContext.value) ?? props.ticket.problem_type);
@@ -275,13 +263,6 @@ async function deleteParticipant(participant: Participant) {
                 <template v-else-if="isSuperAdmin">
                     <button
                         type="button"
-                        class="border-input hover:bg-accent inline-flex h-9 items-center justify-center rounded-md border text-sm"
-                        @click="reminderModalOpen = true"
-                    >
-                        Reminder
-                    </button>
-                    <button
-                        type="button"
                         :disabled="submittingDone"
                         class="inline-flex h-9 items-center justify-center rounded-md border-2 border-green-600 px-3 text-sm text-green-600 transition-colors hover:!bg-green-600 hover:!text-white disabled:opacity-50"
                         @click="markDone"
@@ -296,11 +277,7 @@ async function deleteParticipant(participant: Participant) {
                     >
                         {{ onLocation ? 'Nein, ab Erfurt möglich' : 'Vor Ort' }}
                     </button>
-                    <select
-                        v-model="assignedTo"
-                        class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                        @change="onAssignChange"
-                    >
+                    <select v-model="assignedTo" class="border-input bg-background h-9 rounded-md border px-2 text-sm" @change="onAssignChange">
                         <option value="">Zuweisen</option>
                         <option v-for="admin in admins" :key="admin.id" :value="admin.id">{{ admin.username }}</option>
                     </select>
@@ -456,6 +433,19 @@ async function deleteParticipant(participant: Participant) {
                             <span class="text-muted-foreground text-xs">Abteilung</span>
                             <p class="font-medium">{{ ticket.abteilung_employee ?? '' }}</p>
                         </div>
+                        <div v-if="employeePassword" class="col-span-2 sm:col-span-3">
+                            <span class="text-muted-foreground text-xs">Windows-Passwort (geht mit „Erledigt 2“ per E-Mail raus)</span>
+                            <p class="flex flex-wrap items-center gap-2 font-medium">
+                                <span class="font-mono">{{ employeePassword.value || '– nicht gesetzt –' }}</span>
+                                <a v-if="isSuperAdmin" href="/settings/neuer-mitarbeiter" class="text-primary text-xs font-normal hover:underline">ändern</a>
+                            </p>
+                            <p
+                                v-if="employeePassword.outdated"
+                                class="mt-1 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                            >
+                                Achtung: wurde {{ employeePassword.year }} noch nicht geändert. Bitte vor „Erledigt 2“ prüfen.
+                            </p>
+                        </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <span v-if="isChecked(ticket.isplus)" class="inline-flex items-center gap-1 text-sm font-semibold">
@@ -548,50 +538,14 @@ async function deleteParticipant(participant: Participant) {
                 <div class="border-t pt-3">
                     <strong style="color: #661421">Beschreibung</strong>
                     <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div class="mt-2 text-sm" v-html="ticket.notizen"></div>
+                    <div class="mt-2 text-sm" v-html="safeHtml(ticket.notizen)"></div>
                 </div>
 
                 <div class="border-t pt-3">
                     <label class="mb-2 block font-medium">Kommentar</label>
-                    <CommentThread model-type="App\Ticket" :model-id="ticket.id" :comments="(ticket.comments as CommentItem[])" :is-done="isDone" />
+                    <CommentThread model-type="App\Ticket" :model-id="ticket.id" :comments="ticket.comments as CommentItem[]" :is-done="isDone" />
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Reminder modal -->
-    <Transition enter-active-class="transition-opacity duration-150" leave-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-to-class="opacity-0">
-        <div
-            v-if="reminderModalOpen"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            @click.self="reminderModalOpen = false"
-        >
-            <div class="bg-card text-card-foreground w-full max-w-sm rounded-xl border shadow-xl">
-                <div class="flex items-center justify-between border-b p-4">
-                    <h4 class="font-semibold">Set Reminder</h4>
-                    <button type="button" class="text-muted-foreground hover:text-foreground" @click="reminderModalOpen = false">
-                        <X class="h-4 w-4" />
-                    </button>
-                </div>
-                <div class="flex flex-col gap-3 p-4">
-                    <label class="text-sm font-medium" for="reminder-date">Date</label>
-                    <input
-                        id="reminder-date"
-                        v-model="reminderDate"
-                        type="date"
-                        required
-                        class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                    />
-                    <button
-                        type="button"
-                        :disabled="submittingReminder || !reminderDate"
-                        class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center justify-center rounded-md text-sm disabled:opacity-50"
-                        @click="submitReminder"
-                    >
-                        Set Reminder
-                    </button>
-                </div>
-            </div>
-        </div>
-    </Transition>
 </template>

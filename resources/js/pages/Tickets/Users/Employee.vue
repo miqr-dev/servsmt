@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { Head, usePage, useForm } from '@inertiajs/vue3';
-import { computed, h, onMounted, reactive } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 import LocationRoomFields from '@/components/tickets/LocationRoomFields.vue';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
 import Combobox from '@/components/ui/combobox/Combobox.vue';
+import MultiCombobox, { type MultiOption } from '@/components/ui/combobox/MultiCombobox.vue';
+import { matchAddress } from '@/composables/useAdLocations';
 import { useTicketLocations } from '@/composables/useTicketLocations';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { isoDate, isoToDmy } from '@/lib/ticketDates';
-import type { Auth, BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem } from '@/types';
 
 /**
  * Converted from resources/views/tickets/users/employee.blade.php
@@ -30,8 +32,13 @@ import type { Auth, BreadcrumbItem } from '@/types';
  *   checkbox value="..." attributes. "Herrn Kirchner" and the current user
  *   were always-ticked, un-untickable display-only boxes with no field that
  *   store() reads (email_kirchner is never saved; the current-user box had
- *   no name at all) - reproduced as disabled, ticked boxes. The
- *   commented-out "Herrn Ockel" box stays dropped.
+ *   no name at all) - "Herrn Kirchner" stays as a disabled, ticked box; the
+ *   current-user box was removed (2026-10-09, the submitter gets the mail
+ *   anyway). The commented-out "Herrn Ockel" box stays dropped.
+ * - "Andere Email" (2026-10-09): searchable multi-select of the users'
+ *   e-mails (+ typed external addresses), posted as "a; b" in email_custom -
+ *   the same format the old free-text field used.
+ * - The Standort starts at the user's own address (city + street).
  * - Outlook / IS+ checkboxes post booleans (same as every other converted
  *   Tickets form's checkboxes).
  */
@@ -44,6 +51,8 @@ const props = defineProps<{
     isSuperAdmin: boolean;
     availableSubmitterUsers: SubmitterUser[];
     replicationUsers: ReplicationUser[];
+    /** users' e-mails for "Andere Email" */
+    emailUsers: MultiOption[];
 }>();
 
 defineOptions({
@@ -56,9 +65,6 @@ defineOptions({
         return h_(AppLayout, { breadcrumbs }, () => page);
     },
 });
-
-const page = usePage<{ auth: Auth }>();
-const currentUsername = computed(() => (page.props.auth.user as { username?: string } | null)?.username ?? '');
 
 const EMAIL_RECIPIENTS = [
     { key: 'email_erfurt', label: 'Sek. Erfurt', email: 'Sekretariat_Erfurt@miqr.de', col: 1 },
@@ -104,17 +110,32 @@ const form = useForm({
 const replicationOptions = computed(() => props.replicationUsers.map((u) => ({ value: u.id, label: u.label })));
 
 const { locations, places, load, roomsFor } = useTicketLocations();
-onMounted(load);
+// Standort starts at the user's own address (city + street, 2026-10-09)
+onMounted(async () => {
+    await load();
+    if (form.location_id) return;
+    const place = places.value.find((p) => p.name.toLowerCase() === (props.user.ort ?? '').toLowerCase());
+    const own = place
+        ? matchAddress(
+              locations.value.filter((l) => l.place_id === place.id).map((l) => ({ id: l.id, label: l.address })),
+              props.user.strasse,
+          )
+        : null;
+    if (own) form.location_id = own.id;
+});
+
+// "Andere Email": picked e-mails (users or typed addresses), posted as "a; b" like before
+const otherEmails = ref<string[]>([]);
+const isEmail = (v: string) => /^[^\s@;]+@[^\s@;]+\.[^\s@;]+$/.test(v);
 
 function submit() {
-    form
-        .transform((data) => ({
-            ...data,
-            employee_required_at: isoToDmy(data.employee_required_at),
-            employee_finish_at: isoToDmy(data.employee_finish_at) || null,
-            ...Object.fromEntries(EMAIL_RECIPIENTS.map((r) => [r.key, emailChecked[r.key] ? r.email : null])),
-        }))
-        .post('/form_store');
+    form.transform((data) => ({
+        ...data,
+        employee_required_at: isoToDmy(data.employee_required_at),
+        employee_finish_at: isoToDmy(data.employee_finish_at) || null,
+        ...Object.fromEntries(EMAIL_RECIPIENTS.map((r) => [r.key, emailChecked[r.key] ? r.email : null])),
+        email_custom: otherEmails.value.join('; ') || null,
+    })).post('/form_store');
 }
 </script>
 
@@ -125,13 +146,7 @@ function submit() {
         <h2 class="text-xl font-semibold">Neuer Mitarbeiter</h2>
 
         <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <div class="grid gap-6 md:grid-cols-2">
@@ -157,17 +172,31 @@ function submit() {
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div class="flex flex-col gap-1">
                                 <label class="text-sm font-medium">Nachname <span class="text-muted-foreground">*</span></label>
-                                <input v-model="form.employee_lastname" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                                <input
+                                    v-model="form.employee_lastname"
+                                    type="text"
+                                    required
+                                    class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                />
                             </div>
                             <div class="flex flex-col gap-1">
                                 <label class="text-sm font-medium">Vorname <span class="text-muted-foreground">*</span></label>
-                                <input v-model="form.employee_firstname" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                                <input
+                                    v-model="form.employee_firstname"
+                                    type="text"
+                                    required
+                                    class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                />
                             </div>
                             <div class="flex flex-col gap-1 sm:col-span-2">
                                 <label class="text-sm font-medium">
                                     Endet zum <span class="text-muted-foreground text-xs font-normal">Nur bei freien MA.</span>
                                 </label>
-                                <input v-model="form.employee_finish_at" type="date" class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                                <input
+                                    v-model="form.employee_finish_at"
+                                    type="date"
+                                    class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                />
                             </div>
                         </div>
 
@@ -175,13 +204,21 @@ function submit() {
                             <legend class="px-1 text-sm font-medium">Benutzerdaten senden an</legend>
                             <div class="grid grid-cols-2 gap-x-4 gap-y-1">
                                 <div class="flex flex-col gap-1">
-                                    <label v-for="r in EMAIL_RECIPIENTS.filter((x) => x.col === 1)" :key="r.key" class="flex items-center gap-2 text-sm">
+                                    <label
+                                        v-for="r in EMAIL_RECIPIENTS.filter((x) => x.col === 1)"
+                                        :key="r.key"
+                                        class="flex items-center gap-2 text-sm"
+                                    >
                                         <input v-model="emailChecked[r.key]" type="checkbox" class="text-primary h-4 w-4" />
                                         {{ r.label }}
                                     </label>
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <label v-for="r in EMAIL_RECIPIENTS.filter((x) => x.col === 2)" :key="r.key" class="flex items-center gap-2 text-sm">
+                                    <label
+                                        v-for="r in EMAIL_RECIPIENTS.filter((x) => x.col === 2)"
+                                        :key="r.key"
+                                        class="flex items-center gap-2 text-sm"
+                                    >
                                         <input v-model="emailChecked[r.key]" type="checkbox" class="text-primary h-4 w-4" />
                                         {{ r.label }}
                                     </label>
@@ -189,18 +226,20 @@ function submit() {
                                         <input type="checkbox" checked disabled class="h-4 w-4" />
                                         Herrn Kirchner
                                     </label>
-                                    <label class="text-muted-foreground flex items-center gap-2 text-sm">
-                                        <input type="checkbox" checked disabled class="h-4 w-4" />
-                                        {{ currentUsername }}
-                                    </label>
                                 </div>
                             </div>
                             <div class="mt-2 flex flex-col gap-1">
                                 <label class="text-sm font-medium">Andere Email</label>
-                                <span class="text-muted-foreground text-xs">
-                                    Mehrere E-Mails? Bitte trennen Sie sie mit einem Semikolon <strong class="text-primary">( ; )</strong>
-                                </span>
-                                <input v-model="form.email_custom" type="text" class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                                <span class="text-muted-foreground text-xs"
+                                    >Mehrere möglich. Name oder E-Mail suchen; externe Adressen eintippen und Enter.</span
+                                >
+                                <MultiCombobox
+                                    v-model="otherEmails"
+                                    :options="emailUsers"
+                                    :allow-custom="isEmail"
+                                    placeholder="Name oder E-Mail suchen…"
+                                />
+                                <span v-if="form.errors.email_custom" class="text-destructive text-xs">{{ form.errors.email_custom }}</span>
                             </div>
                         </fieldset>
                     </div>
@@ -216,15 +255,30 @@ function submit() {
                         />
                         <div class="flex flex-col gap-1">
                             <label class="text-sm font-medium">Position <span class="text-muted-foreground">*</span></label>
-                            <input v-model="form.position_employee" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                            <input
+                                v-model="form.position_employee"
+                                type="text"
+                                required
+                                class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                            />
                         </div>
                         <div class="flex flex-col gap-1">
                             <label class="text-sm font-medium">Abteilung <span class="text-muted-foreground">*</span></label>
-                            <input v-model="form.abteilung_employee" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                            <input
+                                v-model="form.abteilung_employee"
+                                type="text"
+                                required
+                                class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                            />
                         </div>
                         <div class="flex flex-col gap-1">
                             <label class="text-sm font-medium">Telefon <span class="text-muted-foreground">*</span></label>
-                            <input v-model="form.telephone_employee" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                            <input
+                                v-model="form.telephone_employee"
+                                type="text"
+                                required
+                                class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                            />
                         </div>
                         <div class="flex justify-around gap-4 pt-1">
                             <label class="flex items-center gap-2 text-sm">

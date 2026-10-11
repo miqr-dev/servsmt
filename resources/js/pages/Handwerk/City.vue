@@ -12,6 +12,7 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+import { handwerkAddress, handwerkRoom, type HandwerkAdRoom } from '@/lib/handwerkRoom';
 
 /**
  * Converted from resources/views/handwerk/city.blade.php. The ToDo list and
@@ -37,6 +38,8 @@ type HandwerkRow = {
     submitter_name: string;
     location: LocationInfo;
     room: RoomInfo;
+    ad_room?: HandwerkAdRoom;
+    custom_room?: string | null;
     created_at: string;
     subject: string | null;
     notizen: string | null;
@@ -101,8 +104,8 @@ const handwerks = ref<HandwerkRow[]>([...props.handwerks]);
 const HANDWERK_COLUMNS: DataTableColumn<HandwerkRow>[] = [
     { key: 'problem_type' },
     { key: 'submitter_name' },
-    { key: 'location.address' },
-    { key: 'room.rname' },
+    { key: 'location.address', value: handwerkAddress },
+    { key: 'room.rname', value: handwerkRoom },
     { key: 'created_at', searchable: false },
     { key: 'actions', sortable: false, searchable: false },
 ];
@@ -136,9 +139,7 @@ function handwerkActions(handwerk: HandwerkRow): RowAction[] {
 
 type TodoItem = TodoRow & { editing: boolean; draftTitle: string; draftBody: string };
 
-const todos = ref<TodoItem[]>(
-    (props.todos ?? []).map((t) => ({ ...t, editing: false, draftTitle: t.title, draftBody: t.body })),
-);
+const todos = ref<TodoItem[]>((props.todos ?? []).map((t) => ({ ...t, editing: false, draftTitle: t.title, draftBody: t.body })));
 
 const newTitle = ref('');
 const newBody = ref('');
@@ -264,11 +265,7 @@ async function doneTodo(todo: TodoItem) {
                         </template>
                         <template v-else>
                             <div class="flex flex-col gap-2">
-                                <input
-                                    v-model="todo.draftTitle"
-                                    type="text"
-                                    class="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                />
+                                <input v-model="todo.draftTitle" type="text" class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
                                 <textarea
                                     v-model="todo.draftBody"
                                     rows="4"
@@ -285,9 +282,7 @@ async function doneTodo(todo: TodoItem) {
                             </div>
                         </template>
                     </div>
-                    <p v-if="!todos.length" class="text-muted-foreground p-2 text-center text-sm">
-                        Keine Aufgaben vorhanden.
-                    </p>
+                    <p v-if="!todos.length" class="text-muted-foreground p-2 text-center text-sm">Keine Aufgaben vorhanden.</p>
                 </div>
                 <div class="border-t p-4">
                     <h4 class="mb-2 font-semibold">Neue Aufgabe hinzufügen</h4>
@@ -334,11 +329,42 @@ async function doneTodo(todo: TodoItem) {
                     <table class="w-full text-sm">
                         <thead class="text-muted-foreground text-left">
                             <tr>
-                                <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('problem_type')" />
-                                <TableHeadCell label="Ersteller" sort-key="submitter_name" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('submitter_name')" />
-                                <TableHeadCell label="Standort" sort-key="location.address" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('location.address')" />
-                                <TableHeadCell label="Raum" sort-key="room.rname" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('room.rname')" />
-                                <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="sortKey" :direction="sortDir" align="right" @sort="toggleSort('created_at')" />
+                                <TableHeadCell
+                                    label="Anfrage"
+                                    sort-key="problem_type"
+                                    :active-key="sortKey"
+                                    :direction="sortDir"
+                                    @sort="toggleSort('problem_type')"
+                                />
+                                <TableHeadCell
+                                    label="Ersteller"
+                                    sort-key="submitter_name"
+                                    :active-key="sortKey"
+                                    :direction="sortDir"
+                                    @sort="toggleSort('submitter_name')"
+                                />
+                                <TableHeadCell
+                                    label="Standort"
+                                    sort-key="location.address"
+                                    :active-key="sortKey"
+                                    :direction="sortDir"
+                                    @sort="toggleSort('location.address')"
+                                />
+                                <TableHeadCell
+                                    label="Raum"
+                                    sort-key="room.rname"
+                                    :active-key="sortKey"
+                                    :direction="sortDir"
+                                    @sort="toggleSort('room.rname')"
+                                />
+                                <TableHeadCell
+                                    label="Erstellt am"
+                                    sort-key="created_at"
+                                    :active-key="sortKey"
+                                    :direction="sortDir"
+                                    align="right"
+                                    @sort="toggleSort('created_at')"
+                                />
                                 <TableHeadCell label="Erledigt?" align="right" />
                             </tr>
                         </thead>
@@ -346,16 +372,13 @@ async function doneTodo(todo: TodoItem) {
                             <tr v-for="handwerk in pagedRows" :key="handwerk.id">
                                 <td class="p-3">
                                     <UnreadDot :show="isUnread('handwerk', handwerk.id)" />
-                                    <Link
-                                        :href="`/handwerk/${handwerk.id}?from_city=${city}`"
-                                        class="text-primary hover:underline"
-                                    >
+                                    <Link :href="`/handwerk/${handwerk.id}?from_city=${city}`" class="text-primary hover:underline">
                                         {{ handwerk.problem_type }}
                                     </Link>
                                 </td>
                                 <td class="p-3">{{ handwerk.submitter_name }}</td>
-                                <td class="p-3">{{ handwerk.location?.address }}</td>
-                                <td class="p-3">{{ handwerk.room?.rname }}</td>
+                                <td class="p-3">{{ handwerkAddress(handwerk) }}</td>
+                                <td class="p-3">{{ handwerkRoom(handwerk) }}</td>
                                 <td class="p-3 text-right">{{ timeAgo(handwerk.created_at) }}</td>
                                 <td class="p-3">
                                     <RowActions :actions="handwerkActions(handwerk)" />

@@ -7,6 +7,7 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+import { handwerkAddress, handwerkRoom, type HandwerkAdRoom } from '@/lib/handwerkRoom';
 
 /**
  * Converted from resources/views/handwerk/my_handwerks.blade.php
@@ -32,6 +33,8 @@ type HandwerkRow = {
     problem_type: string;
     location: LocationInfo;
     room: RoomInfo;
+    ad_room?: HandwerkAdRoom;
+    custom_room?: string | null;
     created_at: string;
 };
 
@@ -65,8 +68,8 @@ function timeAgo(value: string): string {
 
 const HANDWERK_COLUMNS: DataTableColumn<HandwerkRow>[] = [
     { key: 'problem_type' },
-    { key: 'location.address' },
-    { key: 'room.rname' },
+    { key: 'location.address', value: handwerkAddress },
+    { key: 'room.rname', value: handwerkRoom },
     { key: 'created_at', searchable: false },
 ];
 const handwerks = computed(() => props.handwerks);
@@ -89,10 +92,35 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
                 <table class="w-full text-sm">
                     <thead class="text-muted-foreground text-left">
                         <tr>
-                            <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('problem_type')" />
-                            <TableHeadCell label="Standort" sort-key="location.address" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('location.address')" />
-                            <TableHeadCell label="Raum" sort-key="room.rname" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('room.rname')" />
-                            <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="sortKey" :direction="sortDir" align="right" @sort="toggleSort('created_at')" />
+                            <TableHeadCell
+                                label="Anfrage"
+                                sort-key="problem_type"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('problem_type')"
+                            />
+                            <TableHeadCell
+                                label="Standort"
+                                sort-key="location.address"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('location.address')"
+                            />
+                            <TableHeadCell
+                                label="Raum"
+                                sort-key="room.rname"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('room.rname')"
+                            />
+                            <TableHeadCell
+                                label="Erstellt am"
+                                sort-key="created_at"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                align="right"
+                                @sort="toggleSort('created_at')"
+                            />
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -102,8 +130,8 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
                                     {{ handwerk.problem_type }}
                                 </Link>
                             </td>
-                            <td class="p-3">{{ handwerk.location?.address }}</td>
-                            <td class="p-3">{{ handwerk.room?.rname }} {{ handwerk.room?.altrname }}</td>
+                            <td class="p-3">{{ handwerkAddress(handwerk) }}</td>
+                            <td class="p-3">{{ handwerkRoom(handwerk) }}</td>
                             <td class="p-3 text-right">{{ timeAgo(handwerk.created_at) }}</td>
                         </tr>
                         <tr v-if="!pagedRows.length">

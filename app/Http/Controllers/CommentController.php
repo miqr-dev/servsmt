@@ -85,97 +85,12 @@ class CommentController extends Controller
     $comment->comment   = $request->message;
     $comment->approved  = ! Config::get('comments.approval_required');
 
-    // Prepare notification payload
-    $notifications = [
-      'title'        => 'neuer Kommentar',
-      'comment'      => $comment->comment,
-      'commenter_id' => $comment->commenter->username,
-      'id'           => $comment->commentable_id,
-      'type'         => class_basename($model), // 'Ticket', 'Handwerk', or 'Korso'
-    ];
-
-    //
-    // ─── HANDWERK LOGIC ────────────────────────────────────────────────────────────
-    //
-    if ($model instanceof Handwerk) {
-      if ($comment->commenter_id == $model->submitter) {
-        // Submitter commented
-        if (! $model->assignedTo) {
-          // No one assigned → Handwerk_verwaltung (was user 327)
-          Notify::send(\App\Support\HandwerkResponsibility::verwaltungUsers($comment->commenter_id), new CommentNotification($notifications));
-        } else {
-          // Assigned → send only to assigned
-          $assigned = User::find($model->assignedTo);
-          Notify::send($assigned, new CommentNotification($notifications));
-        }
-      } else {
-        // Someone else commented → notify submitter
-        $submitter = User::find($model->submitter);
-        Notify::send($submitter, new CommentNotification($notifications));
-      }
-
-      //
-      // ─── KORSO LOGIC ──────────────────────────────────────────────────────────────
-      //
-    } elseif ($model instanceof Korso) {
-      $submitter   = User::find($model->submitter);
-      $assignedId  = $model->assignedTo;
-      $commenterId = $comment->commenter_id;
-
-      if (is_null($assignedId)) {
-        // CASE 1: Unassigned → notify all Korso_ma except the commenter
-        $korsoMAs = User::role('Korso_ma')
-          ->where('id', '!=', $commenterId)
-          ->get();
-
-        Notify::send($korsoMAs, new CommentNotification($notifications));
-      } else {
-
-        if ($commenterId == $assignedId) {
-          // CASE 2a: Assigned user commented → notify only the submitter (or SekGroup)
-          if ($submitter && $submitter->id !== $commenterId) {
-            if ($model->sek_group_id && $model->sekGroup) {
-              // send to the group’s email instead of the user
-              \App\Support\Notify::one(Notification::route('mail', $model->sekGroup->email), new CommentNotification($notifications));
-            } else {
-              // fallback: the original user
-              Notify::send($submitter, new CommentNotification($notifications));
-            }
-          }
-        } else {
-          // CASE 2b: Someone else commented → notify only the assigned user
-          $assignedUser = User::find($assignedId);
-          if ($assignedUser) {
-            Notify::send($assignedUser, new CommentNotification($notifications));
-          }
-        }
-      }
-
-      //
-      // ─── TICKET LOGIC ─────────────────────────────────────────────────────────────
-      //
-    } else {
-      // Default logic for Tickets
-      if ($comment->commenter_id == $model->submitter) {
-        // Submitter commented
-        if (! $model->assignedTo) {
-          // No one assigned → notify all Super_Admins
-          $admins = User::role('Super_Admin')->get();
-          Notify::send($admins, new CommentNotification($notifications));
-        } else {
-          // Assigned → notify only assigned
-          $assigned = User::find($model->assignedTo);
-          Notify::send($assigned, new CommentNotification($notifications));
-        }
-      } else {
-        // Someone else commented → notify submitter
-        $submitter = User::find($model->submitter);
-        Notify::send($submitter, new CommentNotification($notifications));
-      }
-    }
-
-    // Save and redirect back to the new comment anchor
+    // Save first, then notify (2026-10-12: the mails went out before the
+    // comment was saved; they are queued now, see App\Support\Notify).
     $comment->save();
+    if (Auth::check()) {
+      $this->notifyAbout($comment, $model, null);
+    }
 
     // The Vue CommentThread component posts here via axios and expects
     // the created comment back as JSON; the still-Blade Tickets admin
@@ -244,54 +159,104 @@ class CommentController extends Controller
     $reply->comment  = $request->message;
     $reply->approved = ! Config::get('comments.approval_required');
 
-    // Common payload
-    $notifications = [
-      'title'        => 'Kommentarantwort',
-      'id'           => $reply->commentable_id,
-      'comment'      => $reply->comment,
-      'commenter_id' => $reply->commenter->username,
-      // Without the type, replies on Handwerk/Korso linked to /ticket/{id}.
-      'type'         => class_basename($comment->commentable),
-    ];
-
-    // The model we're commenting on
-    $model = $comment->commentable;
-
-    // ─── If it's a Korso, honor sek_group_id ────────────────────────
-    if ($model instanceof Korso) {
-      // Who would normally get this reply?
-      $parentCommenterId = $reply->parent->commenter_id;
-
-      // If parent commenter *is* the original Korso submitter…
-      // but they submitted “as Sekretariat”, send to the group email instead
-      if (
-        $parentCommenterId == $model->submitter
-        && $model->sek_group_id
-        && $model->sekGroup
-      ) {
-        \App\Support\Notify::one(Notification::route('mail', $model->sekGroup->email), new CommentNotification($notifications));
-      } else {
-        // Fallback: send to that single user
-        $reply_to = User::find($parentCommenterId);
-        if ($reply_to) {
-          Notify::send($reply_to, new CommentNotification($notifications));
-        }
-      }
-
-      // ─── Otherwise, do the original single-user reply routing ───────
-    } else {
-      $reply_to = User::where('id', $reply->parent->commenter_id)->first();
-      if ($reply_to) {
-        Notify::send($reply_to, new CommentNotification($notifications));
-      }
-    }
-
     $reply->save();
+    $this->notifyAbout($reply, $comment->commentable, $comment);
 
     if ($request->wantsJson()) {
       return response()->json($reply);
     }
 
     return Redirect::to(URL::previous() . '#comment-' . $reply->getKey());
+  }
+
+  /**
+   * Comment / reply mails (2026-10-12).
+   *
+   * Who: the people of the ticket, never the writer.
+   * - The submitter wrote: the assignee; nobody assigned -> the team
+   *   (IT: all Super_Admin, Handwerk: Handwerk_verwaltung, Korso: all Korso_ma).
+   * - Someone else wrote: the submitter (Korso "als Sekretariat": the group
+   *   mailbox) and the assignee; Korso without assignee: all Korso_ma too.
+   * - A reply also reaches the author of the comment it answers; that person
+   *   reads "Antwort auf Ihren Kommentar", the others "neue Antwort".
+   * Before, a reply only reached the parent's author (also when that was the
+   * writer, who then got a mail about their own reply).
+   */
+  private function notifyAbout(Comment $comment, $model, ?Comment $parent): void
+  {
+    if (! $model) {
+      return;
+    }
+    $writer = $comment->commenter;
+    $writerId = (int) $comment->commenter_id;
+    $submitterId = (int) $model->submitter;
+    $assignee = $model->assignedTo ? User::find($model->assignedTo) : null;
+    $mailbox = ($model instanceof Korso && $model->sek_group_id && $model->sekGroup) ? $model->sekGroup->email : null;
+
+    $users = collect();
+    $toMailbox = false;
+    if ($writerId === $submitterId) {
+      if ($assignee) {
+        $users->push($assignee);
+      } elseif ($model instanceof Handwerk) {
+        $users = $users->merge(\App\Support\HandwerkResponsibility::verwaltungUsers());
+      } elseif ($model instanceof Korso) {
+        $users = $users->merge(User::role('Korso_ma')->get());
+      } else {
+        $users = $users->merge(User::role('Super_Admin')->get());
+      }
+    } else {
+      if ($mailbox) {
+        $toMailbox = true;
+      } else {
+        $users->push(User::find($submitterId));
+      }
+      if ($assignee) {
+        $users->push($assignee);
+      } elseif ($model instanceof Korso) {
+        $users = $users->merge(User::role('Korso_ma')->get());
+      }
+    }
+
+    // reply: + the author of the answered comment
+    $parentAuthorId = $parent ? (int) $parent->commenter_id : 0;
+    $parentIsMailbox = $parent && $mailbox && $parentAuthorId === $submitterId;
+    if ($parent && $parentAuthorId && $parentAuthorId !== $writerId) {
+      if ($parentIsMailbox) {
+        $toMailbox = true;
+      } else {
+        $users->push(User::find($parentAuthorId));
+      }
+    }
+
+    $users = $users->filter()->reject(fn ($u) => (int) $u->id === $writerId)->unique('id')->values();
+
+    $base = [
+      'title'          => $parent ? 'Kommentarantwort' : 'neuer Kommentar',
+      'id'             => $model->getKey(),
+      'comment'        => $comment->comment,
+      'commenter_id'   => $writer->username ?? '',
+      'commenter_name' => $this->personName($writer),
+      'type'           => class_basename($model), // Ticket | Handwerk | Korso
+      'ticket_title'   => $model->problem_type,
+    ];
+    $kind = fn (bool $toParent) => ! $parent ? 'comment' : ($toParent ? 'reply_to_you' : 'reply');
+
+    foreach ($users as $user) {
+      Notify::send($user, new CommentNotification($base + ['mail_kind' => $kind((int) $user->id === $parentAuthorId)]));
+    }
+    if ($toMailbox && $mailbox) {
+      Notify::one(Notification::route('mail', $mailbox), new CommentNotification($base + ['mail_kind' => $kind($parentIsMailbox)]));
+    }
+  }
+
+  /** "Max Mustermann" for the comment mails (username if no name is stored). */
+  private function personName($user): string
+  {
+    if (! $user) {
+      return '';
+    }
+
+    return trim(($user->vorname ?? '') . ' ' . ($user->name ?? '')) ?: (string) $user->username;
   }
 }

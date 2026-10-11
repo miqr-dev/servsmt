@@ -307,7 +307,7 @@ $isDone = !is_null($korso->deleted_at);
               <i class="fas fa-clipboard"></i> Beschreibung
             </h5>
             <p class="mb-0" style="font-size: 1rem;">
-              {!! $cleanNotes !!}
+              {!! \App\Support\SafeHtml::clean($cleanNotes) !!}
             </p>
           </div>
           @endif

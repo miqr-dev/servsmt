@@ -3,21 +3,10 @@ import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed, h, onMounted, reactive } from 'vue';
 import { ChevronRight } from '@lucide/vue';
 import SubmitterCard from '@/components/handwerk/SubmitterCard.vue';
-import LocationRoomFields from '@/components/handwerk/LocationRoomFields.vue';
+import AdLocationRoomFields from '@/components/handwerk/AdLocationRoomFields.vue';
 import ItemCheckboxGroup from '@/components/handwerk/ItemCheckboxGroup.vue';
-import { useHandwerkLocations } from '@/composables/useHandwerkLocations';
-import {
-    DECORATION,
-    DESK_FAMILIES,
-    KUECHE,
-    OTHER_TISCH_ITEMS,
-    SCHRANK,
-    setItemChecked,
-    SONNENSCHUTZ,
-    STUHL,
-    TAFEL,
-    WC,
-} from '@/lib/handwerkItems';
+import { useAdLocations } from '@/composables/useAdLocations';
+import { DECORATION, DESK_FAMILIES, KUECHE, OTHER_TISCH_ITEMS, SCHRANK, setItemChecked, SONNENSCHUTZ, STUHL, TAFEL, WC } from '@/lib/handwerkItems';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Auth, BreadcrumbItem } from '@/types';
 
@@ -54,14 +43,17 @@ defineOptions({
 const page = usePage<{ auth: Auth }>();
 const isSuperAdmin = computed(() => (page.props.auth.user?.roles ?? []).includes('Super_Admin'));
 
-const { locations, load, roomsFor } = useHandwerkLocations();
+// AD rooms (AD switch step 4). The Standort is the submitter's city, or the
+// one picked under "Standort ändern" (handwerk_admin).
+const { data: adData, loading: adLoading, load } = useAdLocations();
 
 onMounted(() => {
     load();
 });
 
 function onStandortChanged(city: string) {
-    load(city);
+    form.ad_room_id = ''; // the picker follows the new city
+    form.submitter_standort_exception = city;
 }
 
 const FLAT_GROUPS = [TAFEL, STUHL, SCHRANK, SONNENSCHUTZ, DECORATION, WC, KUECHE];
@@ -96,17 +88,14 @@ const form = useForm({
     priority: '2',
     tel_number: props.user.tel ?? '',
     problem_type: 'Mobiliar - Einrichtung',
-    location_id: '',
-    room_id: '',
+    ad_room_id: '' as number | string,
     custom_room: '',
     notizen: '',
     ...initialItemFields(),
 });
 
 // Local-only "is this desk family's size list expanded" state - not submitted.
-const deskFamilyOpen = reactive<Record<string, boolean>>(
-    Object.fromEntries(DESK_FAMILIES.map((family) => [family.key, false])),
-);
+const deskFamilyOpen = reactive<Record<string, boolean>>(Object.fromEntries(DESK_FAMILIES.map((family) => [family.key, false])));
 
 const tischSelectedCount = computed(() => {
     const dimKeys = DESK_FAMILIES.flatMap((family) => family.dims.map((dim) => dim.key));
@@ -138,7 +127,13 @@ function submit() {
             />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
-                <LocationRoomFields :form="form" :locations="locations" :rooms-for="roomsFor" />
+                <AdLocationRoomFields
+                    :form="form"
+                    :data="adData"
+                    :loading="adLoading"
+                    :city="form.submitter_standort_exception || user.ort"
+                    :address="user.strasse"
+                />
 
                 <div class="flex flex-col gap-3">
                     <ItemCheckboxGroup :title="TAFEL.title" :items="TAFEL.items" :form="form" />
@@ -162,11 +157,7 @@ function submit() {
                         <div class="flex flex-col gap-3 p-3">
                             <div v-for="family in DESK_FAMILIES" :key="family.key" class="flex flex-col gap-2">
                                 <label class="flex items-center gap-2 text-sm font-medium">
-                                    <input
-                                        v-model="deskFamilyOpen[family.key]"
-                                        type="checkbox"
-                                        class="border-input h-4 w-4 rounded"
-                                    />
+                                    <input v-model="deskFamilyOpen[family.key]" type="checkbox" class="border-input h-4 w-4 rounded" />
                                     {{ family.label }}
                                 </label>
                                 <div v-if="deskFamilyOpen[family.key]" class="ml-6 grid gap-2 sm:grid-cols-2">
@@ -188,7 +179,7 @@ function submit() {
                                         </label>
                                         <input
                                             v-if="form[dim.key]"
-                                            v-model="(form[`${dim.key}_qty`] as string)"
+                                            v-model="form[`${dim.key}_qty`] as string"
                                             type="number"
                                             min="1"
                                             class="border-input bg-background h-8 w-16 rounded-md border px-2 text-sm"
@@ -216,7 +207,7 @@ function submit() {
                                     </label>
                                     <input
                                         v-if="form[item.key]"
-                                        v-model="(form[`${item.key}_qty`] as string)"
+                                        v-model="form[`${item.key}_qty`] as string"
                                         type="number"
                                         min="1"
                                         class="border-input bg-background h-8 w-16 rounded-md border px-2 text-sm"
@@ -236,11 +227,7 @@ function submit() {
 
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Notizen</label>
-                    <textarea
-                        v-model="form.notizen"
-                        rows="5"
-                        class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                    ></textarea>
+                    <textarea v-model="form.notizen" rows="5" class="border-input bg-background rounded-md border px-3 py-2 text-sm"></textarea>
                 </div>
 
                 <button

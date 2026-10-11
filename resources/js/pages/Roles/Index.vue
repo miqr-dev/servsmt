@@ -68,6 +68,12 @@ function rowActions(role: Role): RowAction[] {
             <h1 class="text-xl font-semibold">Rollenverwaltung</h1>
             <div class="flex gap-2">
                 <Link
+                    href="/rollen-uebersicht"
+                    class="border-border hover:bg-accent inline-flex h-9 items-center rounded-md border px-3 text-sm"
+                >
+                    Übersicht: wer darf was
+                </Link>
+                <Link
                     href="/permissions/create"
                     class="border-primary text-primary hover:bg-primary hover:text-primary-foreground inline-flex h-9 items-center rounded-md border px-3 text-sm"
                 >

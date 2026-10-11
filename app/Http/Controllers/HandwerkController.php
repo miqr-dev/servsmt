@@ -22,6 +22,7 @@ use Inertia\Inertia;
 use App\Support\Notify;
 use App\Support\TicketAccess;
 use App\Support\HandwerkCityAccess;
+use App\Support\AdLegacy;
 use App\Support\HandwerkResponsibility;
 use App\Support\NotificationLookup;
 
@@ -256,6 +257,8 @@ class HandwerkController extends Controller
       })
       ->all());
 
+    $request->validate(['ad_room_id' => 'nullable|integer|exists:ad_ous,id']);
+
     $handwerk = new Handwerk();
     $handwerk->submitter_name = $request->submitter_name;
     $handwerk->submitter = $request->submitter;
@@ -271,6 +274,15 @@ class HandwerkController extends Controller
     $handwerk->problem_type = $request->problem_type;
     $handwerk->location_id = $request->location_id;
     $handwerk->room_id = $request->room_id;
+    // AD switch step 4 (2026-10-09): the forms pick Adresse › Etage › Raum from
+    // AD (ad_room_id = the most specific OU picked). The old location_id /
+    // room_id are filled from the inventory links where one exists.
+    $handwerk->ad_room_id = $request->ad_room_id ?: null;
+    $handwerk->ad_picked = (bool) $handwerk->ad_room_id;
+    if ($handwerk->ad_room_id) {
+      $handwerk->location_id = $handwerk->location_id ?: AdLegacy::locationId($handwerk->ad_room_id);
+      $handwerk->room_id = $handwerk->room_id ?: AdLegacy::roomId($handwerk->ad_room_id);
+    }
     $handwerk->schiebetafel = $request->schiebetafel;
     $handwerk->whiteboard = $request->whiteboard;
     $handwerk->kreidetafel = $request->kreidetafel;

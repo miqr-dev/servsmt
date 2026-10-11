@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner';
 import { computed, h, ref } from 'vue';
 import UnreadDot from '@/components/UnreadDot.vue';
 import { useUnread } from '@/composables/useUnread';
+import { safeHtml } from '@/lib/safeHtml';
 import { watchDebounced } from '@vueuse/core';
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Eye, PaintRoller, RefreshCw, Settings, X } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -706,7 +707,7 @@ function attachmentUrl(path: string): string {
                                 <hr />
                                 <h4 class="font-semibold" style="color: #65a30d">Beschreibung</h4>
                                 <!-- eslint-disable-next-line vue/no-v-html -->
-                                <p v-html="detailCleanNotes"></p>
+                                <div v-html="safeHtml(detailCleanNotes)"></div>
                             </template>
 
                             <hr />

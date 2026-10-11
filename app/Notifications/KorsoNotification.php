@@ -2,87 +2,78 @@
 
 namespace App\Notifications;
 
+use App\Support\Notify;
+use App\Support\TicketMail;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Korso ticket mails (KorsoController). Payload 'title':
+ *   Neues Korso Ticket -> Korso_ma (priority Hoch), role Onlinemarketing
+ *                         (every Onlinemarketing ticket)
+ *   Zugewiesen an      -> the assignee
+ *   Erledigt           -> the submitter or the Sekretariat group mailbox
+ *   Wiederhergestellt  -> assignee / Korso_verwaltung, or the submitter
+ *
+ * 2026-10-12: App\Support\TicketMail - the mails now name the ticket
+ * (number, type, submitter); priority comes from the ticket, so the subject
+ * only says "Priorität Hoch" when it is. Signed "Ihr Korso-Team".
+ */
 class KorsoNotification extends Notification
 {
-  use Queueable;
+    use Queueable;
 
-  public function __construct($notifications)
-  {
-    $this->myData = $notifications;
-  }
+    protected $myData;
 
-  public function via($notifiable)
-  {
-    // No mails/notifications to users removed from AD (soft-deleted).
-    if (\App\Support\Notify::isRemoved($notifiable)) {
-      return [];
-    }
-    return ['mail', 'database'];
-  }
+    protected $actor;
 
-  public function toMail($notifiable)
-  {
-    $korsoUrl = url('http://servsmt.miqr.local/korso/' . $this->myData['korso_id']);
-    $ersteller = $this->myData['submitter'];
-    $problem_type = $this->myData['problem_type'];
-
-    // Prepare variables for the email
-    $subject = '';
-    $introLines = [];
-    $actionText = 'Ticket anzeigen';
-    $outroLines = ['<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail. Bitte nicht antworten.</p>'];
-
-    // Customize message content based on the notification title
-    if ($this->myData['title'] === 'Neues Korso Ticket') {
-      $subject = '🔴 Neues Hoch-Prioritäts-Korso-Ticket';
-      $introLines[] = 'Ein neues Ticket mit Priorität *Hoch* wurde eingereicht.';
-      $introLines[] = "Erstellt von: **$ersteller**";
-      $introLines[] = "Typ: **$problem_type**";
-    } elseif ($this->myData['title'] === 'Zugewiesen an') {
-      $subject = 'Korso-Benachrichtigung';
-      $introLines[] = 'Sie wurden einem neuen Korso-Ticket zugewiesen.';
-      $introLines[] = $this->myData['problem_type'];
-    } elseif ($this->myData['title'] === 'Erledigt') {
-      $subject = 'Ihr Ticket ist erledigt';
-      $introLines[] = 'Ihr Ticket wurde erfolgreich bearbeitet und als erledigt markiert.';
-    } elseif ($this->myData['title'] === 'Wiederhergestellt') {
-      $subject = 'Korso Ticket Wiederhergestellt';
-      $introLines[] = 'Ein Korso-Ticket wurde wiederhergestellt.';
+    public function __construct($notifications)
+    {
+        $this->myData = $notifications;
+        $this->actor = TicketMail::actor();
     }
 
-    // Return a Markdown mail message using your custom template in vendor/notifications/korso.blade.php.
-    return (new MailMessage)
-      ->subject($subject)
-      ->markdown('vendor.notifications.korso', [
-        'greeting'      => $subject,        // You can set a greeting based on your subject
-        'level'         => 'primary',       // Adjust the level if needed (affects button color)
-        'introLines'    => $introLines,
-        'actionText'    => $actionText,
-        'actionUrl'     => $korsoUrl,
-        'outroLines'    => $outroLines,
-        // 'salutation'    => 'Mit freundlichen Grüßen,<br>Ihre Korso-Team',
-      ]);
-  }
+    public function via($notifiable)
+    {
+        if (Notify::isRemoved($notifiable) || Notify::isActor($notifiable, $this->actor)) {
+            return [];
+        }
 
-  public function toDatabase($notifiable)
-  {
-    return [
-      'title' => $this->myData['title'],
-      'korso_id' => $this->myData['korso_id'],
-      'submitter' => $this->myData['submitter'],
-      'problem_type' => $this->myData['problem_type'],
-    ];
-  }
+        return ['mail', 'database'];
+    }
 
-  public function toArray($notifiable)
-  {
-    return [
-      //
-    ];
-  }
+    public function toMail($notifiable)
+    {
+        $d = $this->myData;
+        $id = $d['korso_id'] ?? null;
+        $event = match ($d['title'] ?? '') {
+            'Neues Korso Ticket' => 'new',
+            'Zugewiesen an' => 'assigned',
+            'Erledigt' => 'done',
+            'Wiederhergestellt' => 'restored',
+            default => (string) ($d['title'] ?? 'Benachrichtigung'),
+        };
+        $mail = TicketMail::event('Korso', $id, $event, $notifiable, $d, $this->actor);
+
+        if ($event === 'new' && (int) optional(TicketMail::model('Korso', $id))->priority === 3) {
+            $mail->subject($mail->subject.' (Priorität Hoch)');
+        }
+
+        return $mail;
+    }
+
+    public function toDatabase($notifiable)
+    {
+        return [
+            'title' => $this->myData['title'],
+            'korso_id' => $this->myData['korso_id'],
+            'submitter' => $this->myData['submitter'],
+            'problem_type' => $this->myData['problem_type'],
+        ];
+    }
+
+    public function toArray($notifiable)
+    {
+        return [];
+    }
 }

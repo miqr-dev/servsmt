@@ -135,6 +135,7 @@ const adminItems: NavItem[] = [
         icon: ShieldCheck,
         roles: ['Super_Admin'],
         children: [
+            { title: 'Übersicht', href: '/rollen-uebersicht' },
             { title: 'Rollen', href: '/roles' },
             { title: 'Berechtigungen', href: '/permissions' },
             { title: 'Benutzer', href: '/users' },

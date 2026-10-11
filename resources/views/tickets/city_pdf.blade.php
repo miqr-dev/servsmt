@@ -85,7 +85,14 @@
       <p><strong>Standort:</strong> {{ $ticket->subUser->ort }}</p>
       <p><strong>Telefonnummer:</strong> {{ $ticket->tel_number }}</p>
 
-      @if($ticket->gname_id && $ticket->invitem)
+      {{-- AD PC first (AD switch), old inventory device as fallback --}}
+      @php($adPc = \App\Support\AdLocation::computer($ticket->ad_computer_id))
+      @php($userDev = \App\Support\AdLocation::device($ticket->ad_pc_device_id ?: $ticket->ad_device_id))
+      @if($adPc)
+      <p><strong>Geräte</strong> {{ $adPc['name'] }}</p>
+      <p><strong>Geräte Adresse:</strong> {{ $adPc['room'] ? trim(($adPc['room']['adresse'] ?? '') . ', ' . ($adPc['room']['standort'] ?? ''), ', ') : 'N/A' }}</p>
+      <p><strong>Geräte Raum:</strong> {{ $adPc['room']['label'] ?? 'N/A' }}</p>
+      @elseif($ticket->gname_id && $ticket->invitem)
       <p><strong>Geräte</strong> {{ $ticket->invitem->gname ?? 'N/A' }}</p>
 
       @if($ticket->invitem->invroom && $ticket->invitem->invroom->location)
@@ -97,6 +104,10 @@
       <p><strong>Geräte Adresse:</strong> N/A</p>
       <p><strong>Geräte Raum:</strong> N/A</p>
       @endif
+      @elseif($userDev)
+      <p><strong>Geräte</strong> {{ $userDev['name'] }} (vom Benutzer angegeben)</p>
+      <p><strong>Geräte Adresse:</strong> {{ $userDev['room'] ? trim(($userDev['room']['adresse'] ?? '') . ', ' . ($userDev['room']['standort'] ?? ''), ', ') : 'N/A' }}</p>
+      <p><strong>Geräte Raum:</strong> {{ $userDev['room']['label'] ?? 'N/A' }}</p>
       @endif
       @if($ticket->searchsoftware)
       <p><strong>Search Software:</strong> {{ $ticket->searchsoftware }}</p>
@@ -354,7 +365,7 @@
       <p><strong>Cancel Forward:</strong> {{ $ticket->cancelForward }}</p>
       @endif
       @if($ticket->notizen)
-      <p><strong>Beschreibung:</strong> {!! ($ticket->notizen) !!}</p>
+      <p><strong>Beschreibung:</strong> {!! \App\Support\SafeHtml::clean(($ticket->notizen)) !!}</p>
       @endif
     </div>
     @endforeach

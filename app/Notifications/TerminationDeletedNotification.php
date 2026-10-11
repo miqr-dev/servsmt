@@ -56,7 +56,7 @@ class TerminationDeletedNotification extends Notification
 
     return (new MailMessage)
       ->subject($subject)
-      ->line($line);
+      ->line(\App\Support\MailText::block($line)); // HR text, escaped (2026-10-11)
   }
 
   /**

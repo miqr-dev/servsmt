@@ -81,7 +81,7 @@
                   <td><b>{{ optional($myTicket->deleted_at)->format('d.m.Y') }}</b></td>
                   <td>{{$myTicket->updated_at->diffForHumans()}}</td>
                   <td><b>{{@$myTicket->user->username}}</b></td>
-                  <td>{!!$myTicket->notizen!!}</td>
+                  <td>{!! \App\Support\SafeHtml::clean($myTicket->notizen) !!}</td>
                 </tr>
                 @empty
                 <td class="text-center">
@@ -177,7 +177,7 @@
                   <td><b>{{ optional($myTicket->deleted_at)->format('d.m.Y') }}</b></td>
                   <td>{{$myTicket->updated_at->diffForHumans()}}</td>
                   <td><b>{{@$myTicket->assignedUser->username ?? 'nicht zugewiesen'}}</b></td>
-                  <td>{!!$myTicket->notizen!!}</td>
+                  <td>{!! \App\Support\SafeHtml::clean($myTicket->notizen) !!}</td>
                 </tr>
                 @empty
                 <td class="text-center">

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, h, onMounted, ref, watch } from 'vue';
-import axios from 'axios';
+import { computed, h, onMounted, ref, type VNode } from 'vue';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
-import LocationRoomFields from '@/components/tickets/LocationRoomFields.vue';
-import Combobox from '@/components/ui/combobox/Combobox.vue';
-import { useTicketLocations } from '@/composables/useTicketLocations';
+import AdDeviceSelect from '@/components/ad/AdDeviceSelect.vue';
+import AdRoomPicker from '@/components/ad/AdRoomPicker.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -48,9 +47,12 @@ import type { BreadcrumbItem } from '@/types';
  * The Telefon picker switched from a plain <select> to the shared Combobox
  * (2026-09-18, at your request - "Rechner Wählen and alike" should be
  * searchable).
+ *
+ * AD switch step 4 (2026-10-09): both rooms are AD rooms (ad_room_id /
+ * ad_target_room_id; the server fills tel_target_place / tel_target_room
+ * from the old-inventory links). Phones are not in AD: the list is the old
+ * inventory of the old rooms linked to the current AD room.
  */
-
-type TelOption = { id: number; gname: string };
 
 type Variant = 'location' | 'name' | 'number' | 'request';
 
@@ -86,22 +88,30 @@ const showTabs = props.variant === 'request';
 const activeTab = ref<Exclude<Variant, 'request'> | null>(showTabs ? null : (props.variant as Exclude<Variant, 'request'>));
 
 defineOptions({
-    layout: (h_: typeof h, page: unknown) => {
+    layout: (h_: typeof h, page: VNode) => {
+        // title per variant (defineOptions can't use TITLES below: it is hoisted) - was a "#" before
+        const variant = (page.props as { variant?: string } | null)?.variant ?? '';
+        const title =
+            (
+                {
+                    location: 'Telefon Standort ändern',
+                    name: 'Telefon Name ändern',
+                    number: 'Telefon Nummer ändern',
+                    request: 'Telefon anfrage',
+                } as Record<string, string>
+            )[variant] ?? 'Telefon';
         const breadcrumbs: BreadcrumbItem[] = [
             { title: 'IT-Tickets', href: '/ticket.index' },
-            { title: '#', href: '#' },
+            { title, href: '#' },
         ];
 
         return h_(AppLayout, { breadcrumbs }, () => page);
     },
 });
 
-const current = useTicketLocations();
-const target = useTicketLocations();
-onMounted(() => {
-    current.load();
-    target.load();
-});
+const { data: adData, loading: adLoading, load } = useAdLocations();
+onMounted(load);
+const telRoom = ref<number | string | null>('');
 
 const form = useForm({
     submitter: props.user.id,
@@ -111,8 +121,9 @@ const form = useForm({
     tel_number: props.user.tel ?? '',
     custom_tel_number: '',
     problem_type: activeTab.value ? PROBLEM_TYPES[activeTab.value] : '',
-    tel_current_place: '',
-    tel_current_room: '',
+    ad_room_id: '' as number | string,
+    ad_device_id: '' as number | string, // device added in the form
+    ad_target_room_id: '' as number | string,
     searchcomputer: '',
     tel_target_place: '',
     tel_target_room: '',
@@ -122,25 +133,10 @@ const form = useForm({
     notizen: '',
 });
 
-const telephones = ref<TelOption[]>([]);
-
-const telephoneOptions = computed(() => telephones.value.map((t) => ({ value: t.id, label: t.gname })));
-
-watch(
-    () => form.tel_current_room,
-    async (roomId) => {
-        form.searchcomputer = '';
-        telephones.value = [];
-        if (!roomId) return;
-
-        const { data } = await axios.post<TelOption[]>('/ticket.tel_search_inroom', { telephones: roomId });
-        telephones.value = data;
-    },
-);
-
 function selectTab(tab: Exclude<Variant, 'request'>) {
     activeTab.value = tab;
     form.problem_type = PROBLEM_TYPES[tab];
+    form.ad_target_room_id = '';
     form.tel_target_place = '';
     form.tel_target_room = '';
     form.current_tel_name = '';
@@ -162,7 +158,7 @@ function submit() {
 
         <div v-if="showTabs" class="flex flex-wrap justify-center gap-3">
             <button
-                v-for="tab in (['location', 'name', 'number'] as const)"
+                v-for="tab in ['location', 'name', 'number'] as const"
                 :key="tab"
                 type="button"
                 class="rounded-md border px-4 py-2 text-sm"
@@ -174,41 +170,41 @@ function submit() {
         </div>
 
         <form v-if="activeTab" class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <fieldset class="grid gap-3 rounded-md border p-3">
                         <legend class="px-1 text-sm font-medium">Aktueller Standort</legend>
-                        <LocationRoomFields
-                            v-model:place="form.tel_current_place"
-                            v-model:room="form.tel_current_room"
-                            place-label="Telefonstandort"
-                            :locations="current.locations.value"
-                            :places="current.places.value"
-                            :rooms-for="current.roomsFor"
+                        <AdRoomPicker
+                            v-model:ou="form.ad_room_id"
+                            v-model:room="telRoom"
+                            :data="adData"
+                            :loading="adLoading"
+                            :city="user.ort"
+                            :address="user.strasse"
+                            standort-label="Telefonstandort"
+                            require-room
                         />
-                        <div class="flex flex-col gap-1">
-                            <label class="text-sm font-medium">Telefon <span class="text-muted-foreground">*</span></label>
-                            <Combobox v-model="form.searchcomputer" :options="telephoneOptions" required />
-                        </div>
+                        <AdDeviceSelect
+                            v-model="form.searchcomputer"
+                            v-model:device="form.ad_device_id"
+                            :room="telRoom"
+                            type="phone"
+                            label="Telefon"
+                        />
                     </fieldset>
 
                     <fieldset v-if="activeTab === 'location'" class="grid gap-3 rounded-md border p-3">
                         <legend class="px-1 text-sm font-medium">Neuer Standort</legend>
-                        <LocationRoomFields
-                            v-model:place="form.tel_target_place"
-                            v-model:room="form.tel_target_room"
-                            place-label="Telefonstandort"
-                            :locations="target.locations.value"
-                            :places="target.places.value"
-                            :rooms-for="target.roomsFor"
+                        <AdRoomPicker
+                            v-model:ou="form.ad_target_room_id"
+                            :data="adData"
+                            :loading="adLoading"
+                            :city="user.ort"
+                            :address="user.strasse"
+                            standort-label="Telefonstandort"
+                            require-room
                         />
                     </fieldset>
 

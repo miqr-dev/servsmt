@@ -139,7 +139,7 @@
                     @endif
                   </td>
                   <td class="text-right">{{$myTicket->created_at->diffForHumans()}}</td>
-                  <td>{!!$myTicket->notizen!!}</td>
+                  <td>{!! \App\Support\SafeHtml::clean($myTicket->notizen) !!}</td>
                 </tr>
                 @empty
                 <tr>
@@ -270,7 +270,7 @@
                   </td>
                   <td class="text-right"><span class="d-none">{{@$myHandwerkTicket->created_at->format('Ymd')}}</span>
                     {{@$myHandwerkTicket->created_at->diffForHumans()}}</td>
-                  <td>{!! @$myHandwerkTicket->notizen !!}</td>
+                  <td>{!! \App\Support\SafeHtml::clean(@$myHandwerkTicket->notizen) !!}</td>
                 </tr>
                 @empty
                 <tr>

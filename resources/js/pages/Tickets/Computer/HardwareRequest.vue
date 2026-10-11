@@ -3,8 +3,8 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { computed, h, onMounted } from 'vue';
 import Combobox from '@/components/ui/combobox/Combobox.vue';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
-import LocationRoomFields from '@/components/tickets/LocationRoomFields.vue';
-import { useTicketLocations } from '@/composables/useTicketLocations';
+import AdRoomPicker from '@/components/ad/AdRoomPicker.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -43,7 +43,9 @@ defineOptions({
     },
 });
 
-const { locations, places, load, roomsFor } = useTicketLocations();
+// AD rooms (AD switch step 4): posts ad_room_id; location_id / room_id stay
+// in the form empty and the server fills them from the old-inventory link.
+const { data: adData, loading: adLoading, load } = useAdLocations();
 onMounted(load);
 
 const form = useForm({
@@ -55,6 +57,7 @@ const form = useForm({
     custom_tel_number: '',
     problem_type: 'Hardware Anfrage',
     searchmachine: '',
+    ad_room_id: '' as number | string,
     location_id: '',
     room_id: '',
     notizen: '',
@@ -74,13 +77,7 @@ function submit() {
         <h2 class="text-xl font-semibold">Geräteanfrage</h2>
 
         <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -91,12 +88,13 @@ function submit() {
 
                     <fieldset class="grid gap-3 rounded-md border p-3">
                         <legend class="px-1 text-sm font-medium">Ort</legend>
-                        <LocationRoomFields
-                            v-model:place="form.location_id"
-                            v-model:room="form.room_id"
-                            :locations="locations"
-                            :places="places"
-                            :rooms-for="roomsFor"
+                        <AdRoomPicker
+                            v-model:ou="form.ad_room_id"
+                            :data="adData"
+                            :loading="adLoading"
+                            :city="user.ort"
+                            :address="user.strasse"
+                            require-room
                         />
                     </fieldset>
                 </div>

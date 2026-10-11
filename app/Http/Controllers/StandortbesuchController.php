@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Note;
 use App\Place;
 use App\Ticket;
 use App\Standortbesuch;
@@ -55,19 +54,7 @@ class StandortbesuchController extends Controller
     return view('settings.publish.standortbesuch', compact('datum'));
   }
 
-public function getCityTicketDetail($cityName)
-{
-    $tickets = Ticket::with('subUser')->whereHas('subUser', function ($query) use ($cityName) {
-      return $query->where('ort', '=', $cityName);
-    })->whereNotNull('on_location')->get();
-
-    $placeId = Place::where('pnname', $cityName)->value('id');
-    $notes = Note::where('place_id', $placeId)->get();
-    return response()->json([
-        'tickets' => $tickets,
-        'notes' => $notes
-    ]);
-}
+// getCityTicketDetail() removed 2026-10-09: only the old Blade ticket table used it (city tickets + "Hinweise").
 
 
   public function create()

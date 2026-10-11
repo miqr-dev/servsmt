@@ -11,4 +11,13 @@ return [
 
     // LDAP connection from config/ldap.php (the read-only import account is enough)
     'connection' => env('AD_INVENTORY_CONNECTION', 'default'),
+
+    // Bundesland of each AD Standort (by its label), groups the Standort select
+    // of the ticket forms. Changed / added on Einstellungen > Standorte &
+    // Adressen (stored in ad_ous.state, which wins over this list).
+    'states' => [
+        'Berlin' => ['Berlin'],
+        'Sachsen' => ['Chemnitz', 'Döbeln', 'Dresden', 'Leipzig', 'Riesa'],
+        'Thüringen' => ['Erfurt', 'Suhl'],
+    ],
 ];

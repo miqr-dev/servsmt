@@ -11,6 +11,7 @@ import {
     Forward,
     HardHat,
     Inbox,
+    KeyRound,
     Mail,
     Megaphone,
     FileDown,
@@ -75,6 +76,9 @@ const props = defineProps<{
     terminationsDueOnly?: boolean;
     // Super_Admin: forwardings with "bis" ≤ yesterday, not removed yet
     overdueForwardings?: OverdueForwarding[];
+    // Super_Admin, from 1 January until the default password for new
+    // employees is saved this year (App\Support\EmployeePassword)
+    employeePasswordReminder?: { year: number; changedAt: string | null };
 }>();
 
 defineOptions({
@@ -356,6 +360,27 @@ const SHORTCUTS = [
 
             <!-- Unread notifications of all systems, one line per ticket -->
             <NewForYou v-if="props.newForYou?.length" :groups="props.newForYou" />
+
+            <!-- Yearly reminder: default Windows password for new employees -->
+            <section
+                v-if="props.employeePasswordReminder"
+                class="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+                <KeyRound class="size-5 shrink-0" />
+                <div class="min-w-0 flex-1 text-sm">
+                    <h2 class="font-semibold">Neues Jahr: Standard-Passwort für neue Mitarbeiter ändern</h2>
+                    <p>
+                        Wurde {{ props.employeePasswordReminder.year }} noch nicht geändert. Es wird mit der E-Mail „Neuer Mitarbeiter“ verschickt und muss zum
+                        Active Directory passen.
+                    </p>
+                </div>
+                <Link
+                    href="/settings/neuer-mitarbeiter"
+                    class="inline-flex h-9 items-center rounded-md border border-amber-400 bg-white px-3 text-sm font-medium hover:bg-amber-100 dark:bg-transparent"
+                >
+                    Jetzt ändern
+                </Link>
+            </section>
 
             <!--
                 Movable boxes (2026-10-02): two columns; drag a box by its grip

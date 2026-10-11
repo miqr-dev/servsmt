@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, h, ref } from 'vue';
-import ComputerSelect, { type ComputerOption } from '@/components/tickets/ComputerSelect.vue';
+import { computed, h, onMounted, ref, type VNode } from 'vue';
+import AdComputerField from '@/components/ad/AdComputerField.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -27,8 +28,9 @@ import type { BreadcrumbItem } from '@/types';
  * Handwerk SimpleTicket.vue precedent for collapsing identical old forms.
  *
  * All three submit to TicketController@store, which reads the same field
- * names (searchcomputer, searchsoftware, software_name, software_reason,
- * notizen) regardless of problem_type.
+ * names (ad_computer_id - AD PC since step 4, the server adds the old
+ * gname_id -, searchsoftware, software_name, software_reason, notizen)
+ * regardless of problem_type.
  */
 
 type Tab = 'install' | 'error' | 'other';
@@ -40,14 +42,15 @@ const props = defineProps<{
     now: string;
     isSuperAdmin: boolean;
     availableSubmitterUsers: SubmitterUser[];
-    computers: ComputerOption[];
 }>();
 
 defineOptions({
-    layout: (h_: typeof h, page: unknown) => {
+    layout: (h_: typeof h, page: VNode) => {
+        // the page's own title (per variant, from the controller) - was a "#" before
+        const title = (page.props as { title?: string } | null)?.title ?? 'Software';
         const breadcrumbs: BreadcrumbItem[] = [
             { title: 'IT-Tickets', href: '/ticket.index' },
-            { title: '#', href: '#' },
+            { title, href: '#' },
         ];
 
         return h_(AppLayout, { breadcrumbs }, () => page);
@@ -69,7 +72,10 @@ const PROBLEM_TYPES: Record<Tab, string> = {
 const activeTab = ref<Tab | null>(props.variant === 'request' ? null : (props.variant as Tab));
 const showTabs = props.variant === 'request';
 
-const SOFTWARE_SUGGESTIONS = ['Teamviewer', 'FireFox', 'Chrome'];
+// AD PCs (AD switch step 4): the form posts ad_computer_id, the server adds the old gname_id.
+// Software forms: no Standort / Raum, every PC in one searchable list (2026-10-09).
+const { data: adData, loading: adLoading, load: loadAd } = useAdLocations({ computers: true });
+onMounted(loadAd);
 
 const form = useForm({
     submitter: props.user.id,
@@ -79,7 +85,8 @@ const form = useForm({
     tel_number: props.user.tel ?? '',
     custom_tel_number: '',
     problem_type: activeTab.value ? PROBLEM_TYPES[activeTab.value] : '',
-    searchcomputer: '',
+    ad_computer_id: '' as number | string,
+    ad_pc_device_id: '' as number | string, // PC added in the form (not in AD)
     searchsoftware: '',
     software_name: '',
     software_reason: '',
@@ -110,7 +117,7 @@ function submit() {
 
         <div v-if="showTabs" class="flex flex-wrap justify-center gap-3">
             <button
-                v-for="tab in (['install', 'error', 'other'] as Tab[])"
+                v-for="tab in ['install', 'error', 'other'] as Tab[]"
                 :key="tab"
                 type="button"
                 class="rounded-md border px-4 py-2 text-sm"
@@ -122,33 +129,29 @@ function submit() {
         </div>
 
         <form v-if="activeTab" class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <ComputerSelect v-model="form.searchcomputer" :computers="computers" />
+                    <AdComputerField
+                        v-model="form.ad_computer_id"
+                        v-model:device="form.ad_pc_device_id"
+                        :data="adData"
+                        :loading="adLoading"
+                        :cascade="false"
+                    />
 
                     <div v-if="activeTab !== 'other'" class="flex flex-col gap-1">
                         <label class="text-sm font-medium">
                             Welche App <span v-if="activeTab === 'error'" class="text-muted-foreground">*</span>
                         </label>
+                        <!-- plain text field (2026-10-09; was a suggestion dropdown) -->
                         <input
                             v-model="form.searchsoftware"
                             type="text"
-                            list="software_suggestions"
                             :required="activeTab === 'error'"
                             class="border-input bg-background h-9 rounded-md border px-3 text-sm"
                         />
-                        <datalist id="software_suggestions">
-                            <option v-for="s in SOFTWARE_SUGGESTIONS" :key="s" :value="s" />
-                        </datalist>
-                        <p class="text-muted-foreground text-xs">App nicht in der Liste? Einfach den Namen eintragen.</p>
                     </div>
                 </div>
 
@@ -158,9 +161,7 @@ function submit() {
                         <input v-model="form.software_name" type="text" class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label class="text-sm font-medium">
-                            Warum benötigen Sie die Software <span class="text-muted-foreground">*</span>
-                        </label>
+                        <label class="text-sm font-medium"> Warum benötigen Sie die Software <span class="text-muted-foreground">*</span> </label>
                         <input
                             v-model="form.software_reason"
                             type="text"

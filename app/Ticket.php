@@ -128,4 +128,15 @@ class Ticket extends Model
   {
     return $this->belongsTo(AdComputer::class, 'ad_computer_id')->withTrashed();
   }
+
+  // devices added in the app (2026-10-09): printer / phone / projector, and a PC not in AD
+  public function adDevice()
+  {
+    return $this->belongsTo(AdDevice::class, 'ad_device_id')->withTrashed();
+  }
+
+  public function adPcDevice()
+  {
+    return $this->belongsTo(AdDevice::class, 'ad_pc_device_id')->withTrashed();
+  }
 }

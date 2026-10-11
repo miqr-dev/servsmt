@@ -41,7 +41,7 @@
   @if(!empty(trim(strip_tags($cleanNotes ?? ''))))
   <hr>
   <h6><i class="fas fa-clipboard"></i> Beschreibung</h6>
-  <p>{!! $cleanNotes !!}</p>
+  <p>{!! \App\Support\SafeHtml::clean($cleanNotes) !!}</p>
   @endif
 
   <h6><i class="fas fa-map-marker-alt"></i> Standort</h6>

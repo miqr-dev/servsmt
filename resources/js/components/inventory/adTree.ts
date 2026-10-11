@@ -7,6 +7,8 @@ export type AdTreeNode = {
     type: string;
     /** 'ad' = imported, 'app' = added in the app (not in AD) */
     source?: string;
+    /** hidden from the ticket-form pickers (Einstellungen > Standorte & Adressen) */
+    hidden?: boolean;
     children: AdTreeNode[];
     /** computers in this OU and everything below it */
     count: number;

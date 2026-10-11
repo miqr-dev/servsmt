@@ -12,7 +12,7 @@ class AdOu extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['synced_at' => 'datetime'];
+    protected $casts = ['synced_at' => 'datetime', 'hidden' => 'boolean'];
 
     public function parent()
     {

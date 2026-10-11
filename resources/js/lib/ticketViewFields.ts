@@ -50,6 +50,46 @@ type Place = { pnname: string | null } | null;
 type LocationInfo = { address: string | null; place: Place } | null;
 type RoomInfo = { rname: string | null; altrname: string | null; location: LocationInfo } | null;
 type InvItemInfo = { gname: string | null; invnr: string | null; invroom: RoomInfo } | null;
+
+/** AD room / computer (App\Support\AdLocation, AD switch step 3). */
+export type AdRoom = {
+    id: number;
+    standort: string | null;
+    adresse: string | null;
+    etage: string | null;
+    /** null when the OU is an Adresse / Etage (no room picked) */
+    raum: string | null;
+    label: string;
+    path: string;
+    deleted: boolean;
+    app: boolean;
+} | null;
+export type AdComputer = { id: number; name: string; group: string | null; room: AdRoom; deleted: boolean } | null;
+/** device added in the app ("Gerät hinzufügen", 2026-10-09); checked = confirmed by IT */
+export type AdDeviceInfo = {
+    id: number;
+    name: string;
+    kind: string;
+    kind_label: string;
+    invnr: string | null;
+    room: AdRoom;
+    checked: boolean;
+    deleted: boolean;
+} | null;
+export type AdContext = {
+    computer: AdComputer;
+    room: AdRoom;
+    itemRoom: AdRoom;
+    printerRoom: AdRoom;
+    /** move target ("Standort ändern"), step 4 */
+    targetRoom?: AdRoom;
+    /** PCs of "PC Standort ändern": AD name, else the old item */
+    pcList?: { name: string; deleted: boolean }[];
+    /** printer / phone / projector added in the form (not in the old inventory) */
+    device?: AdDeviceInfo;
+    /** PC added in the form (not in AD) */
+    pcDevice?: AdDeviceInfo;
+};
 type NamedItem = { name: string | null } | null;
 type ReplicationUser = { name: string | null; vorname: string | null } | null;
 type ForwardUser = { name: string | null; vorname: string | null } | null;
@@ -83,7 +123,7 @@ export interface TicketDetail {
     user: { username: string | null } | null;
     invitem: InvItemInfo;
     printer: InvItemInfo;
-    pcs: { gname: string | null; invnr: string | null }[];
+    pcs: { id: number; gname: string | null; invnr: string | null }[];
     location: LocationInfo;
     room: { rname: string | null; altrname: string | null } | null;
     gart: NamedItem;
@@ -178,6 +218,8 @@ export interface TicketViewContext {
     ticket: TicketDetail;
     telNewRoom: { rname: string | null; altrname: string | null } | null;
     telNewAddress: { address: string | null } | null;
+    /** AD room / computer - shown first, the old inventory values are the fallback (step 3). */
+    ad?: AdContext | null;
 }
 
 export interface TicketViewField {
@@ -201,24 +243,56 @@ export interface TicketViewGroup {
 
 const room = (r: { rname: string | null; altrname: string | null } | null | undefined) => [r?.rname, r?.altrname].filter(Boolean).join(' | ');
 
+// --- AD first, old inventory as fallback (AD switch step 3, 2026-10-09) ---
+const gone = (deleted: boolean | undefined) => (deleted ? ' (nicht mehr im AD)' : '');
+const adAddress = (r: AdRoom) => (r ? [r.adresse, r.standort].filter(Boolean).join(', ') : '');
+const adRoomLabel = (r: AdRoom) => (r?.label ? r.label + gone(r.deleted) : '');
+/** a device the user added in the form */
+const userDevice = (d: AdDeviceInfo | undefined) =>
+    d ? d.name + (d.invnr ? ` (${d.invnr})` : '') + ' - vom Benutzer angegeben' + (d.deleted ? ' (gelöscht)' : '') : '';
+/** the ticket's device: AD computer if linked, else a PC the user added, else the old inventory item */
+const deviceName = (c: TicketViewContext) =>
+    c.ad?.computer ? c.ad.computer.name + gone(c.ad.computer.deleted) : userDevice(c.ad?.pcDevice) || (c.ticket.invitem?.gname ?? '');
+/** printer / phone / projector: the old inventory item, else the one the user added */
+const itemName = (c: TicketViewContext) => c.ticket.invitem?.gname || userDevice(c.ad?.device);
+/**
+ * room of the ticket's device: the AD computer's room, else the AD room of the
+ * old device's room, else (no PC on the ticket, e.g. a phone that is not in the
+ * list) the AD room picked in the form; the old room is the last fallback.
+ */
+const deviceRoom = (c: TicketViewContext): AdRoom =>
+    c.ad?.computer?.room ??
+    c.ad?.pcDevice?.room ??
+    c.ad?.itemRoom ??
+    (c.ad?.computer || c.ad?.pcDevice ? null : (c.ad?.device?.room ?? c.ad?.room ?? null));
+const deviceAddress = (c: TicketViewContext) => adAddress(deviceRoom(c)) || (c.ticket.invitem?.invroom?.location?.address ?? '');
+const deviceRoomLabel = (c: TicketViewContext) => adRoomLabel(deviceRoom(c)) || room(c.ticket.invitem?.invroom);
+/** room picked on the ticket itself (hardware requests etc.) */
+const ticketAddress = (c: TicketViewContext) => adAddress(c.ad?.room ?? null) || (c.ticket.location?.address ?? '');
+const ticketRoomLabel = (c: TicketViewContext) => adRoomLabel(c.ad?.room ?? null) || room(c.ticket.room);
+
 const rechnerAdresseRaum: TicketViewField[] = [
-    { label: 'Rechner', value: ({ ticket: t }) => t.invitem?.gname ?? '' },
-    { label: 'Adresse', value: ({ ticket: t }) => t.invitem?.invroom?.location?.address ?? '' },
-    { label: 'Raum', value: ({ ticket: t }) => room(t.invitem?.invroom) },
+    { label: 'Rechner', value: deviceName },
+    { label: 'Adresse', value: deviceAddress },
+    { label: 'Raum', value: deviceRoomLabel },
 ];
 const telefonAdresseRaum: TicketViewField[] = [
-    { label: 'Telefon', value: ({ ticket: t }) => t.invitem?.gname ?? '' },
-    { label: 'Adresse', value: ({ ticket: t }) => t.invitem?.invroom?.location?.address ?? '' },
-    { label: 'Raum', value: ({ ticket: t }) => room(t.invitem?.invroom) },
+    { label: 'Telefon', value: itemName },
+    { label: 'Adresse', value: deviceAddress },
+    { label: 'Raum', value: deviceRoomLabel },
 ];
 const druckerAdresseRaum: TicketViewField[] = [
-    { label: 'Drucker', value: ({ ticket: t }) => t.printer?.gname ?? '' },
-    { label: 'Adresse', value: ({ ticket: t }) => t.printer?.invroom?.location?.address ?? '' },
-    { label: 'Raum', value: ({ ticket: t }) => room(t.printer?.invroom) },
+    { label: 'Drucker', value: (c) => c.ticket.printer?.gname || userDevice(c.ad?.device) },
+    {
+        label: 'Adresse',
+        value: (c) =>
+            adAddress(c.ad?.printerRoom ?? c.ad?.device?.room ?? c.ad?.room ?? null) || (c.ticket.printer?.invroom?.location?.address ?? ''),
+    },
+    { label: 'Raum', value: (c) => adRoomLabel(c.ad?.printerRoom ?? c.ad?.device?.room ?? c.ad?.room ?? null) || room(c.ticket.printer?.invroom) },
 ];
 const neueAdresseNeuerRaum: TicketViewField[] = [
-    { label: 'Neue Adresse', value: ({ telNewAddress }) => telNewAddress?.address ?? '' },
-    { label: 'Neuer Raum', value: ({ telNewRoom }) => room(telNewRoom) },
+    { label: 'Neue Adresse', value: (c) => adAddress(c.ad?.targetRoom ?? null) || (c.telNewAddress?.address ?? '') },
+    { label: 'Neuer Raum', value: (c) => adRoomLabel(c.ad?.targetRoom ?? null) || room(c.telNewRoom) },
 ];
 const betreffName = (subjectKey: keyof TicketDetail, usernameKey: keyof TicketDetail): TicketViewField[] => [
     { label: 'Betreff', value: ({ ticket: t }) => (t[subjectKey] as string | null) ?? '' },
@@ -234,14 +308,18 @@ export const TICKET_VIEW_GROUPS: Record<string, TicketViewGroup> = {
         fields: [...rechnerAdresseRaum, { label: 'Software', value: ({ ticket: t }) => t.searchsoftware ?? '' }],
     },
     andererdruckerstandortticket: {
-        fields: [{ label: 'Drucker', value: ({ ticket: t }) => t.invitem?.gname ?? '' }, ...neueAdresseNeuerRaum],
+        fields: [{ label: 'Drucker', value: itemName }, ...neueAdresseNeuerRaum],
     },
     andererpcstandortticket: {
         fields: [
             {
                 label: 'PCs',
-                value: ({ ticket: t }) =>
-                    t.pcs.length ? t.pcs.map((pc) => pc.gname || pc.invnr).join(', ') : ((t.invitem?.gname || t.invitem?.invnr) ?? '—'),
+                value: (c) =>
+                    c.ad?.pcList?.length
+                        ? c.ad.pcList.map((pc) => pc.name + gone(pc.deleted)).join(', ')
+                        : c.ticket.pcs.length
+                          ? c.ticket.pcs.map((pc) => pc.gname || pc.invnr).join(', ')
+                          : deviceName(c) || (c.ticket.invitem?.invnr ?? '—'),
             },
             ...neueAdresseNeuerRaum,
         ],
@@ -263,9 +341,9 @@ export const TICKET_VIEW_GROUPS: Record<string, TicketViewGroup> = {
     bbbneuerbenutzerticket: { fields: betreffName('bbb_subject', 'bbb_username') },
     beamerproblemeticket: {
         fields: [
-            { label: 'Beamer', value: ({ ticket: t }) => t.invitem?.gname ?? '' },
-            { label: 'Adresse', value: ({ ticket: t }) => t.invitem?.invroom?.location?.address ?? '' },
-            { label: 'Raum', value: ({ ticket: t }) => room(t.invitem?.invroom) },
+            { label: 'Beamer', value: itemName },
+            { label: 'Adresse', value: deviceAddress },
+            { label: 'Raum', value: deviceRoomLabel },
         ],
     },
     benutzersonstigesticket: { fields: [{ label: 'Name', value: ({ ticket: t }) => t.user_other_username ?? '' }] },
@@ -289,13 +367,13 @@ export const TICKET_VIEW_GROUPS: Record<string, TicketViewGroup> = {
     hardwareanfrageticket: {
         fields: [
             { label: 'Geräte', value: ({ ticket: t }) => t.gart?.name ?? '' },
-            { label: 'Adresse', value: ({ ticket: t }) => t.location?.address ?? '' },
-            { label: 'Raum', value: ({ ticket: t }) => room(t.room) },
+            { label: 'Adresse', value: ticketAddress },
+            { label: 'Raum', value: ticketRoomLabel },
         ],
     },
     pclaptopsonstigesticket: { heading: ({ ticket: t }) => t.pc_laptop_others ?? '', fields: [] },
     peripherieanfrageticket: {
-        fields: [{ label: 'Rechner', value: ({ ticket: t }) => t.invitem?.gname ?? '' }],
+        fields: [{ label: 'Rechner', value: deviceName }],
         flags: [
             { label: 'Tastatur', key: 'keyboard' },
             { label: 'Maus', key: 'mouse' },

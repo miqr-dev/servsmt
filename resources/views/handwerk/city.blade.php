@@ -97,7 +97,7 @@
             <td>{{ @$handwerk->room->rname }}</td>
             <td class="text-right"><span class="d-none">{{$handwerk->created_at->format('Ymd, hms')}}</span>
               {{$handwerk->created_at->diffForHumans()}}</td>
-            <td>{!! @$handwerk->subject ? @$handwerk->subject : @$handwerk->notizen !!}</td>
+            <td>{!! \App\Support\SafeHtml::clean(@$handwerk->subject ? @$handwerk->subject : @$handwerk->notizen) !!}</td>
             <td class="text-right">
               <button class="btn btn-success btn-outline btn-done-aufgabe" data-id="{{ $handwerk->id }}">
                 <i class="fas fa-check"></i>

@@ -49,6 +49,12 @@ const TYPE_LABEL: Record<string, string> = {
             <span v-else class="inline-block w-[18px]" />
             <span class="min-w-0 flex-1 truncate" :title="node.name">{{ node.label }}</span>
             <span
+                v-if="node.hidden"
+                class="text-muted-foreground shrink-0 rounded border px-1 text-[10px] font-medium"
+                title="In den Ticket-Formularen ausgeblendet (Einstellungen > Standorte & Adressen)"
+                >ausgeblendet</span
+            >
+            <span
                 v-if="node.source === 'app'"
                 class="shrink-0 rounded border border-dashed px-1 text-[10px] font-medium"
                 title="Im App angelegt, nicht im AD"

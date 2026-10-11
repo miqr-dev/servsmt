@@ -7,6 +7,7 @@ use App\AdOu;
 use App\InvItems;
 use App\InvRoom;
 use App\Support\AdInventoryLinker;
+use App\Support\AppOus;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Artisan;
@@ -25,10 +26,11 @@ class AdInventoryController extends Controller
     public function index()
     {
         $ous = AdOu::query()
-            ->get(['id', 'parent_id', 'type', 'label', 'name', 'depth', 'description', 'source'])
+            ->get(['id', 'parent_id', 'type', 'label', 'name', 'depth', 'description', 'source', 'hidden'])
             ->map(fn ($o) => [
                 'id' => $o->id,
                 'source' => $o->source,
+                'hidden' => (bool) $o->hidden, // Einstellungen > Standorte & Adressen
                 'parent_id' => $o->parent_id,
                 'type' => $o->type ?? 'other',
                 'label' => $o->label ?: $o->name,
@@ -231,41 +233,16 @@ class AdInventoryController extends Controller
     public function storeRoom(Request $request)
     {
         $data = $this->validateRoom($request);
-        $parent = AdOu::findOrFail($data['parent_id']);
-
-        $room = new AdOu;
-        $room->forceFill([
-            'guid' => 'app-'.\Illuminate\Support\Str::uuid(),
-            'source' => 'app',
-            'parent_id' => $parent->id,
-            'standort_ou_id' => $parent->standort_ou_id,
-            'name' => $data['name'],
-            'label' => $data['name'],
-            'type' => 'raum',
-            'dn' => 'app:'.$data['name'].'|'.$parent->dn,
-            'depth' => $parent->depth + 1,
-            'description' => $data['description'] ?? null,
-            'created_by' => auth()->id(),
-        ])->save();
+        $room = AppOus::create(AdOu::findOrFail($data['parent_id']), 'raum', $data['name'], $data['description'] ?? null);
 
         return back()->with('success', "Raum \"{$room->name}\" angelegt.");
     }
 
     public function updateRoom(Request $request, $id)
     {
-        $room = AdOu::where('source', 'app')->findOrFail($id);
-        $data = $this->validateRoom($request, $room->id);
-        $parent = AdOu::findOrFail($data['parent_id']);
-
-        $room->forceFill([
-            'parent_id' => $parent->id,
-            'standort_ou_id' => $parent->standort_ou_id,
-            'name' => $data['name'],
-            'label' => $data['name'],
-            'dn' => 'app:'.$data['name'].'|'.$parent->dn,
-            'depth' => $parent->depth + 1,
-            'description' => $data['description'] ?? null,
-        ])->save();
+        $room = AdOu::where('source', 'app')->where('type', 'raum')->findOrFail($id);
+        $data = $this->validateRoom($request);
+        AppOus::rename($room, $data['name'], $data['description'] ?? null, AdOu::findOrFail($data['parent_id']));
 
         return back()->with('success', 'Raum gespeichert.');
     }
@@ -273,30 +250,21 @@ class AdInventoryController extends Controller
     /** Soft delete: tickets that used the room keep showing its name. */
     public function destroyRoom($id)
     {
-        $room = AdOu::where('source', 'app')->findOrFail($id);
-        $room->delete();
+        $room = AdOu::where('source', 'app')->where('type', 'raum')->findOrFail($id);
+        AppOus::delete($room);
 
         return back()->with('success', "Raum \"{$room->name}\" gelöscht.");
     }
 
-    private function validateRoom(Request $request, ?int $ignoreId = null): array
+    private function validateRoom(Request $request): array
     {
         $data = $request->validate([
-            // only under an address or a floor
+            // only under an address or a floor (duplicate names: AppOus)
             'parent_id' => ['required', Rule::exists('ad_ous', 'id')->whereIn('type', ['adresse', 'etage'])->whereNull('deleted_at')],
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
         ]);
         $data['name'] = trim($data['name']);
-
-        // no two rooms with the same name in the same place
-        $exists = AdOu::where('parent_id', $data['parent_id'])->where('type', 'raum')
-            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
-            ->get(['label', 'name'])
-            ->contains(fn ($o) => mb_strtolower($o->label ?: $o->name) === mb_strtolower($data['name']));
-        if ($exists) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['name' => 'Diesen Raum gibt es hier schon.']);
-        }
 
         return $data;
     }

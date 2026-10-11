@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { h, onMounted, ref } from 'vue';
 import axios from 'axios';
+import { safeHtml } from '@/lib/safeHtml';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -323,7 +324,7 @@ onMounted(async () => {
                     <h3 class="mb-3 text-center text-lg font-semibold">
                         {{ newsPopup?.title }}
                     </h3>
-                    <div class="text-foreground text-sm" v-html="newsPopup?.body"></div>
+                    <div class="text-foreground text-sm" v-html="safeHtml(newsPopup?.body)"></div>
                 </div>
             </div>
         </Transition>

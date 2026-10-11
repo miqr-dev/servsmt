@@ -2,8 +2,8 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed, h, onMounted } from 'vue';
 import SubmitterCard from '@/components/handwerk/SubmitterCard.vue';
-import LocationRoomFields from '@/components/handwerk/LocationRoomFields.vue';
-import { useHandwerkLocations } from '@/composables/useHandwerkLocations';
+import AdLocationRoomFields from '@/components/handwerk/AdLocationRoomFields.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { Auth, BreadcrumbItem } from '@/types';
 
@@ -42,14 +42,17 @@ defineOptions({
 const page = usePage<{ auth: Auth }>();
 const isSuperAdmin = computed(() => (page.props.auth.user?.roles ?? []).includes('Super_Admin'));
 
-const { locations, load, roomsFor } = useHandwerkLocations();
+// AD rooms (AD switch step 4). The Standort is the submitter's city, or the
+// one picked under "Standort ändern" (handwerk_admin).
+const { data: adData, loading: adLoading, load } = useAdLocations();
 
 onMounted(() => {
     load();
 });
 
 function onStandortChanged(city: string) {
-    load(city);
+    form.ad_room_id = ''; // the picker follows the new city
+    form.submitter_standort_exception = city;
 }
 
 const form = useForm({
@@ -61,8 +64,7 @@ const form = useForm({
     priority: '2',
     tel_number: props.user.tel ?? '',
     problem_type: props.problemType,
-    location_id: '',
-    room_id: '',
+    ad_room_id: '' as number | string,
     custom_room: '',
     subject: '',
     notizen: '',
@@ -88,24 +90,22 @@ function submit() {
             />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
-                <LocationRoomFields :form="form" :locations="locations" :rooms-for="roomsFor" />
+                <AdLocationRoomFields
+                    :form="form"
+                    :data="adData"
+                    :loading="adLoading"
+                    :city="form.submitter_standort_exception || user.ort"
+                    :address="user.strasse"
+                />
 
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Betreff</label>
-                    <input
-                        v-model="form.subject"
-                        type="text"
-                        class="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                    />
+                    <input v-model="form.subject" type="text" class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
                 </div>
 
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Anforderung</label>
-                    <textarea
-                        v-model="form.notizen"
-                        rows="5"
-                        class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                    ></textarea>
+                    <textarea v-model="form.notizen" rows="5" class="border-input bg-background rounded-md border px-3 py-2 text-sm"></textarea>
                 </div>
 
                 <button

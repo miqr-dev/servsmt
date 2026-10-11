@@ -317,7 +317,7 @@
                   <td>{{@$myTicket->created_at->diffForHumans()}}
                     <p class="small muted">{{ @$myTicket->created_at->format('d.m.Y ')}}</p>
                   </td>
-                  <td>{!!$myTicket->notizen!!}</td>
+                  <td>{!! \App\Support\SafeHtml::clean($myTicket->notizen) !!}</td>
                 </tr>
                 @endforeach
               </tbody>

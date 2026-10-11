@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, h, onMounted, ref, watch } from 'vue';
-import axios from 'axios';
+import { h, onMounted, ref } from 'vue';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
-import LocationRoomFields from '@/components/tickets/LocationRoomFields.vue';
-import Combobox from '@/components/ui/combobox/Combobox.vue';
-import { useTicketLocations } from '@/composables/useTicketLocations';
+import AdDeviceSelect from '@/components/ad/AdDeviceSelect.vue';
+import AdRoomPicker from '@/components/ad/AdRoomPicker.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -26,8 +25,6 @@ import type { BreadcrumbItem } from '@/types';
  * searchable).
  */
 
-type TelOption = { id: number; gname: string };
-
 const props = defineProps<{
     user: SubmitterUser;
     now: string;
@@ -46,8 +43,11 @@ defineOptions({
     },
 });
 
-const { locations, places, load, roomsFor } = useTicketLocations();
+// AD switch step 4: the room comes from AD (ad_room_id); phones are not in
+// AD, so the list shows the old inventory phones of the linked old rooms.
+const { data: adData, loading: adLoading, load } = useAdLocations();
 onMounted(load);
+const telRoom = ref<number | string | null>('');
 
 const form = useForm({
     submitter: props.user.id,
@@ -57,27 +57,11 @@ const form = useForm({
     tel_number: props.user.tel ?? '',
     custom_tel_number: '',
     problem_type: 'Tel Probleme',
-    tel_current_place: '',
-    tel_current_room: '',
+    ad_room_id: '' as number | string,
+    ad_device_id: '' as number | string, // device added in the form
     searchcomputer: '',
     notizen: '',
 });
-
-const telephones = ref<TelOption[]>([]);
-
-const telephoneOptions = computed(() => telephones.value.map((t) => ({ value: t.id, label: t.gname })));
-
-watch(
-    () => form.tel_current_room,
-    async (roomId) => {
-        form.searchcomputer = '';
-        telephones.value = [];
-        if (!roomId) return;
-
-        const { data } = await axios.post<TelOption[]>('/ticket.tel_search_inroom', { telephones: roomId });
-        telephones.value = data;
-    },
-);
 
 function submit() {
     form.post('/form_store');
@@ -91,29 +75,22 @@ function submit() {
         <h2 class="text-xl font-semibold">Telefon Probleme</h2>
 
         <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <fieldset class="grid gap-3 rounded-md border p-3 sm:max-w-md">
                     <legend class="px-1 text-sm font-medium">Telefon</legend>
-                    <LocationRoomFields
-                        v-model:place="form.tel_current_place"
-                        v-model:room="form.tel_current_room"
-                        place-label="Telefonstandort"
-                        :locations="locations"
-                        :places="places"
-                        :rooms-for="roomsFor"
+                    <AdRoomPicker
+                        v-model:ou="form.ad_room_id"
+                        v-model:room="telRoom"
+                        :data="adData"
+                        :loading="adLoading"
+                        :city="user.ort"
+                        :address="user.strasse"
+                        standort-label="Telefonstandort"
+                        require-room
                     />
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-medium">Telefon <span class="text-muted-foreground">*</span></label>
-                        <Combobox v-model="form.searchcomputer" :options="telephoneOptions" required />
-                    </div>
+                    <AdDeviceSelect v-model="form.searchcomputer" v-model:device="form.ad_device_id" :room="telRoom" type="phone" label="Telefon" />
                 </fieldset>
 
                 <div class="flex flex-col gap-1">

@@ -7,9 +7,11 @@ import { computed, h, ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CommentThread from '@/components/CommentThread.vue';
 import { isChecked } from '@/lib/checkbox';
+import { safeHtml } from '@/lib/safeHtml';
 import { ITEM_GROUPS_BY_TYPE, SUBJECT_TYPES } from '@/lib/handwerkItems';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type { CommentItem } from '@/components/CommentThread.vue';
+import { handwerkAddress, type HandwerkAdRoom } from '@/lib/handwerkRoom';
 
 /**
  * Converted from resources/views/handwerk/show.blade.php. The old page
@@ -46,6 +48,8 @@ type HandwerkDetail = {
     assignedUser?: { id: number; username: string | null } | null;
     room: RoomInfo;
     location: LocationInfo;
+    /** AD room (App\Support\AdLocation::room), null for old tickets without a link */
+    ad_room?: HandwerkAdRoom;
     subUser: SubUser;
     comments: CommentItem[];
     [key: string]: unknown;
@@ -279,9 +283,18 @@ function restore() {
                 <div class="mt-3 grid gap-3 sm:grid-cols-2">
                     <div>
                         <p class="text-muted-foreground text-xs">Adresse</p>
-                        <p class="font-semibold" style="color: #661421">{{ handwerk.location?.address }}</p>
+                        <p class="font-semibold" style="color: #661421">
+                            {{ handwerkAddress(handwerk) }}
+                        </p>
                     </div>
-                    <div v-if="handwerk.room">
+                    <div v-if="handwerk.ad_room?.label">
+                        <p class="text-muted-foreground text-xs">Raum</p>
+                        <p class="font-semibold" style="color: #661421" :title="handwerk.ad_room.path">
+                            {{ handwerk.ad_room.label }}
+                            <span v-if="handwerk.ad_room.deleted" class="text-muted-foreground text-xs font-normal">(nicht mehr im AD)</span>
+                        </p>
+                    </div>
+                    <div v-else-if="handwerk.room">
                         <p class="text-muted-foreground text-xs">Raum</p>
                         <p class="font-semibold" style="color: #661421">
                             {{ handwerk.room?.rname }}
@@ -313,7 +326,7 @@ function restore() {
                 <div class="mt-4">
                     <p class="text-sm font-semibold" style="color: #661421">Beschreibung</p>
                     <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div class="mt-1 text-sm whitespace-pre-wrap" v-html="handwerk.notizen"></div>
+                    <div class="mt-1 text-sm whitespace-pre-wrap" v-html="safeHtml(handwerk.notizen)"></div>
                 </div>
 
                 <div class="mt-6 border-t pt-4">

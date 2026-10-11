@@ -74,5 +74,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        // same ticket sent twice within seconds -> stored once (2026-10-12)
+        'single.submit' => \App\Http\Middleware\PreventDuplicateSubmit::class,
     ];
 }

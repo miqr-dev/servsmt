@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { h } from 'vue';
-import ComputerSelect, { type ComputerOption } from '@/components/tickets/ComputerSelect.vue';
+import { h, onMounted } from 'vue';
+import AdComputerField from '@/components/ad/AdComputerField.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -21,7 +22,6 @@ const props = defineProps<{
     now: string;
     isSuperAdmin: boolean;
     availableSubmitterUsers: SubmitterUser[];
-    computers: ComputerOption[];
 }>();
 
 defineOptions({
@@ -34,6 +34,10 @@ defineOptions({
         return h_(AppLayout, { breadcrumbs }, () => page);
     },
 });
+
+// AD PCs (AD switch step 4): the form posts ad_computer_id, the server adds the old gname_id
+const { data: adData, loading: adLoading, load: loadAd } = useAdLocations({ computers: true });
+onMounted(loadAd);
 
 const form = useForm({
     submitter: props.user.id,
@@ -56,7 +60,8 @@ const form = useForm({
     no_network_drive: false,
     laud_fan: false,
     other: false,
-    searchcomputer: '',
+    ad_computer_id: '' as number | string,
+    ad_pc_device_id: '' as number | string, // PC added in the form (not in AD)
     notizen: '',
 });
 
@@ -94,13 +99,7 @@ function submit() {
         <h2 class="text-xl font-semibold">Probleme</h2>
 
         <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <div class="grid gap-4 sm:grid-cols-3">
@@ -129,7 +128,16 @@ function submit() {
                     </fieldset>
                 </div>
 
-                <ComputerSelect v-model="form.searchcomputer" :computers="computers" />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <AdComputerField
+                        v-model="form.ad_computer_id"
+                        v-model:device="form.ad_pc_device_id"
+                        :data="adData"
+                        :loading="adLoading"
+                        :city="user.ort"
+                        :address="user.strasse"
+                    />
+                </div>
 
                 <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium">Beschreibung</label>

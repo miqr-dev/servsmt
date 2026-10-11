@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, h, onMounted, ref, watch } from 'vue';
-import axios from 'axios';
-import ComputerSelect, { type ComputerOption } from '@/components/tickets/ComputerSelect.vue';
+import { computed, h, onMounted, ref, type VNode } from 'vue';
+import AdComputerField from '@/components/ad/AdComputerField.vue';
+import AdDeviceSelect from '@/components/ad/AdDeviceSelect.vue';
+import AdRoomPicker from '@/components/ad/AdRoomPicker.vue';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
-import LocationRoomFields from '@/components/tickets/LocationRoomFields.vue';
-import Combobox from '@/components/ui/combobox/Combobox.vue';
-import { useTicketLocations } from '@/composables/useTicketLocations';
+import { useAdLocations } from '@/composables/useAdLocations';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -38,9 +37,11 @@ import type { BreadcrumbItem } from '@/types';
  * The Drucker picker switched from a plain <select> to the shared Combobox
  * (2026-09-18, at your request - "Rechner Wählen and alike" should be
  * searchable).
+ *
+ * AD switch step 4 (2026-10-09): Rechner and Druckerstandort come from AD
+ * (ad_computer_id / ad_room_id, the server adds the old gname_id); the
+ * printer list is the old inventory of the old rooms linked to the AD room.
  */
-
-type PrinterOption = { gname: string; invnr: string };
 
 type Variant = 'errors' | 'functuality' | 'scannerNew' | 'scanner';
 
@@ -50,7 +51,6 @@ const props = defineProps<{
     now: string;
     isSuperAdmin: boolean;
     availableSubmitterUsers: SubmitterUser[];
-    computers: ComputerOption[];
 }>();
 
 const TITLES: Record<Variant, string> = {
@@ -68,12 +68,25 @@ const PROBLEM_TYPES: Record<Variant, string> = {
 };
 
 const title = computed(() => TITLES[props.variant]);
+// scanner forms: the device list / "hinzufügen" talk about scanners
+const isScanner = computed(() => props.variant === 'scanner' || props.variant === 'scannerNew');
 
 defineOptions({
-    layout: (h_: typeof h, page: unknown) => {
+    layout: (h_: typeof h, page: VNode) => {
+        // title per variant (defineOptions can't use TITLES below: it is hoisted) - was a "#" before
+        const variant = (page.props as { variant?: string } | null)?.variant ?? '';
+        const title =
+            (
+                {
+                    errors: 'Drucker Fehlermeldung',
+                    functuality: 'Funktionsanfrage',
+                    scannerNew: 'Scannerinstallation',
+                    scanner: 'Scanner Probleme',
+                } as Record<string, string>
+            )[variant] ?? 'Drucker';
         const breadcrumbs: BreadcrumbItem[] = [
             { title: 'IT-Tickets', href: '/ticket.index' },
-            { title: '#', href: '#' },
+            { title, href: '#' },
         ];
 
         return h_(AppLayout, { breadcrumbs }, () => page);
@@ -85,8 +98,12 @@ const SCANNER_CHECKS = [
     { key: 'scanner_wrong_folder', label: 'Scans nicht im Scan Ordner' },
 ] as const;
 
-const { locations, places, load, roomsFor } = useTicketLocations();
+// AD switch step 4: the PC comes from AD (ad_computer_id), the printer room
+// too (ad_room_id); printers are not in AD, so the list shows the old
+// inventory printers of the old rooms linked to that AD room.
+const { data: adData, loading: adLoading, load } = useAdLocations({ computers: true });
 onMounted(load);
+const printerRoom = ref<number | string | null>('');
 
 const form = useForm({
     submitter: props.user.id,
@@ -98,34 +115,13 @@ const form = useForm({
     problem_type: PROBLEM_TYPES[props.variant],
     scanner_not_working: false,
     scanner_wrong_folder: false,
-    searchcomputer: '',
-    printer_place: '',
-    printer_room: '',
+    ad_computer_id: '' as number | string,
+    ad_pc_device_id: '' as number | string, // PC added in the form (not in AD)
+    ad_room_id: '' as number | string,
+    ad_device_id: '' as number | string, // device added in the form
     printer_name: '',
     notizen: '',
 });
-
-const printers = ref<PrinterOption[]>([]);
-
-const printerOptions = computed(() => {
-    const opts = printers.value.map((p) => ({ value: p.invnr, label: p.gname }));
-    if (form.printer_room && printers.value.length === 0) {
-        opts.push({ value: 'not_listed', label: 'Nicht aufgeführt' });
-    }
-    return opts;
-});
-
-watch(
-    () => form.printer_room,
-    async (roomId) => {
-        form.printer_name = '';
-        printers.value = [];
-        if (!roomId) return;
-
-        const { data } = await axios.post<PrinterOption[]>('/ticket.printer_search_inroom', { printers: roomId });
-        printers.value = data;
-    },
-);
 
 function submit() {
     form.post('/form_store');
@@ -139,13 +135,7 @@ function submit() {
         <h2 class="text-xl font-semibold">{{ title }}</h2>
 
         <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <div v-if="variant === 'scanner'" class="flex flex-wrap justify-around gap-4">
@@ -156,23 +146,38 @@ function submit() {
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <ComputerSelect v-model="form.searchcomputer" :computers="computers" />
-
                     <fieldset class="grid gap-3 rounded-md border p-3">
-                        <legend class="px-1 text-sm font-medium">Drucker</legend>
-                        <LocationRoomFields
-                            v-model:place="form.printer_place"
-                            v-model:room="form.printer_room"
-                            place-label="Druckerstandort"
-                            :locations="locations"
-                            :places="places"
-                            :rooms-for="roomsFor"
+                        <legend class="px-1 text-sm font-medium">{{ isScanner ? 'Scanner' : 'Drucker' }}</legend>
+                        <AdRoomPicker
+                            v-model:ou="form.ad_room_id"
+                            v-model:room="printerRoom"
+                            :data="adData"
+                            :loading="adLoading"
+                            :city="user.ort"
+                            :address="user.strasse"
+                            :standort-label="isScanner ? 'Scannerstandort' : 'Druckerstandort'"
+                            require-room
                         />
-                        <div class="flex flex-col gap-1">
-                            <label class="text-sm font-medium">Drucker <span class="text-muted-foreground">*</span></label>
-                            <Combobox v-model="form.printer_name" :options="printerOptions" required />
-                        </div>
+                        <AdDeviceSelect
+                            v-model="form.printer_name"
+                            v-model:device="form.ad_device_id"
+                            :room="printerRoom"
+                            type="printer"
+                            :label="isScanner ? 'Scanner' : 'Drucker'"
+                            value-key="invnr"
+                            :add-kinds="isScanner ? ['scanner', 'drucker'] : undefined"
+                        />
                     </fieldset>
+
+                    <AdComputerField
+                        v-model="form.ad_computer_id"
+                        v-model:device="form.ad_pc_device_id"
+                        :data="adData"
+                        :loading="adLoading"
+                        :city="user.ort"
+                        :address="user.strasse"
+                        legend="Ihr Rechner"
+                    />
                 </div>
 
                 <div class="flex flex-col gap-1">

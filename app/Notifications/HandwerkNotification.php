@@ -2,144 +2,77 @@
 
 namespace App\Notifications;
 
+use App\Support\Notify;
+use App\Support\TicketMail;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Handwerk ticket mails (HandwerkController). Payload 'title':
+ *   Neues Handwerk Ticket -> Handwerk_verwaltung
+ *   Zugewiesen an         -> the assignee (+ ticket PDF with "PDF per Mail")
+ *   Erledigt              -> the submitter; Handwerk_verwaltung when
+ *                            Sekretariat / Handwerker closed it
+ *   Wiederhergestellt     -> Handwerk_verwaltung
+ *
+ * 2026-10-12: App\Support\TicketMail. The text depends on the recipient, so
+ * Handwerk_verwaltung no longer reads "Ihr eingereichtes Ticket …" but
+ * "Erika Muster (Sekretariat) hat das Handwerk-Ticket von Max Mustermann als
+ * erledigt markiert". Not mailed to the person who did it.
+ */
 class HandwerkNotification extends Notification
 {
-  use Queueable;
-  protected $handwerk;
+    use Queueable;
 
-  /**
-   * Create a new notification instance.
-   *
-   * @return void
-   */
-  public function __construct($notifications)
-  {
-    $this->myData = $notifications;
-  }
+    protected $myData;
 
-  public function via($notifiable)
-  {
-    // No mails/notifications to users removed from AD (soft-deleted).
-    if (\App\Support\Notify::isRemoved($notifiable)) {
-      return [];
-    }
-    return ['mail', 'database'];
-  }
+    protected $actor;
 
-  // public function toMail($notifiable)
-  // {
-  //   $url = url('http://servsmt.miqr.local/handwerk/' . $this->myData['ticket_id']);
-  //   $ersteller = $this->myData['submitter'];
-  //   $problem_type = $this->myData['problem_type'];
-  //   $response =  (new MailMessage);
-  //   if ($this->myData['title'] === 'Neues Ticket') {
-  //     $response->subject('Ein neues Ticket von ' . $ersteller)
-  //       ->line('Ein neues Ticket wurde von ' . $ersteller . ' eingereicht')
-  //       ->line($problem_type)
-  //       ->action('Ticket anzeigen', $url)
-  //       ->line(
-  //         '<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen"</p>'
-  //       );
-  //   }
-  //   if ($this->myData['title'] === 'Zugewiesen an') {
-  //     $response->subject('Handwerkerticket benachrichtigung')
-  //       ->line('Sie wurden für die folgende Aufgabe zugewiesen')
-  //       ->line($problem_type)
-  //       ->action('Ticket anzeigen', $url)
-  //       ->line(
-  //         '<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen"</p>'
-  //       );
-  //   }
-  //   if ($this->myData['title'] === 'Erledigt') {
-  //     $response->subject('Handwerkerticket benachrichtigung')
-  //       ->line('Ihr eingereichtes Ticket wird als erledigt markiert ')
-  //       ->line($problem_type)
-  //       ->action('Ticket anzeigen', $url)
-  //       ->line(
-  //         '<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen" und Ticket wiederherstellen.</p>'
-  //       );
-  //   }
-  //   if ($this->myData['title'] === 'Wiederhergestellt') {
-  //     $date = $this->myData['date'];
-  //     $response->subject('Handwerkerticket benachrichtigung')
-  //       ->line('Das Ticket, das von ' . $ersteller . ' am ' . $date . ' eingereicht wurde, wird wiederhergestellt.')
-  //       ->line($problem_type)
-  //       ->action('Ticket anzeigen', $url)
-  //       ->line(
-  //         '<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen"</p>'
-  //       );
-  //   }
-  //   return $response;
-  // }
-
-  public function toMail($notifiable)
-  {
-    $url = url('http://servsmt.miqr.local/handwerk/'.$this->myData['ticket_id']);
-    $ersteller = $this->myData['submitter'];
-    $problem_type = $this->myData['problem_type'];
-    $response = (new MailMessage);
-
-    if ($this->myData['title'] === 'Neues Handwerk Ticket') {
-      $response->subject('Ein neues Ticket von ' . $ersteller)
-        ->line('Ein neues Ticket wurde von ' . $ersteller . ' eingereicht')
-        ->line($problem_type)
-        ->action('Ticket anzeigen', $url)
-        ->line('<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen"</p>');
+    public function __construct($notifications)
+    {
+        $this->myData = $notifications;
+        $this->actor = TicketMail::actor();
     }
 
-    if ($this->myData['title'] === 'Zugewiesen an') {
-      $response->subject('Handwerkerticket benachrichtigung')
-        ->line('Sie wurden für die folgende Aufgabe zugewiesen')
-        ->line($problem_type)
-        ->action('Ticket anzeigen', $url)
-        ->line('<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen"</p>');
+    public function via($notifiable)
+    {
+        if (Notify::isRemoved($notifiable) || Notify::isActor($notifiable, $this->actor)) {
+            return [];
+        }
 
-      if (isset($this->myData['pdf_path'])) {
-        $response->attach($this->myData['pdf_path'], [
-          'as' => 'ticket_details.pdf',
-          'mime' => 'application/pdf',
-        ]);
-      }
+        return ['mail', 'database'];
     }
 
-    if ($this->myData['title'] === 'Erledigt') {
-      $response->subject('Handwerkerticket benachrichtigung')
-        ->line('Ihr eingereichtes Ticket wird als erledigt markiert ')
-        ->line($problem_type)
-        ->action('Ticket anzeigen', $url)
-        ->line('<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen" und Ticket wiederherstellen.</p>');
+    public function toMail($notifiable)
+    {
+        $d = $this->myData;
+        $id = $d['ticket_id'] ?? null;
+        $event = match ($d['title'] ?? '') {
+            'Neues Handwerk Ticket' => 'new',
+            'Zugewiesen an' => 'assigned',
+            'Erledigt' => 'done',
+            'Wiederhergestellt' => 'restored',
+            default => (string) ($d['title'] ?? 'Benachrichtigung'),
+        };
+        $mail = TicketMail::event('Handwerk', $id, $event, $notifiable, $d, $this->actor);
+
+        if ($event === 'assigned' && ! empty($d['pdf_path']) && is_file($d['pdf_path'])) {
+            $mail->attach($d['pdf_path'], [
+                'as' => 'handwerk_ticket_'.$id.'.pdf',
+                'mime' => 'application/pdf',
+            ]);
+        }
+
+        return $mail;
     }
 
-    if ($this->myData['title'] === 'Wiederhergestellt') {
-      $date = $this->myData['date'];
-      $response->subject('Handwerkerticket benachrichtigung')
-        ->line('Das Ticket, das von ' . $ersteller . ' am ' . $date . ' eingereicht wurde, wird wiederhergestellt.')
-        ->line($problem_type)
-        ->action('Ticket anzeigen', $url)
-        ->line('<br><p style="color: red;">Dies ist eine automatisch generierte E-Mail, bitte nicht antworten. Für weitere Anfragen klicken Sie bitte auf "Ticket anzeigen"</p>');
+    public function toDatabase($notifiable)
+    {
+        return [
+            'title' => $this->myData['title'],
+            'id' => $this->myData['ticket_id'],
+            'ersteller' => $this->myData['submitter'],
+            'problem_type' => $this->myData['problem_type'],
+        ];
     }
-
-    return $response;
-  }
-
-  public function toDatabase($notifiable)
-  {
-    return [
-      'title' => $this->myData['title'],
-      'id' => $this->myData['ticket_id'],
-      'ersteller' => $this->myData['submitter'],
-      'problem_type' => $this->myData['problem_type'],
-    ];
-  }
-  // public function toArray($notifiable)
-  // {
-  //   return [
-  //     //
-  //   ];
-  // }
 }

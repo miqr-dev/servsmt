@@ -18,7 +18,16 @@ import type { BreadcrumbItem } from '@/types';
  * container OU is skipped). Right: computers of the selected OU incl.
  * everything below it, or all computers when nothing is selected.
  */
-type Ou = { id: number; parent_id: number | null; type: string; label: string; name: string; description: string | null; source?: string };
+type Ou = {
+    id: number;
+    parent_id: number | null;
+    type: string;
+    label: string;
+    name: string;
+    description: string | null;
+    source?: string;
+    hidden?: boolean;
+};
 type Computer = {
     id: number;
     name: string;
@@ -76,6 +85,7 @@ const roots = computed<AdTreeNode[]>(() => {
                 name: o.name,
                 type: o.type,
                 source: o.source,
+                hidden: o.hidden,
                 children,
                 count: (computersByOu.value.get(o.id) ?? 0) + children.reduce((s, c) => s + c.count, 0) + containerCount(o.id),
             });

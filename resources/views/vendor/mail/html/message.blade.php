@@ -18,10 +18,11 @@
 @endslot
 @endisset
 
-{{-- Footer --}}
+{{-- Footer (2026-10-12: German, the same for every mail, no APP_NAME) --}}
 @slot('footer')
 @component('mail::footer')
-© {{ date('Y') }} {{ config('app.name') }}.
+Diese E-Mail wurde automatisch von Servsmt erstellt. Bitte nicht antworten – Rückfragen bitte als Kommentar im Ticket.<br>
+© {{ date('Y') }} MIQR
 @endcomponent
 @endslot
 @endcomponent

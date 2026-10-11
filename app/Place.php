@@ -12,10 +12,6 @@ class Place extends Model
   {
     return $this->hasMany(Location::class);
   }
-  public function notes()
-  {
-    return $this->hasMany(Note::class);
-  }
       public function practiceCompanies()
     {
         return $this->hasMany(PracticeCompany::class, 'place_id');

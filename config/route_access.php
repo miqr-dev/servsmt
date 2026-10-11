@@ -47,7 +47,6 @@ return [
     'tickets/city/{cityName}' => $IT_ADMIN,
     'tickets/{userId?}' => $IT_ADMIN,
     'city/{city}/tickets/pdf' => $IT_ADMIN,
-    'getCityTicketsDetails/{cityName}' => $IT_ADMIN,
     'ticket.delete/{myTicket}' => $IT_ADMIN,      // Erledigt
     'ticket.delete2/{myTicket}' => $IT_ADMIN,     // Erledigt 2 (Neuer Mitarbeiter)
     'ticket.force_delete/{id}' => $IT_ADMIN,
@@ -60,8 +59,6 @@ return [
     'ticket/on_location*' => $IT_ADMIN,
     'ticket/set-reminder' => $IT_ADMIN,
     'participant.username' => $IT_ADMIN,
-    'notes' => $IT_ADMIN,
-    'notes/{note}' => $IT_ADMIN,
     'participants/create' => $IT_ADMIN,
     'POST participants' => $IT_ADMIN,              // store stub (unused)
     'participants/{participant}' => $IT_ADMIN,     // incl. DELETE from the ticket page
@@ -94,6 +91,7 @@ return [
     'dashboard/filter-tickets' => $KORSO_STAFF,
     'dashboard/mitarbeiter-suche' => $VERWALTUNG,
     'ad-inventory*' => $IT_ADMIN,                 // AD Räume & Computer + "Jetzt aktualisieren" (2026-10-05)
+    'ad-locations*' => null,                      // AD room / PC pickers of the ticket forms - open (2026-10-09)
     'email-forwardings' => 'Super_Admin',           // E-Mail-Weiterleitungen page (2026-10-02)   // Mitarbeiter Info (Dashboard)
     'korso/{id}/details' => $KORSO_STAFF,
     'korso/assign' => $KORSO_STAFF,
@@ -182,6 +180,7 @@ return [
     'practice-companies*' => 'Terminal',
 
     // ─── HR ─────────────────────────────────────────────────────────────
+    'rollen-uebersicht' => $SUPER,                 // Rollen & Berechtigungen > Übersicht (2026-10-11)
     'handwerk-zustaendigkeiten*' => $SUPER,        // Rollen & Berechtigungen > Handwerk (2026-10-02)
     'korso-zustaendigkeiten*' => $SUPER,           // Rollen & Berechtigungen > Korso (2026-10-02)
     'role-members/*' => $SUPER,                    // add/remove role members on those pages

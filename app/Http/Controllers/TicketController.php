@@ -37,6 +37,8 @@ use Inertia\Inertia;
 use App\Support\Notify;
 use App\Support\TicketAccess;
 use App\Support\NotificationLookup;
+use App\Support\AdLegacy;
+use Illuminate\Support\Facades\DB;
 
 class TicketController extends Controller
 {
@@ -224,37 +226,29 @@ class TicketController extends Controller
 
   public function softwareRequest()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Computer/SoftwareForm', array_merge($this->ticketFormProps(), [
       'variant' => 'request',
       'title' => 'Softwareanfrage',
-      'computers' => $computers,
     ]));
   }
   public function softwareInstall()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Computer/SoftwareForm', array_merge($this->ticketFormProps(), [
       'variant' => 'install',
-      'title' => 'Softwareanfrage',
-      'computers' => $computers,
+      'title' => 'Software installieren',
     ]));
   }
   public function softwareError()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Computer/SoftwareForm', array_merge($this->ticketFormProps(), [
       'variant' => 'error',
-      'title' => 'Softwareanfrage',
-      'computers' => $computers,
+      'title' => 'Software funktioniert nicht | Aktivieren',
     ]));
   }
   public function peripheralRequest()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
-    return Inertia::render('Tickets/Computer/PeripheralRequest', array_merge($this->ticketFormProps(), [
-      'computers' => $computers,
-    ]));
+    // AD computers load in the form (/ad-locations), not as a prop (step 4)
+    return Inertia::render('Tickets/Computer/PeripheralRequest', $this->ticketFormProps());
   }
   public function hardwareRequest()
   {
@@ -266,17 +260,13 @@ class TicketController extends Controller
   }
   public function pc_problems()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
-    return Inertia::render('Tickets/Computer/PcProblems', array_merge($this->ticketFormProps(), [
-      'computers' => $computers,
-    ]));
+    // AD computers load in the form (/ad-locations), not as a prop (step 4)
+    return Inertia::render('Tickets/Computer/PcProblems', $this->ticketFormProps());
   }
   public function printer_in_out()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
-    return Inertia::render('Tickets/Computer/PrinterInOut', array_merge($this->ticketFormProps(), [
-      'computers' => $computers,
-    ]));
+    // AD computers load in the form (/ad-locations), not as a prop (step 4)
+    return Inertia::render('Tickets/Computer/PrinterInOut', $this->ticketFormProps());
   }
   public function other()
   {
@@ -287,34 +277,26 @@ class TicketController extends Controller
 
   public function scanner()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
       'variant' => 'scanner',
-      'computers' => $computers,
     ]));
   }
   public function scannerNew()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
       'variant' => 'scannerNew',
-      'computers' => $computers,
     ]));
   }
   public function functuality()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
       'variant' => 'functuality',
-      'computers' => $computers,
     ]));
   }
   public function errors()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Printer/PrinterForm', array_merge($this->ticketFormProps(), [
       'variant' => 'errors',
-      'computers' => $computers,
     ]));
   }
 
@@ -330,8 +312,16 @@ class TicketController extends Controller
         return ['id' => $u->id, 'label' => $u->name . ', ' . $u->vorname];
       })->values()->all();
 
+    // "Andere Email": searchable multi-select of the users' e-mails (2026-10-09)
+    $emailUsers = User::whereNotNull('email')->where('email', '!=', '')
+      ->orderBy('name')->orderBy('vorname')->get(['name', 'vorname', 'email'])
+      ->map(function ($u) {
+        return ['value' => $u->email, 'label' => trim(($u->name ?? '') . ', ' . ($u->vorname ?? ''), ', ') ?: $u->email, 'hint' => $u->email];
+      })->values()->all();
+
     return Inertia::render('Tickets/Users/Employee', array_merge($this->ticketFormProps(), [
       'replicationUsers' => $replicationUsers,
+      'emailUsers' => $emailUsers,
     ]));
   }
 
@@ -381,10 +371,8 @@ class TicketController extends Controller
   }
   public function users_loginProblem()
   {
-    $computers = InvItems::where('gart_id', '2')->orwhere('gart_id', '3')->get(['id', 'gname']);
     return Inertia::render('Tickets/Users/UsersForm', array_merge($this->ticketFormProps(), [
       'variant' => 'loginProblem',
-      'computers' => $computers,
     ]));
   }
 
@@ -563,12 +551,30 @@ class TicketController extends Controller
       ->all());
     $request->validate([
       'submitter' => 'nullable|integer|exists:users,id',
+      // AD switch step 4 (2026-10-09): rooms / PCs picked from AD
+      'ad_room_id' => 'nullable|integer|exists:ad_ous,id',
+      'ad_target_room_id' => 'nullable|integer|exists:ad_ous,id',
+      'ad_computer_id' => 'nullable|integer|exists:ad_computers,id',
+      'ad_pc_ids' => 'nullable|array',
+      'ad_pc_ids.*' => 'integer|exists:ad_computers,id',
+      // devices added in the app ("Gerät hinzufügen", 2026-10-09)
+      'ad_device_id' => 'nullable|integer|exists:ad_devices,id',
+      'ad_pc_device_id' => 'nullable|integer|exists:ad_devices,id',
+      'ad_pc_device_ids' => 'nullable|array',
+      'ad_pc_device_ids.*' => 'integer|exists:ad_devices,id',
+      // Neuer Mitarbeiter "Andere Email": "a; b; c" from the multi-select
+      'email_custom' => 'nullable|string|max:255',
+    ], [
+      'email_custom.max' => 'Andere Email: zu viele Adressen (zusammen höchstens 255 Zeichen).',
     ]);
 
     if ($request->problem_type === 'Anderer PC Standort') {
+      // new form: AD PCs (ad_pc_ids); old ids (pc_ids) still accepted
       $request->validate([
-        'pc_ids' => 'required|array|min:1',
+        'pc_ids' => 'required_without_all:ad_pc_ids,ad_pc_device_ids|array|min:1',
         'pc_ids.*' => 'integer|exists:inv_items,id',
+        'ad_pc_ids' => 'required_without_all:pc_ids,ad_pc_device_ids|array',
+        'ad_pc_device_ids' => 'required_without_all:pc_ids,ad_pc_ids|array',
       ]);
     }
     if ($request->problem_type === 'Email Weiterleitung') {
@@ -705,9 +711,71 @@ class TicketController extends Controller
       $ticket->notizen = $description;
     }
 
-
+    // AD switch step 4 (2026-10-09): AD ids from the forms. The old ids are
+    // filled from the inventory links where one exists, but only for the
+    // fields the form still sends (empty) - so each ticket type keeps the
+    // same old columns it always had.
+    $adPcIds = collect((array) $request->input('ad_pc_ids', []))
+      ->filter(fn ($id) => is_numeric($id))->map(fn ($id) => (int) $id)->unique()->values()->all();
+    $ticket->ad_room_id = $request->ad_room_id ?: null;
+    $ticket->ad_target_room_id = $request->ad_target_room_id ?: null;
+    $adPcDeviceIds = collect((array) $request->input('ad_pc_device_ids', []))
+      ->filter(fn ($id) => is_numeric($id))->map(fn ($id) => (int) $id)->unique()->values()->all();
+    $ticket->ad_computer_id = $request->ad_computer_id ?: ($adPcIds[0] ?? null);
+    $ticket->ad_device_id = $request->ad_device_id ?: null;
+    $ticket->ad_pc_device_id = $request->ad_pc_device_id ?: ($ticket->ad_computer_id ? null : ($adPcDeviceIds[0] ?? null));
+    $ticket->ad_picked = (bool) ($ticket->ad_room_id || $ticket->ad_target_room_id || $ticket->ad_computer_id
+      || $ticket->ad_device_id || $ticket->ad_pc_device_id);
+    if (! $ticket->gname_id && $ticket->ad_computer_id) {
+      $ticket->gname_id = AdLegacy::itemId($ticket->ad_computer_id);
+    }
+    if ($ticket->ad_room_id) {
+      if ($request->has('location_id') && ! $request->filled('location_id')) {
+        $ticket->location_id = AdLegacy::locationId($ticket->ad_room_id);
+      }
+      if ($request->has('room_id') && ! $request->filled('room_id')) {
+        $ticket->room_id = AdLegacy::roomId($ticket->ad_room_id);
+      }
+    }
+    if ($ticket->ad_target_room_id) {
+      if ($request->has('tel_target_place') && ! $request->filled('tel_target_place')) {
+        $ticket->tel_target_place = AdLegacy::locationId($ticket->ad_target_room_id);
+      }
+      if ($request->has('tel_target_room') && ! $request->filled('tel_target_room')) {
+        $ticket->tel_target_room = AdLegacy::roomId($ticket->ad_target_room_id);
+      }
+    }
 
     $ticket->save();
+
+    // "PC Standort ändern" with AD PCs: one ticket_pcs row per PC, with the
+    // linked old item where there is one (each old item only once - the
+    // table is unique on ticket_id + inv_item_id).
+    if (! empty($adPcIds)) {
+      $seen = [];
+      $rows = [];
+      foreach ($adPcIds as $adPcId) {
+        $itemId = AdLegacy::itemId($adPcId);
+        if ($itemId && isset($seen[$itemId])) {
+          $itemId = null;
+        }
+        if ($itemId) {
+          $seen[$itemId] = true;
+        }
+        $rows[] = ['ticket_id' => $ticket->id, 'inv_item_id' => $itemId, 'ad_computer_id' => $adPcId,
+          'created_at' => now(), 'updated_at' => now()];
+      }
+      DB::table('ticket_pcs')->insert($rows);
+      if (is_null($ticket->gname_id) && $seen) {
+        $ticket->gname_id = array_key_first($seen);
+        $ticket->save();
+      }
+    }
+    // PCs the user added (not in AD, no old item)
+    if (! empty($adPcDeviceIds)) {
+      DB::table('ticket_pcs')->insert(array_map(fn ($id) => ['ticket_id' => $ticket->id, 'inv_item_id' => null,
+        'ad_device_id' => $id, 'created_at' => now(), 'updated_at' => now()], $adPcDeviceIds));
+    }
 
     $pcIds = collect((array) $request->input('pc_ids', []))
       ->filter(function ($id) {
@@ -852,7 +920,7 @@ class TicketController extends Controller
     }
     $userCities = $viewCities ? [$user->id => $viewCities] : [];
 
-    $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user'])->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();
+    $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user', 'adComputer:id,name', 'adDevice:id,name', 'adPcDevice:id,name'])->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();
 
     $ticketsdone = Ticket::onlyTrashed()->where(function ($query) use ($user) {
       $query->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
@@ -869,7 +937,7 @@ class TicketController extends Controller
     if (! $handwerkCityWide) {
       $userCities = [];
       $city = null;
-      $myHandwerkTickets = Handwerk::with('location.invrooms')
+      $myHandwerkTickets = Handwerk::with(['location', 'room'])
         ->where(function ($q) use ($user) {
           $q->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
         })
@@ -886,12 +954,12 @@ class TicketController extends Controller
         $cities = [$city];
       }
 
-      $myHandwerkTickets = Handwerk::with('location.invrooms')
+      $myHandwerkTickets = Handwerk::with(['location', 'room'])
         ->whereIn('submitter_standort', $cities)
         ->orderBy('updated_at', 'ASC')->get();
       $myhandwerkTicketsCountCity = Handwerk::whereIn('submitter_standort', $cities)->count();
     } else {
-      $myHandwerkTickets = Handwerk::with('location.invrooms')->where('submitter_standort', $user->ort)->orderBy('updated_at', 'ASC')->get();
+      $myHandwerkTickets = Handwerk::with(['location', 'room'])->where('submitter_standort', $user->ort)->orderBy('updated_at', 'ASC')->get();
       $myhandwerkTicketsCountCity = Handwerk::where('submitter_standort', $user->ort)->count();
     }
 
@@ -1123,7 +1191,8 @@ class TicketController extends Controller
   public function markForwardingRemoved($ticketId)
   {
     $user = Auth::user();
-    if (!$user || !$user->hasAnyRole(['Super_Admin', 'HR'])) {
+    // IT admins only, same as route_access (HR may not - decided 2026-10-09)
+    if (!$user || !$user->hasAnyRole(\App\Support\TicketAccess::IT_STAFF)) {
       abort(403, 'Unauthorized action.');
     }
 
@@ -1153,7 +1222,8 @@ class TicketController extends Controller
     $cityUserIds = User::withTrashed()->where('ort', $cityName)->pluck('id');
     $myTickets = $this->adminListQuery()->whereIn('submitter', $cityUserIds)->whereNotNull('on_location')->get();
 
-    $city = Place::with('notes')->where('pnname', $cityName)->first();
+    // (the city "Hinweise" were removed 2026-10-09)
+    $city = Place::where('pnname', $cityName)->first(['id', 'pnname']);
     ['AllTicketsCount' => $AllTicketsCount, 'UnassignedTicketsCount' => $UnassignedTicketsCount,
       'myTicketsCount' => $myTicketsCount, 'ticketCounts' => $ticketCounts] = $this->adminListCounts($user, $admins);
 
@@ -1201,8 +1271,10 @@ class TicketController extends Controller
   {
     return Ticket::query()
       ->select(['id', 'submitter', 'assignedTo', 'gname_id', 'ticket_status_id', 'priority_id', 'problem_type',
-        'tel_number', 'custom_tel_number', 'notizen', 'on_location', 'created_at', 'updated_at', 'deleted_at'])
-      ->with(['subUser:id,username,ort', 'invitem:id,gname']);
+        'tel_number', 'custom_tel_number', 'notizen', 'on_location', 'created_at', 'updated_at', 'deleted_at',
+        'ad_computer_id', 'ad_device_id', 'ad_pc_device_id'])
+      // AD PC / device added in the app shown instead of the old device when set (AD switch)
+      ->with(['subUser:id,username,ort', 'invitem:id,gname', 'adComputer:id,name', 'adDevice:id,name', 'adPcDevice:id,name']);
   }
 
   /**
@@ -1257,6 +1329,9 @@ class TicketController extends Controller
           })
           ->orWhereHas('invitem', function ($i) use ($like) {
             $i->where('gname', 'like', $like);
+          })
+          ->orWhereHas('adComputer', function ($c) use ($like) {
+            $c->where('name', 'like', $like);
           });
         if (ctype_digit($search)) {
           $q->orWhere('id', (int) $search);
@@ -1368,8 +1443,49 @@ class TicketController extends Controller
       ? $ticket->participant_required_at->format('d-m-Y')
       : null;
 
+    // AD room / computer (AD switch step 3, 2026-10-09). The page shows these
+    // and falls back to the old inventory room / device when they are empty.
+    $ad = [
+      'computer' => \App\Support\AdLocation::computer($ticket->ad_computer_id),
+      'room' => \App\Support\AdLocation::room($ticket->ad_room_id),
+      // devices that are not in AD (phone, beamer, printer): AD room of their old room
+      'itemRoom' => \App\Support\AdLocation::room(optional(optional($ticket->invitem)->invroom)->ad_ou_id),
+      'printerRoom' => \App\Support\AdLocation::room(optional(optional($ticket->printer)->invroom)->ad_ou_id),
+      // move target (PC / printer / phone "Standort ändern"), step 4
+      'targetRoom' => \App\Support\AdLocation::room($ticket->ad_target_room_id),
+      // PCs of "PC Standort ändern": AD name, else the old item (rows can have either)
+      'pcList' => DB::table('ticket_pcs')->where('ticket_id', $ticket->id)->orderBy('id')
+        ->get(['inv_item_id', 'ad_computer_id', 'ad_device_id'])
+        ->map(function ($row) use ($ticket) {
+          $adPc = \App\Support\AdLocation::computer($row->ad_computer_id);
+          $userPc = $adPc ? null : \App\Support\AdLocation::device($row->ad_device_id);
+          $old = $ticket->pcs->firstWhere('id', $row->inv_item_id);
+
+          return [
+            'name' => $adPc['name'] ?? ($userPc ? $userPc['name'].' (vom Benutzer angegeben)' : ($old->gname ?? $old->invnr ?? '?')),
+            'deleted' => $adPc['deleted'] ?? ($userPc['deleted'] ?? false),
+          ];
+        })->values(),
+      // devices added in the app ("Gerät hinzufügen", 2026-10-09)
+      'device' => \App\Support\AdLocation::device($ticket->ad_device_id),
+      'pcDevice' => \App\Support\AdLocation::device($ticket->ad_pc_device_id),
+    ];
+
+    // "Neuer Mitarbeiter": the Windows password the Erledigt-2 mail will send
+    // (Einstellungen > Neuer Mitarbeiter) - IT only, warning when it wasn't
+    // changed yet this year (2026-10-11).
+    $employeePassword = $ticket->problem_type === 'Neuer Mitarbeiter' && auth()->user()->hasAnyRole(TicketAccess::IT_STAFF)
+      ? [
+        'value' => \App\Support\EmployeePassword::value(),
+        'outdated' => \App\Support\EmployeePassword::isOutdated(),
+        'year' => now()->year,
+      ]
+      : null;
+
     return Inertia::render('Tickets/Show', compact(
       'ticket',
+      'ad',
+      'employeePassword',
       'createdAt',
       'ticket_status',
       'ticket_priority',

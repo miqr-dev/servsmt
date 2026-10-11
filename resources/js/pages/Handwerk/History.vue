@@ -7,6 +7,7 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import { useDataTable, type DataTableColumn } from '@/composables/useDataTable';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+import { handwerkAddress, handwerkRoom, type HandwerkAdRoom } from '@/lib/handwerkRoom';
 
 /**
  * Converted from resources/views/handwerk/handwerkHistory.blade.php
@@ -36,6 +37,8 @@ type HandwerkRow = {
     submitter_name: string;
     location: LocationInfo;
     room: RoomInfo;
+    ad_room?: HandwerkAdRoom;
+    custom_room?: string | null;
     done_by: string | null;
     deleted_at: string | null;
     created_at: string;
@@ -75,8 +78,8 @@ function formatDate(value: string | null): string {
 const HANDWERK_COLUMNS: DataTableColumn<HandwerkRow>[] = [
     { key: 'problem_type' },
     { key: 'submitter_name' },
-    { key: 'location.address' },
-    { key: 'room.rname' },
+    { key: 'location.address', value: handwerkAddress },
+    { key: 'room.rname', value: handwerkRoom },
     { key: 'done_by' },
     { key: 'deleted_at', searchable: false },
     { key: 'created_at', searchable: false },
@@ -97,18 +100,13 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
                 <h3 class="font-semibold">Übersicht</h3>
             </div>
             <nav class="flex flex-col gap-1 p-2">
-                <Link
-                    href="/usertickets"
-                    class="hover:bg-accent flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium"
-                >
+                <Link href="/usertickets" class="hover:bg-accent flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium">
                     Offene
                     <span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
                         {{ myhandwerkTicketsCount }}
                     </span>
                 </Link>
-                <span
-                    class="bg-accent flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium"
-                >
+                <span class="bg-accent flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium">
                     Erledigte
                     <span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
                         {{ handwerkticketsdoneCount }}
@@ -133,13 +131,56 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
                 <table class="w-full text-sm">
                     <thead class="text-muted-foreground text-left">
                         <tr>
-                            <TableHeadCell label="Anfrage" sort-key="problem_type" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('problem_type')" />
-                            <TableHeadCell label="Ersteller" sort-key="submitter_name" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('submitter_name')" />
-                            <TableHeadCell label="Standort" sort-key="location.address" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('location.address')" />
-                            <TableHeadCell label="Raum" sort-key="room.rname" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('room.rname')" />
-                            <TableHeadCell label="Erledigt von" sort-key="done_by" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('done_by')" />
-                            <TableHeadCell label="Erledigt am" sort-key="deleted_at" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('deleted_at')" />
-                            <TableHeadCell label="Erstellt am" sort-key="created_at" :active-key="sortKey" :direction="sortDir" align="right" @sort="toggleSort('created_at')" />
+                            <TableHeadCell
+                                label="Anfrage"
+                                sort-key="problem_type"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('problem_type')"
+                            />
+                            <TableHeadCell
+                                label="Ersteller"
+                                sort-key="submitter_name"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('submitter_name')"
+                            />
+                            <TableHeadCell
+                                label="Standort"
+                                sort-key="location.address"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('location.address')"
+                            />
+                            <TableHeadCell
+                                label="Raum"
+                                sort-key="room.rname"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('room.rname')"
+                            />
+                            <TableHeadCell
+                                label="Erledigt von"
+                                sort-key="done_by"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('done_by')"
+                            />
+                            <TableHeadCell
+                                label="Erledigt am"
+                                sort-key="deleted_at"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('deleted_at')"
+                            />
+                            <TableHeadCell
+                                label="Erstellt am"
+                                sort-key="created_at"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                align="right"
+                                @sort="toggleSort('created_at')"
+                            />
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -150,8 +191,8 @@ const { search, sortKey, sortDir, toggleSort, pageSize, page, pagedRows, total, 
                                 </Link>
                             </td>
                             <td class="p-3">{{ ticket.submitter_name }}</td>
-                            <td class="p-3">{{ ticket.location?.address }}</td>
-                            <td class="p-3">{{ ticket.room?.rname }} {{ ticket.room?.altrname }}</td>
+                            <td class="p-3">{{ handwerkAddress(ticket) }}</td>
+                            <td class="p-3">{{ handwerkRoom(ticket) }}</td>
                             <td class="p-3">{{ ticket.done_by }}</td>
                             <td class="p-3">{{ formatDate(ticket.deleted_at) }}</td>
                             <td class="p-3 text-right">{{ formatDate(ticket.created_at) }}</td>

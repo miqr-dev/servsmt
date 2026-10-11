@@ -72,10 +72,16 @@
             @if($handwerk->done_by)
                 <p><strong>Erledigt von:</strong> {{ $handwerk->done_by }}</p>
             @endif
-            @if($handwerk->location)
+            {{-- AD room first (AD switch step 3), old room as fallback --}}
+            @php($adRoom = $handwerk->ad_room)
+            @if($adRoom && $adRoom['adresse'])
+                <p><strong>Standort:</strong> {{ $adRoom['adresse'] }}{{ $adRoom['standort'] ? ', ' . $adRoom['standort'] : '' }}</p>
+            @elseif($handwerk->location)
                 <p><strong>Standort:</strong> {{ $handwerk->location->address }}</p>
             @endif
-            @if($handwerk->room)
+            @if($adRoom && $adRoom['label'])
+                <p><strong>Raum:</strong> {{ $adRoom['label'] }}{{ $adRoom['deleted'] ? ' (nicht mehr im AD)' : '' }}</p>
+            @elseif($handwerk->room)
                 <p><strong>Raum:</strong> {{ $handwerk->room->rname }}</p>
             @endif
 
@@ -87,7 +93,7 @@
                         @elseif($handwerk->$field === 'on')
                             {{ 'Ja' }}
                         @else
-                            {!! $handwerk->$field !!}
+                            {!! \App\Support\SafeHtml::clean($handwerk->$field) !!}
                         @endif
                     </p>
                 @endif
@@ -107,14 +113,14 @@
                         <div class="comment-meta">
                             {{ $comment->commenter->username ?? $comment->guest_name ?? 'Unbekannt' }} · {{ $comment->created_at->format('d.m.Y H:i') }}
                         </div>
-                        <div>{!! $comment->comment !!}</div>
+                        <div>{!! \App\Support\SafeHtml::clean($comment->comment) !!}</div>
                     </div>
                     @foreach($comments->where('child_id', $comment->getKey()) as $reply)
                         <div class="comment reply">
                             <div class="comment-meta">
                                 {{ $reply->commenter->username ?? $reply->guest_name ?? 'Unbekannt' }} · {{ $reply->created_at->format('d.m.Y H:i') }}
                             </div>
-                            <div>{!! $reply->comment !!}</div>
+                            <div>{!! \App\Support\SafeHtml::clean($reply->comment) !!}</div>
                         </div>
                     @endforeach
                 @endforeach

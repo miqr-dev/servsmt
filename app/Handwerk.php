@@ -28,6 +28,15 @@ class Handwerk extends Model
   ];
   protected $guarded = [];
 
+  // AD room for display (AD switch step 3, 2026-10-09): pages show it and
+  // fall back to the old room when it is empty. See App\Support\AdLocation.
+  protected $appends = ['ad_room'];
+
+  public function getAdRoomAttribute()
+  {
+    return \App\Support\AdLocation::room($this->attributes['ad_room_id'] ?? null);
+  }
+
   public function subUser()
   {
     return $this->belongsTo('App\User', 'submitter', 'id')->withTrashed();
@@ -52,7 +61,8 @@ class Handwerk extends Model
   }
 
   // AD room (2026-10-05, step 2). withTrashed: deleted rooms still show on old tickets.
-  public function adRoom()
+  // (named adRoomOu, not adRoom: $handwerk->ad_room is the display array, see getAdRoomAttribute)
+  public function adRoomOu()
   {
     return $this->belongsTo(AdOu::class, 'ad_room_id')->withTrashed();
   }

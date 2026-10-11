@@ -91,6 +91,12 @@ class DashboardController extends Controller
 
         // Super_Admin only: Lizenzen + all email forwardings (active / history).
         if ($user->isSuperAdmin()) {
+            // From 1 January until the default password for new employees is
+            // saved this year (Einstellungen > Neuer Mitarbeiter, 2026-10-11).
+            if ($reminder = \App\Support\EmployeePassword::reminder()) {
+                $props['employeePasswordReminder'] = $reminder;
+            }
+
             // Only licences that expire within 30 days (or already expired);
             // no box when there are none. Full list: /licenses (sidebar "Lizenzen").
             $expiring = License::whereNotNull('valid')
@@ -207,8 +213,9 @@ class DashboardController extends Controller
             return [
                 'id' => $h->id,
                 'problem_type' => $h->problem_type,
-                'room' => $h->room->rname ?? null,
-                'address' => $h->location->address ?? null,
+                // AD room first (AD switch), old room as fallback
+                'room' => ($h->ad_room['label'] ?? '') ?: ($h->room->rname ?? null),
+                'address' => ($h->ad_room['adresse'] ?? null) ?: ($h->location->address ?? null),
                 'submitter' => $this->personName($h->subUser),
                 'assignee' => $assignee ? $this->personName($assignee) : null,
                 'created_at' => optional($h->created_at)->toIso8601String(),

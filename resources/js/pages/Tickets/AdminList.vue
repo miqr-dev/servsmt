@@ -6,6 +6,7 @@ import { computed, h, ref, watch } from 'vue';
 import UnreadDot from '@/components/UnreadDot.vue';
 import { useUnread } from '@/composables/useUnread';
 import { useDebounceFn } from '@vueuse/core';
+import { safeHtml } from '@/lib/safeHtml';
 import { X } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
@@ -80,7 +81,7 @@ import { ticketStatusMeta, ticketPriorityLabel, ticketPriorityBadgeClass } from 
  * Beschreibung (notizen) is HTML from the old rich-text field and can be
  * arbitrarily long, so the cell now shows a single-line plain-text preview
  * (tags stripped, truncated) with an "Anzeigen" button that opens a small
- * modal rendering the full ticket.notizen (still via v-html, same as the
+ * modal rendering the full ticket.notizen (v-html through safeHtml() since 2026-10-12; same as the
  * old inline rendering - no sanitization was done here before either).
  *
  * 2026-09-17: removed the per-city hover-preview sidebar (fetchCityPreview /
@@ -96,6 +97,8 @@ import { ticketStatusMeta, ticketPriorityLabel, ticketPriorityBadgeClass } from 
 
 type NamedUser = { username: string; ort: string | null } | null;
 type InvItem = { gname: string | null } | null;
+/** AD computer (AD switch step 3); shown instead of the old device when set */
+type AdComputerInfo = { name: string } | null;
 
 type TicketRow = {
     id: number;
@@ -109,11 +112,14 @@ type TicketRow = {
     created_at: string;
     subUser: NamedUser;
     invitem: InvItem;
+    adComputer?: AdComputerInfo;
+    /** devices added in the form (2026-10-09): a PC not in AD / a printer, phone, projector */
+    adPcDevice?: AdComputerInfo;
+    adDevice?: AdComputerInfo;
 };
 
 type Admin = { id: number; name: string; username: string };
-type CityNote = { id: number; content: string };
-type City = { id: number; pnname: string; notes: CityNote[] } | null;
+type City = { id: number; pnname: string } | null;
 
 const props = defineProps<{
     mode: 'open' | 'unassigned' | 'history' | 'city' | 'admin';
@@ -259,12 +265,15 @@ function closeNotesModal() {
     notesModalOpen.value = false;
 }
 
+/** AD PC, else a PC added in the form, else the old device, else a device added in the form */
+const deviceOf = (t: TicketRow) => t.adComputer?.name ?? t.adPcDevice?.name ?? t.invitem?.gname ?? t.adDevice?.name ?? '';
+
 const TICKET_COLUMNS: DataTableColumn<TicketRow>[] = [
     { key: 'status', value: (t) => ticketStatusMeta(t.ticket_status_id).label },
     { key: 'assignedTo', sortable: false, searchable: false },
     { key: 'creator', value: (t) => t.subUser?.username ?? '—' },
     { key: 'problem_type' },
-    { key: 'device', value: (t) => t.invitem?.gname ?? '' },
+    { key: 'device', value: (t) => deviceOf(t) },
     { key: 'tel', value: (t) => (t.custom_tel_number ? `${t.tel_number ?? ''} | ${t.custom_tel_number}` : (t.tel_number ?? '')) },
     { key: 'standort', value: (t) => t.subUser?.ort ?? '' },
     { key: 'priority', value: (t) => ticketPriorityLabel(t.priority_id) },
@@ -381,53 +390,6 @@ const total = computed(() => (serverMode.value ? (props.pagination?.total ?? 0) 
 const pageCount = computed(() => (serverMode.value ? (props.pagination?.pageCount ?? 1) : client.pageCount.value));
 const rangeFrom = computed(() => (serverMode.value ? (props.pagination?.from ?? 0) : client.rangeFrom.value));
 const rangeTo = computed(() => (serverMode.value ? (props.pagination?.to ?? 0) : client.rangeTo.value));
-
-// --- city-mode notes footer (add / inline edit / delete) ---
-// The old delete button only ever worked on a *double*-click (no confirm
-// dialog either) - kept exactly as-is rather than adding a confirmation
-// that was never there.
-
-const cityNotes = ref<CityNote[]>(props.city?.notes ? [...props.city.notes] : []);
-const newNoteContent = ref('');
-const editingNoteId = ref<number | null>(null);
-const editingContent = ref('');
-
-async function addNote() {
-    const content = newNoteContent.value.trim();
-    if (!content || !props.city) return;
-    try {
-        const { data } = await axios.post('/notes', { content, place_id: props.city.id });
-        cityNotes.value.push({ id: data.note.id, content: data.note.content });
-        newNoteContent.value = '';
-    } catch {
-        toast.error('Hinweis konnte nicht hinzugefügt werden.');
-    }
-}
-
-function startEditNote(note: CityNote) {
-    editingNoteId.value = note.id;
-    editingContent.value = note.content;
-}
-function cancelEditNote() {
-    editingNoteId.value = null;
-}
-async function saveNote(note: CityNote) {
-    try {
-        await axios.patch(`/notes/${note.id}`, { content: editingContent.value });
-        note.content = editingContent.value;
-        editingNoteId.value = null;
-    } catch {
-        toast.error('Hinweis konnte nicht gespeichert werden.');
-    }
-}
-async function deleteNote(note: CityNote) {
-    try {
-        await axios.delete(`/notes/${note.id}`);
-        cityNotes.value = cityNotes.value.filter((n) => n.id !== note.id);
-    } catch {
-        toast.error('Hinweis konnte nicht gelöscht werden.');
-    }
-}
 </script>
 
 <template>
@@ -435,7 +397,9 @@ async function deleteNote(note: CityNote) {
 
     <div class="flex flex-1 flex-col gap-4 p-4">
         <!-- Top navbar -->
-        <div class="bg-card text-card-foreground flex flex-col gap-3 rounded-xl border p-3 shadow-sm lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+        <div
+            class="bg-card text-card-foreground flex flex-col gap-3 rounded-xl border p-3 shadow-sm lg:flex-row lg:flex-wrap lg:items-center lg:justify-between"
+        >
             <div v-if="isSuperAdmin" class="flex flex-wrap items-center gap-2">
                 <Link href="/opentickets" class="hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm" title="Offen">
                     Offen
@@ -449,7 +413,11 @@ async function deleteNote(note: CityNote) {
                     Nicht zugewiesen
                     <span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">{{ UnassignedTicketsCount ?? 0 }}</span>
                 </Link>
-                <Link href="/usertickets" class="hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm" title="Eigene Tickets">
+                <Link
+                    href="/usertickets"
+                    class="hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm"
+                    title="Eigene Tickets"
+                >
                     Eigene Tickets
                     <span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">{{ myTicketsCount ?? 0 }}</span>
                 </Link>
@@ -497,12 +465,12 @@ async function deleteNote(note: CityNote) {
                 <h3 class="font-semibold">{{ heading }}</h3>
 
                 <div v-if="showForwardingAlerts" class="flex flex-wrap items-center gap-2">
-                    <Link href="/email-forwardings" class="border-border hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm">
+                    <Link
+                        href="/email-forwardings"
+                        class="border-border hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm"
+                    >
                         Aktiv
-                        <span
-                            class="font-bold"
-                            :class="(activeForwardingCount ?? 0) > 0 ? 'animate-pulse text-amber-600' : ''"
-                        >
+                        <span class="font-bold" :class="(activeForwardingCount ?? 0) > 0 ? 'animate-pulse text-amber-600' : ''">
                             {{ activeForwardingCount ?? 0 }}
                         </span>
                         Weiterleitungen
@@ -534,15 +502,57 @@ async function deleteNote(note: CityNote) {
                 <table class="w-full text-sm">
                     <thead class="text-muted-foreground text-left">
                         <tr>
-                            <TableHeadCell label="" :sort-key="sk('status')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('status')" />
+                            <TableHeadCell
+                                label=""
+                                :sort-key="sk('status')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('status')"
+                            />
                             <TableHeadCell label="Zuweisen" />
-                            <TableHeadCell label="Erstellt von" :sort-key="sk('creator')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('creator')" />
-                            <TableHeadCell label="Anfrage" :sort-key="sk('problem_type')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('problem_type')" />
-                            <TableHeadCell label="Das Gerät" :sort-key="sk('device')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('device')" />
+                            <TableHeadCell
+                                label="Erstellt von"
+                                :sort-key="sk('creator')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('creator')"
+                            />
+                            <TableHeadCell
+                                label="Anfrage"
+                                :sort-key="sk('problem_type')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('problem_type')"
+                            />
+                            <TableHeadCell
+                                label="Das Gerät"
+                                :sort-key="sk('device')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('device')"
+                            />
                             <TableHeadCell label="Tel" :sort-key="sk('tel')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('tel')" />
-                            <TableHeadCell label="Standort" :sort-key="sk('standort')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('standort')" />
-                            <TableHeadCell label="Priorität" :sort-key="sk('priority')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('priority')" />
-                            <TableHeadCell label="Erstellt am" :sort-key="sk('created_at')" :active-key="sortKey" :direction="sortDir" @sort="toggleSort('created_at')" />
+                            <TableHeadCell
+                                label="Standort"
+                                :sort-key="sk('standort')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('standort')"
+                            />
+                            <TableHeadCell
+                                label="Priorität"
+                                :sort-key="sk('priority')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('priority')"
+                            />
+                            <TableHeadCell
+                                label="Erstellt am"
+                                :sort-key="sk('created_at')"
+                                :active-key="sortKey"
+                                :direction="sortDir"
+                                @sort="toggleSort('created_at')"
+                            />
                             <TableHeadCell label="Beschreibung" />
                         </tr>
                     </thead>
@@ -573,7 +583,7 @@ async function deleteNote(note: CityNote) {
                             <td class="p-3">
                                 <Link :href="`/ticket/${ticket.id}`" class="hover:underline">{{ ticket.problem_type }}</Link>
                             </td>
-                            <td class="p-3 font-semibold">{{ ticket.invitem?.gname ?? '' }}</td>
+                            <td class="p-3 font-semibold">{{ deviceOf(ticket) }}</td>
                             <td class="p-3">
                                 {{ ticket.tel_number }}
                                 <template v-if="ticket.custom_tel_number"> | {{ ticket.custom_tel_number }}</template>
@@ -620,47 +630,17 @@ async function deleteNote(note: CityNote) {
                 item-label="Tickets"
                 @update:page="tablePage = $event"
             />
-
-            <!-- City-mode notes footer -->
-            <div v-if="mode === 'city' && city" class="border-t p-4">
-                <h5 class="mb-2 font-semibold">{{ city.pnname }}</h5>
-                <ol class="flex flex-col gap-1">
-                    <li v-for="note in cityNotes" :key="note.id" class="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-                        <template v-if="editingNoteId === note.id">
-                            <input v-model="editingContent" type="text" class="border-input bg-background h-8 flex-1 rounded-md border px-2 text-sm" />
-                            <button type="button" class="text-primary text-xs font-medium" @click="saveNote(note)">Speichern</button>
-                            <button type="button" class="text-muted-foreground text-xs" @click="cancelEditNote">Abbrechen</button>
-                        </template>
-                        <template v-else>
-                            <span @dblclick="deleteNote(note)" title="Doppelklick zum Löschen">{{ note.content }}</span>
-                            <button type="button" class="text-muted-foreground hover:text-primary text-xs" @click="startEditNote(note)">Bearbeiten</button>
-                        </template>
-                    </li>
-                    <li v-if="!cityNotes.length" class="text-muted-foreground text-sm">Keine Hinweise vorhanden.</li>
-                </ol>
-                <div class="mt-3 flex gap-2">
-                    <input
-                        v-model="newNoteContent"
-                        type="text"
-                        placeholder="neuer Hinweis?"
-                        class="border-input bg-background h-9 flex-1 rounded-md border px-3 text-sm"
-                        @keydown.enter="addNote"
-                    />
-                    <button type="button" class="border-border hover:bg-accent inline-flex h-9 items-center rounded-md border px-3 text-sm" @click="addNote">
-                        Hinzufügen
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- Beschreibung "view full" modal -->
-    <Transition enter-active-class="transition-opacity duration-150" leave-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-to-class="opacity-0">
-        <div
-            v-if="notesModalOpen"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            @click.self="closeNotesModal"
-        >
+    <Transition
+        enter-active-class="transition-opacity duration-150"
+        leave-active-class="transition-opacity duration-150"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+    >
+        <div v-if="notesModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="closeNotesModal">
             <div class="bg-card text-card-foreground flex max-h-[80vh] w-full max-w-lg flex-col rounded-xl border shadow-xl">
                 <div class="flex items-center justify-between border-b p-4">
                     <h4 class="font-semibold">Beschreibung{{ notesModalTicket ? ` – ${notesModalTicket.problem_type}` : '' }}</h4>
@@ -670,7 +650,7 @@ async function deleteNote(note: CityNote) {
                 </div>
                 <div class="overflow-y-auto p-4 text-sm">
                     <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div v-html="notesModalTicket?.notizen"></div>
+                    <div v-html="safeHtml(notesModalTicket?.notizen)"></div>
                 </div>
             </div>
         </div>

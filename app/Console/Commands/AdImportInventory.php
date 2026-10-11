@@ -164,11 +164,14 @@ class AdImportInventory extends Command
         foreach ($ous as $ou) {
             $parent = $ou->parent_id ? ($info[$ou->parent_id] ?? null) : null;
 
-            // rooms added in the app: always a Raum, keep their name
+            // OUs added in the app (Einstellungen > Standorte & Adressen, /ad-inventory):
+            // an Adresse stays an Adresse, everything else is a Raum; keep their name
             if ($ou->source === 'app') {
-                $info[$ou->id] = ['type' => 'raum', 'standort' => $parent['standort'] ?? null, 'room' => $ou->id, 'group' => null];
-                if ($ou->type !== 'raum' || $ou->standort_ou_id !== ($parent['standort'] ?? null)) {
-                    $ou->forceFill(['type' => 'raum', 'label' => $ou->name, 'standort_ou_id' => $parent['standort'] ?? null])->saveQuietly();
+                $type = $ou->type === 'adresse' ? 'adresse' : 'raum';
+                $info[$ou->id] = ['type' => $type, 'standort' => $parent['standort'] ?? null,
+                    'room' => $type === 'raum' ? $ou->id : null, 'group' => null];
+                if ($ou->type !== $type || $ou->standort_ou_id !== ($parent['standort'] ?? null)) {
+                    $ou->forceFill(['type' => $type, 'label' => $ou->name, 'standort_ou_id' => $parent['standort'] ?? null])->saveQuietly();
                 }
                 continue;
             }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, h, ref, watch } from 'vue';
-import ComputerSelect, { type ComputerOption } from '@/components/tickets/ComputerSelect.vue';
+import { computed, h, onMounted, ref, watch } from 'vue';
+import AdComputerField from '@/components/ad/AdComputerField.vue';
+import { useAdLocations } from '@/composables/useAdLocations';
 import SubmitterCard, { type SubmitterUser } from '@/components/tickets/SubmitterCard.vue';
 import Combobox from '@/components/ui/combobox/Combobox.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -50,7 +51,6 @@ const props = defineProps<{
     now: string;
     isSuperAdmin: boolean;
     availableSubmitterUsers: SubmitterUser[];
-    computers?: ComputerOption[];
     nameUsers?: { id: number; label: string }[];
 }>();
 
@@ -77,6 +77,12 @@ defineOptions({
 const isRename = props.variant === 'nameChange';
 const title = TITLES[props.variant];
 
+// AD PCs (AD switch step 4): the form posts ad_computer_id, the server adds the old gname_id
+const { data: adData, loading: adLoading, load: loadAd } = useAdLocations({ computers: true });
+onMounted(() => {
+    if (!isRename) loadAd(); // only the Anmeldeprobleme form has the PC field
+});
+
 const form = useForm({
     submitter: props.user.id,
     submitter_standort: props.user.ort ?? '',
@@ -87,7 +93,8 @@ const form = useForm({
     problem_type: PROBLEM_TYPES[props.variant],
     // Anmeldeprobleme
     password_name: '',
-    searchcomputer: '' as string | number,
+    ad_computer_id: '' as number | string,
+    ad_pc_device_id: '' as number | string, // PC added in the form (not in AD)
     expiring_date: '',
     abgelaufen: false,
     inaktiv: false,
@@ -144,6 +151,10 @@ const LOGIN_FLAGS = [
     { key: 'other_error_participant', label: 'Anderer Fehler' },
 ] as const;
 
+// selectable tile for the problem checkboxes (highlighted when ticked)
+const tile =
+    'hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5 flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 text-sm transition-colors';
+
 function submit() {
     form.post('/form_store');
 }
@@ -156,34 +167,54 @@ function submit() {
         <h2 class="text-xl font-semibold">{{ title }}</h2>
 
         <form class="grid gap-4 lg:grid-cols-3" @submit.prevent="submit">
-            <SubmitterCard
-                :user="user"
-                :now="now"
-                :is-super-admin="isSuperAdmin"
-                :available-submitter-users="availableSubmitterUsers"
-                :form="form"
-            />
+            <SubmitterCard :user="user" :now="now" :is-super-admin="isSuperAdmin" :available-submitter-users="availableSubmitterUsers" :form="form" />
 
             <div class="bg-card text-card-foreground flex flex-col gap-4 rounded-xl border p-4 shadow-sm lg:col-span-2">
                 <template v-if="!isRename">
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div class="flex flex-col gap-1">
-                            <label class="text-sm font-medium">Vollständiger Name <span class="text-muted-foreground">*</span></label>
-                            <input v-model="form.password_name" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
-                        </div>
-                        <ComputerSelect v-model="form.searchcomputer" :computers="computers ?? []" :required="false" />
-                    </div>
+                    <div class="grid items-start gap-4 sm:grid-cols-2">
+                        <div class="flex flex-col gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-sm font-medium">Vollständiger Name <span class="text-muted-foreground">*</span></label>
+                                <input
+                                    v-model="form.password_name"
+                                    type="text"
+                                    required
+                                    class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                />
+                            </div>
 
-                    <div class="flex flex-wrap justify-around gap-4">
-                        <label class="flex items-center gap-2 text-sm">
-                            <input :checked="form.abgelaufen" type="checkbox" class="text-primary h-4 w-4" @change="onAbgelaufenChange" />
-                            Konto Abgelaufen
-                            <span v-if="form.abgelaufen && form.expiring_date" class="text-muted-foreground text-xs">(bis {{ form.expiring_date }})</span>
-                        </label>
-                        <label v-for="flag in LOGIN_FLAGS" :key="flag.key" class="flex items-center gap-2 text-sm">
-                            <input v-model="form[flag.key]" type="checkbox" class="text-primary h-4 w-4" />
-                            {{ flag.label }}
-                        </label>
+                            <!-- the problem, right under the name (2026-10-09; was a loose row below the form) -->
+                            <fieldset class="flex flex-col gap-2">
+                                <legend class="mb-1 text-sm font-medium">Was ist das Problem?</legend>
+                                <label :class="tile">
+                                    <input
+                                        :checked="form.abgelaufen"
+                                        type="checkbox"
+                                        class="accent-primary mt-0.5 h-4 w-4"
+                                        @change="onAbgelaufenChange"
+                                    />
+                                    <span>
+                                        Konto abgelaufen
+                                        <span v-if="form.abgelaufen && form.expiring_date" class="text-muted-foreground block text-xs"
+                                            >Freie/r Mitarbeiter/in bis {{ form.expiring_date }}</span
+                                        >
+                                    </span>
+                                </label>
+                                <label v-for="flag in LOGIN_FLAGS" :key="flag.key" :class="tile">
+                                    <input v-model="form[flag.key]" type="checkbox" class="accent-primary mt-0.5 h-4 w-4" />
+                                    <span>{{ flag.label }}</span>
+                                </label>
+                            </fieldset>
+                        </div>
+                        <AdComputerField
+                            v-model="form.ad_computer_id"
+                            v-model:device="form.ad_pc_device_id"
+                            :data="adData"
+                            :loading="adLoading"
+                            :city="user.ort"
+                            :address="user.strasse"
+                            :required="false"
+                        />
                     </div>
                 </template>
 
@@ -194,7 +225,12 @@ function submit() {
                     </div>
                     <div class="flex flex-col gap-1">
                         <label class="text-sm font-medium">Neuer Name <span class="text-muted-foreground">*</span></label>
-                        <input v-model="form.user_newname" type="text" required class="border-input bg-background h-9 rounded-md border px-3 text-sm" />
+                        <input
+                            v-model="form.user_newname"
+                            type="text"
+                            required
+                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                        />
                     </div>
                 </div>
 
@@ -214,7 +250,12 @@ function submit() {
         </form>
 
         <!-- "Konto Abgelaufen" -> freelancer end date prompt -->
-        <Transition enter-active-class="transition-opacity" leave-active-class="transition-opacity" enter-from-class="opacity-0" leave-to-class="opacity-0">
+        <Transition
+            enter-active-class="transition-opacity"
+            leave-active-class="transition-opacity"
+            enter-from-class="opacity-0"
+            leave-to-class="opacity-0"
+        >
             <div v-if="expiryDialogOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @keydown.esc="cancelExpiry">
                 <div class="bg-card text-card-foreground flex w-full max-w-md flex-col gap-3 rounded-xl border p-5 shadow-lg">
                     <h3 class="text-primary text-lg font-semibold">Freier Mitarbeiter/in ?</h3>
@@ -231,7 +272,11 @@ function submit() {
                         <button type="button" class="bg-destructive text-destructive-foreground h-9 rounded-md px-3 text-sm" @click="cancelExpiry">
                             Kein Freie Mitarbeiter/in
                         </button>
-                        <button type="button" class="bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 text-sm" @click="confirmExpiry">
+                        <button
+                            type="button"
+                            class="bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 text-sm"
+                            @click="confirmExpiry"
+                        >
                             Ja, Freie Mitarbeiter/in
                         </button>
                     </div>

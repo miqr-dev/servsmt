@@ -30,7 +30,10 @@ class Kernel extends ConsoleKernel
           '--delete-missing',
       ])->everySixHours();
 
-      $schedule->command('reminders:show')->everySixHours();
+      // Ticket reminders: switched off 2026-10-12 - the button is gone from the
+      // ticket page and the mail was English / failed for deleted tickets. A
+      // global reminder comes later (then remove ShowReminders + ReminderNotification).
+      // $schedule->command('reminders:show')->everySixHours();
 
       // Korso tickets of users without Korso_ma / Korso_Admin (or deactivated
       // by ldap:import) back to "Nicht zugewiesen" - logged (2026-10-08).
@@ -45,6 +48,17 @@ class Kernel extends ConsoleKernel
       // normally reaches AD before the next ldap:import reads AD back into
       // servsmt (which would otherwise overwrite the profile edit).
       $schedule->command('ad:writeback --failed')->hourly()->withoutOverlapping();
+
+      // Mails go through the queue (App\Support\Notify, QUEUE_CONNECTION=database):
+      // send what is waiting, every minute; stops as soon as the queue is
+      // empty, failed mails are retried 3 times (then table failed_jobs).
+      $schedule->command('queue:work --stop-when-empty --tries=3 --backoff=60 --max-time=50')
+        ->everyMinute()
+        ->withoutOverlapping(10);
+
+      // Default password for new employees not changed yet this year -> mail
+      // to the Super_Admins, 1-7 January 07:00 (stops once it is saved).
+      $schedule->command('servsmt:employee-password-reminder')->cron('0 7 1-7 1 *');
     }
 
     protected function commands()

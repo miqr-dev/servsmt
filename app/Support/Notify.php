@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Support\Collection;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -30,6 +31,20 @@ class Notify
         return is_object($notifiable)
             && method_exists($notifiable, 'trashed')
             && $notifiable->trashed();
+    }
+
+    /**
+     * True when the recipient is the person who triggered the notification
+     * (TicketMail::actor(), captured in the notification's constructor):
+     * nobody gets a mail about their own action (2026-10-12).
+     */
+    public static function isActor($notifiable, ?array $actor): bool
+    {
+        return $actor !== null
+            && ! ($notifiable instanceof AnonymousNotifiable)
+            && is_object($notifiable)
+            && isset($notifiable->id)
+            && (int) $notifiable->id === (int) ($actor['id'] ?? 0);
     }
 
     /**
@@ -66,6 +81,13 @@ class Notify
      * everything after it - no in-app notification for that person and
      * nothing at all for the remaining recipients. Now every channel of every
      * recipient is tried on its own and failures are only logged.
+     *
+     * 2026-10-12: the MAIL is queued (SendQueuedNotifications on the default
+     * queue connection), so assigning / commenting / closing no longer waits
+     * for the mail server. In-app notifications are still written at once.
+     * With QUEUE_CONNECTION=sync the job runs immediately, as before; with
+     * QUEUE_CONNECTION=database the scheduler's queue:work sends it within a
+     * minute (app/Console/Kernel.php) and retries failed mails.
      */
     private static function deliver($notifiable, $notification): void
     {
@@ -91,7 +113,11 @@ class Notify
 
         foreach ($channels as $channel) {
             try {
-                Notification::sendNow($notifiable, $notification, [$channel]);
+                if ($channel === 'mail') {
+                    dispatch(new SendQueuedNotifications($notifiable, $notification, ['mail']));
+                } else {
+                    Notification::sendNow($notifiable, $notification, [$channel]);
+                }
             } catch (\Throwable $e) {
                 report($e);
             }

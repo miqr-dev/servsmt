@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { trackNavigation } from '@/lib/navHistory';
 import { withUnreadPrefix } from '@/composables/useUnread';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { initializeSingleSubmit } from '@/lib/singleSubmit';
 import type { DefineComponent } from 'vue';
 
 const appName = import.meta.env.VITE_APP_NAME || 'servsmt';
@@ -51,3 +52,6 @@ initializeTheme();
 
 // Listen for flash-message toasts from the server...
 initializeFlashToast();
+
+// A form can't be sent twice while the first request is still running.
+initializeSingleSubmit();
