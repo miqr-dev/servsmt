@@ -110,24 +110,8 @@ const ticketItems: NavItem[] = [
     },
 ];
 
-const practiceCompanyItems: NavItem[] = [
-    {
-        title: 'Übungsfirmen',
-        icon: Building2,
-        roles: ['Terminal', 'Super_Admin'],
-        children: [
-            { title: 'Berlin', href: '/practice-companies/city/Berlin' },
-            { title: 'Chemnitz – Profil & E-Mail', href: '/practice-companies/city/Chemnitz' },
-            { title: 'Chemnitz – Lexware', href: '/practice-companies/lex/Chemnitz' },
-            { title: 'Dresden – Profil & E-Mail', href: '/practice-companies/city/Dresden' },
-            { title: 'Dresden – Lexware', href: '/practice-companies/lex/Dresden' },
-            { title: 'Erfurt – Profil & E-Mail', href: '/practice-companies/city/Erfurt' },
-            { title: 'Erfurt – Lexware', href: '/practice-companies/lex/Erfurt' },
-            { title: 'Leipzig – Profil & E-Mail', href: '/practice-companies/city/Leipzig' },
-            { title: 'Leipzig – Lexware', href: '/practice-companies/lex/Leipzig' },
-        ],
-    },
-];
+// 2026-10-12: one Übungsfirmen page with Standort + Windows/Lexware tabs instead of 9 links.
+const practiceCompanyItems: NavItem[] = [{ title: 'Übungsfirmen', href: '/practice-companies', icon: Building2, roles: ['Terminal', 'Super_Admin'] }];
 
 const adminItems: NavItem[] = [
     {
@@ -139,6 +123,7 @@ const adminItems: NavItem[] = [
             { title: 'Rollen', href: '/roles' },
             { title: 'Berechtigungen', href: '/permissions' },
             { title: 'Benutzer', href: '/users' },
+            { title: 'Benutzer-Suche', href: '/benutzer-suche' },
             { title: 'Handwerk', href: '/handwerk-zustaendigkeiten' },
             { title: 'Korso', href: '/korso-zustaendigkeiten' },
         ],

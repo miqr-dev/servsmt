@@ -177,10 +177,11 @@ return [
     'searchbyname' => 'Super_Admin|admin',
     'searchbyusername' => 'Super_Admin|admin',
     'reminders*' => $SUPER,
-    'practice-companies*' => 'Terminal',
+    'practice-companies*' => 'Terminal',          // Übungsfirmen: view; add / change / delete / export Super_Admin only (controller, 2026-10-12)
 
     // ─── HR ─────────────────────────────────────────────────────────────
     'rollen-uebersicht' => $SUPER,                 // Rollen & Berechtigungen > Übersicht (2026-10-11)
+    'benutzer-suche' => $SUPER,                    // Rollen & Berechtigungen > Benutzer-Suche (2026-10-12)
     'handwerk-zustaendigkeiten*' => $SUPER,        // Rollen & Berechtigungen > Handwerk (2026-10-02)
     'korso-zustaendigkeiten*' => $SUPER,           // Rollen & Berechtigungen > Korso (2026-10-02)
     'role-members/*' => $SUPER,                    // add/remove role members on those pages

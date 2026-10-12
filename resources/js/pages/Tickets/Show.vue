@@ -6,9 +6,10 @@ import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { computed, h, ref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
-import { Check, Trash2 } from '@lucide/vue';
+import { Check, Copy, Trash2 } from '@lucide/vue';
 import BackButton from '@/components/BackButton.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { copyText } from '@/lib/clipboard';
 import CommentThread from '@/components/CommentThread.vue';
 import type { CommentItem } from '@/components/CommentThread.vue';
 import { TICKET_VIEW_GROUPS, type AdContext, type Participant, type TicketDetail, type TicketViewContext } from '@/lib/ticketViewFields';
@@ -171,6 +172,17 @@ const viewContext = computed<TicketViewContext>(() => ({
 const viewGroup = computed(() => TICKET_VIEW_GROUPS[props.viewKey] ?? null);
 const groupHeading = computed(() => viewGroup.value?.heading?.(viewContext.value) ?? props.ticket.problem_type);
 const visibleFlags = computed(() => (viewGroup.value?.flags ?? []).filter((f) => isChecked(props.ticket[f.key])));
+/** stacked groups: one line per field, fields with the same `row` key side by side */
+const stackedRows = computed(() => {
+    const rows: { key: string; fields: NonNullable<typeof viewGroup.value>['fields'] }[] = [];
+    (viewGroup.value?.fields ?? []).forEach((field, i) => {
+        const last = rows[rows.length - 1];
+        if (field.row && last?.key === field.row) last.fields.push(field);
+        else rows.push({ key: field.row ?? `f${i}`, fields: [field] });
+    });
+
+    return rows;
+});
 
 // --- neuermitarbeiterticket (editable username/password/email, one-off layout) ---
 
@@ -210,6 +222,20 @@ const employeeCityBadges = computed(() => {
 // --- neuerteilnehmerticket (editable participant table) ---
 
 const participants = ref<Participant[]>(props.teilnehmers.map((p: Participant) => ({ ...p })));
+
+// copy buttons for Vorname / Nachname / Passwort (2026-10-12); copyText also works on the http intranet
+const copiedParticipantKey = ref<string | null>(null);
+let copiedParticipantTimer: ReturnType<typeof setTimeout> | undefined;
+async function copyParticipantValue(value: string | null, key: string) {
+    if (!(await copyText(String(value ?? '')))) {
+        toast.error('Kopieren nicht möglich.');
+
+        return;
+    }
+    copiedParticipantKey.value = key;
+    clearTimeout(copiedParticipantTimer);
+    copiedParticipantTimer = setTimeout(() => (copiedParticipantKey.value = null), 1500);
+}
 
 const saveParticipantUsername = useDebounceFn(async (participant: Participant) => {
     try {
@@ -485,8 +511,36 @@ async function deleteParticipant(participant: Participant) {
                             </thead>
                             <tbody class="divide-y">
                                 <tr v-for="teilnehmer in participants" :key="teilnehmer.id">
-                                    <td class="p-2">{{ teilnehmer.vorname }}</td>
-                                    <td class="p-2">{{ teilnehmer.nachname }}</td>
+                                    <td class="p-2">
+                                        <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                                            {{ teilnehmer.vorname }}
+                                            <button
+                                                v-if="teilnehmer.vorname"
+                                                type="button"
+                                                class="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded p-1"
+                                                title="Vorname kopieren"
+                                                @click="copyParticipantValue(teilnehmer.vorname, `${teilnehmer.id}:vorname`)"
+                                            >
+                                                <Check v-if="copiedParticipantKey === `${teilnehmer.id}:vorname`" class="h-3.5 w-3.5 text-green-600" />
+                                                <Copy v-else class="h-3.5 w-3.5" />
+                                            </button>
+                                        </span>
+                                    </td>
+                                    <td class="p-2">
+                                        <span class="inline-flex items-center gap-1 whitespace-nowrap">
+                                            {{ teilnehmer.nachname }}
+                                            <button
+                                                v-if="teilnehmer.nachname"
+                                                type="button"
+                                                class="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded p-1"
+                                                title="Nachname kopieren"
+                                                @click="copyParticipantValue(teilnehmer.nachname, `${teilnehmer.id}:nachname`)"
+                                            >
+                                                <Check v-if="copiedParticipantKey === `${teilnehmer.id}:nachname`" class="h-3.5 w-3.5 text-green-600" />
+                                                <Copy v-else class="h-3.5 w-3.5" />
+                                            </button>
+                                        </span>
+                                    </td>
                                     <td class="p-2">
                                         <input
                                             v-if="isSuperAdmin"
@@ -497,7 +551,21 @@ async function deleteParticipant(participant: Participant) {
                                         />
                                         <template v-else>{{ teilnehmer.username }}</template>
                                     </td>
-                                    <td class="p-2 font-mono">{{ teilnehmer.password }}</td>
+                                    <td class="p-2">
+                                        <span class="inline-flex items-center gap-1 whitespace-nowrap font-mono">
+                                            {{ teilnehmer.password }}
+                                            <button
+                                                v-if="teilnehmer.password"
+                                                type="button"
+                                                class="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded p-1"
+                                                title="Passwort kopieren"
+                                                @click="copyParticipantValue(teilnehmer.password, `${teilnehmer.id}:password`)"
+                                            >
+                                                <Check v-if="copiedParticipantKey === `${teilnehmer.id}:password`" class="h-3.5 w-3.5 text-green-600" />
+                                                <Copy v-else class="h-3.5 w-3.5" />
+                                            </button>
+                                        </span>
+                                    </td>
                                     <td class="p-2">{{ teilnehmer.course }}</td>
                                     <td class="p-2">{{ teilnehmer.email }}</td>
                                     <td class="p-2">{{ teilnehmer.location }}</td>
@@ -516,10 +584,19 @@ async function deleteParticipant(participant: Participant) {
                 <!-- Every other type: the shared data-driven field list -->
                 <div v-else class="flex flex-col gap-3">
                     <h4 class="ticket_header text-center font-semibold">{{ groupHeading }}</h4>
-                    <div v-if="viewGroup" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <!-- stacked (e.g. E-Mail-Weiterleitung): one below the other -->
+                    <div v-if="viewGroup?.stacked" class="flex flex-col gap-3">
+                        <div v-for="row in stackedRows" :key="row.key" class="flex flex-wrap gap-x-12 gap-y-3">
+                            <div v-for="field in row.fields" :key="field.label">
+                                <span class="text-muted-foreground text-xs">{{ field.label }}</span>
+                                <p class="font-medium" :class="field.valueClass">{{ field.value(viewContext) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else-if="viewGroup" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <div v-for="field in viewGroup.fields" :key="field.label">
                             <span class="text-muted-foreground text-xs">{{ field.label }}</span>
-                            <p class="font-medium">{{ field.value(viewContext) }}</p>
+                            <p class="font-medium" :class="field.valueClass">{{ field.value(viewContext) }}</p>
                         </div>
                     </div>
                     <template v-if="viewGroup?.warning && ticket[viewGroup.warning.key]">

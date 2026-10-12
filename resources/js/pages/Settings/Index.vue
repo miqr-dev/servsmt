@@ -19,6 +19,7 @@ const sections: { title: string; links: SettingsLink[] }[] = [
         title: 'Benutzereinstellungen',
         links: [
             { label: 'Benutzerverwaltung', href: '/users' },
+            { label: 'Benutzer-Suche (Bundesland, Stadt, Abteilung …)', href: '/benutzer-suche' },
             { label: 'Rollen & Berechtigungen', href: '/roles' },
             { label: 'Rollen-Übersicht (wer darf was)', href: '/rollen-uebersicht' },
             { label: 'Mitarbeiteraustritt', href: '/terminations' },

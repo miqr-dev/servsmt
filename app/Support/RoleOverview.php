@@ -217,7 +217,7 @@ class RoleOverview
         'Terminal' => [
             'group' => 'uebungsfirmen',
             'kind' => 'rights',
-            'summary' => 'Übungsfirmen: Profil & E-Mail, Lexware, Export, anlegen / bearbeiten / löschen.',
+            'summary' => 'Übungsfirmen: Zugangsdaten je Standort ansehen und kopieren (Windows & E-Mail, Lexware). Anlegen, ändern, löschen und Excel-Export nur Super_Admin.',
             'notes' => [],
             'assign' => 'Benutzer › Bearbeiten',
             'menu' => ['Übungsfirmen'],
@@ -312,7 +312,8 @@ class RoleOverview
             ['area' => 'inventar', 'label' => 'Standorte & Adressen der Ticketformulare (ausblenden, anlegen, Geräte prüfen)', 'route' => ['GET', 'settings/ad-standorte']],
 
             // ─── Übungsfirmen ────────────────────────────────────────────
-            ['area' => 'uebungsfirmen', 'label' => 'Übungsfirmen (Profil & E-Mail, Lexware, Export, bearbeiten)', 'route' => ['GET', 'practice-companies']],
+            ['area' => 'uebungsfirmen', 'label' => 'Übungsfirmen ansehen: Zugangsdaten je Standort (Windows & E-Mail, Lexware), kopieren', 'route' => ['GET', 'practice-companies']],
+            ['area' => 'uebungsfirmen', 'label' => 'Übungsfirmen anlegen, ändern, löschen, Excel-Export', 'roles' => [], 'hint' => 'im Code nur Super_Admin (seit 2026-10-12)'],
 
             // ─── Administration ──────────────────────────────────────────
             ['area' => 'admin', 'label' => 'Einstellungen: Popup, Nachrichtenleiste, Standortbesuch, Adressbuch', 'route' => ['GET', 'settings/standortbesuch']],
@@ -320,6 +321,7 @@ class RoleOverview
             ['area' => 'admin', 'label' => 'Rollen, Berechtigungen, Benutzer', 'route' => ['GET', 'roles'], 'roles' => []],
             ['area' => 'admin', 'label' => 'Zuständigkeiten Handwerk und Korso (Rollen & Berechtigungen)', 'route' => ['GET', 'handwerk-zustaendigkeiten']],
             ['area' => 'admin', 'label' => 'Rollen-Übersicht (diese Seite)', 'route' => ['GET', 'rollen-uebersicht']],
+            ['area' => 'admin', 'label' => 'Benutzer-Suche (nach Bundesland, Stadt, Adresse, Abteilung, Position, Rolle)', 'route' => ['GET', 'benutzer-suche']],
             ['area' => 'admin', 'label' => 'Erinnerungen verwalten', 'route' => ['GET', 'reminders']],
 
             // ─── Benachrichtigungen & Zuweisen (strict) ──────────────────

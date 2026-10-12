@@ -175,6 +175,7 @@ Route::group(['middleware' => ['auth', 'role:Super_Admin']], function () {
   // Rollen & Berechtigungen > Korso + add/remove members of RoleMembers::MANAGED roles
   Route::get('korso-zustaendigkeiten', 'KorsoResponsibilityController@index')->name('korso.responsibilities');
   Route::get('rollen-uebersicht', 'RoleOverviewController@index')->name('roles.overview'); // Rollen & Berechtigungen > Übersicht (2026-10-11)
+  Route::get('benutzer-suche', 'UserSearchController@index')->name('users.search'); // Rollen & Berechtigungen > Benutzer-Suche (2026-10-12)
   Route::post('role-members/{role}', 'RoleMemberController@store')->name('role-members.store');
   Route::delete('role-members/{role}/{user}', 'RoleMemberController@destroy')->name('role-members.destroy');
 });
@@ -499,16 +500,13 @@ use App\Http\Controllers\StandortbesuchController;
 use App\Http\Controllers\PracticeCompanyController;
 use App\Http\Controllers\KorsoInternalCommentController;
 
-// Route::get('practice-companies/export', 'PracticeCompanyController@export')->name('practice-companies.export');
+// Übungsfirmen: one page PracticeCompanies/Index.vue (2026-10-12). View: Terminal (route_access);
+// add / change / delete / export: Super_Admin only (checked in the controller).
+// The old per-city pages redirect to /practice-companies?stadt=…&art=windows|lexware.
 Route::get('practice-companies/city/{city}', 'PracticeCompanyController@viewByCity')->name('practice-companies.city');
 Route::get('practice-companies/lex/{city}', 'PracticeCompanyController@viewByLex')->name('practice-companies.lex');
-
-
-// Route for exporting practice companies
 Route::get('practice-companies/export', 'PracticeCompanyController@export')->name('practice-companies.export');
-
-// Resource route for practice companies
-Route::resource('practice-companies', 'PracticeCompanyController');
+Route::resource('practice-companies', 'PracticeCompanyController')->only(['index', 'store', 'update', 'destroy']);
 
 
 

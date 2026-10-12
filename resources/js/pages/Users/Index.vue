@@ -123,12 +123,17 @@ function rowActions(user: UserRow): RowAction[] {
     <div class="flex flex-1 flex-col gap-4 p-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h1 class="text-xl font-semibold">Benutzerverwaltung</h1>
-            <Link
-                href="/users/create"
-                class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center rounded-md px-3 text-sm"
-            >
-                + Neuer Benutzer
-            </Link>
+            <div class="flex gap-2">
+                <Link href="/benutzer-suche" class="border-border hover:bg-accent inline-flex h-9 items-center rounded-md border px-3 text-sm">
+                    Benutzer-Suche
+                </Link>
+                <Link
+                    href="/users/create"
+                    class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center rounded-md px-3 text-sm"
+                >
+                    + Neuer Benutzer
+                </Link>
+            </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">

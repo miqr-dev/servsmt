@@ -1,13 +1,13 @@
 <?php
 
-
 namespace App\Exports;
 
-use App\PracticeCompany;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
-class PracticeCompaniesExport implements FromCollection, WithHeadings
+/** Übungsfirmen Excel export (PracticeCompanyController@export, Super_Admin only). */
+class PracticeCompaniesExport implements FromCollection, WithHeadings, ShouldAutoSize
 {
     protected $companies;
 
@@ -18,28 +18,27 @@ class PracticeCompaniesExport implements FromCollection, WithHeadings
 
     public function collection()
     {
-        return $this->companies->map(function($company) {
-            return [
-                $company->Windows_Username,
-                $company->Windows_Password,
-                $company->Lexware_Username,
-                $company->Lexware_Password,
-                $company->Email_Username,
-                $company->Email_Password,
-            ];
-        });
+        return $this->companies->map(fn ($company) => [
+            optional($company->place)->pnname,
+            $company->Windows_Username,
+            $company->Windows_Password,
+            $company->Email_Username,
+            $company->Email_Password,
+            $company->Lexware_Username,
+            $company->Lexware_Password,
+        ]);
     }
 
     public function headings(): array
     {
         return [
-            'Windows Username',
-            'Windows Password',
-            'Lexware Username',
-            'Lexware Password',
-            'Email Username',
-            'Email Password',
+            'Standort',
+            'Windows-Benutzer',
+            'Windows-Passwort',
+            'E-Mail',
+            'E-Mail-Passwort',
+            'Lexware-Benutzer',
+            'Lexware-Passwort',
         ];
     }
 }
-

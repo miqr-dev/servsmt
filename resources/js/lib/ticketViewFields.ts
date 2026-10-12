@@ -225,6 +225,10 @@ export interface TicketViewContext {
 export interface TicketViewField {
     label: string;
     value: (ctx: TicketViewContext) => string;
+    /** extra classes for the value, e.g. a colour */
+    valueClass?: string;
+    /** stacked groups: fields with the same row key stand side by side */
+    row?: string;
 }
 export interface TicketViewFlag {
     label: string;
@@ -239,6 +243,8 @@ export interface TicketViewGroup {
     flags?: TicketViewFlag[];
     /** A single conditionally-shown highlighted warning line (emailweiterleitungticket's "Weiterleitung aufheben"). */
     warning?: { key: keyof TicketDetail; label: string };
+    /** One field per line (fields with the same `row` side by side) instead of the 3-column grid. */
+    stacked?: boolean;
 }
 
 const room = (r: { rname: string | null; altrname: string | null } | null | undefined) => [r?.rname, r?.altrname].filter(Boolean).join(' | ');
@@ -350,15 +356,28 @@ export const TICKET_VIEW_GROUPS: Record<string, TicketViewGroup> = {
     druckereinrichtenticket: { fields: [...rechnerAdresseRaum, ...druckerAdresseRaum] },
     druckerfehlerticket: { fields: [...rechnerAdresseRaum, ...druckerAdresseRaum] },
     funktionsanfrageticket: { fields: [...rechnerAdresseRaum, ...druckerAdresseRaum] },
+    // One below the other (2026-10-12): recipient (green), from whom, then the period Von (green) / Bis (blue) side by side.
     emailweiterleitungticket: {
+        stacked: true,
         fields: [
             {
                 label: 'E-Mails an folgenden Empfänger weiterleiten',
                 value: ({ ticket: t }) => `${t.forwardOnUser?.name ?? ''}, ${t.forwardOnUser?.vorname ?? ''}`,
+                valueClass: 'text-green-600 dark:text-green-400',
             },
             { label: 'Von', value: ({ ticket: t }) => `${t.forwardFromUser?.name ?? ''}, ${t.forwardFromUser?.vorname ?? ''}` },
-            { label: 'Ab', value: ({ ticket: t }) => formattedDate(t.forward_required_at) },
-            { label: 'Bis', value: ({ ticket: t }) => (t.forward_to_at ? formattedDate(t.forward_to_at) : '-') },
+            {
+                label: 'Von',
+                value: ({ ticket: t }) => formattedDate(t.forward_required_at),
+                valueClass: 'text-green-600 dark:text-green-400',
+                row: 'zeitraum',
+            },
+            {
+                label: 'Bis',
+                value: ({ ticket: t }) => (t.forward_to_at ? formattedDate(t.forward_to_at) : '-'),
+                valueClass: 'text-blue-600 dark:text-blue-400',
+                row: 'zeitraum',
+            },
         ],
         warning: { key: 'cancelForward', label: 'Weiterleitung aufheben' },
     },
