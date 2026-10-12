@@ -1630,28 +1630,35 @@ class TicketController extends Controller
       NotificationLookup::markReadFor($admin, 'ticket', $id);
     }
 
-    $employee = new Employee();
-    $employee->empFirstName = $ticket->employee_firstname;
-    $employee->empLastName = $ticket->employee_lastname;
-    $employee->empUsername = $ticket->employee_username;
-    $employee->empEmail = $ticket->employee_email;
-    $employee->empPosition = $ticket->position_employee;
-    $employee->empAbteilung = $ticket->abteilung_employee;
-    $employee->empTelefon = $ticket->telephone_employee;
-    $employee->empISplus = $ticket->isplus;
-    $employee->location = $ticket->location->address;
-    $employee->Ticketsubmitter = $ticket->subUser->username;
-    $employee->save();
+    // Mitarbeiter Liste + (befristet) Kündigungen entry together: if one
+    // fails, neither is saved, so pressing "Erledigt" again creates no
+    // duplicate employee (2026-10-12).
+    \Illuminate\Support\Facades\DB::transaction(function () use ($ticket) {
+      $employee = new Employee();
+      $employee->empFirstName = $ticket->employee_firstname;
+      $employee->empLastName = $ticket->employee_lastname;
+      $employee->empUsername = $ticket->employee_username;
+      $employee->empEmail = $ticket->employee_email;
+      $employee->empPosition = $ticket->position_employee;
+      $employee->empAbteilung = $ticket->abteilung_employee;
+      $employee->empTelefon = $ticket->telephone_employee;
+      $employee->empISplus = $ticket->isplus;
+      $employee->location = $ticket->location->address;
+      $employee->Ticketsubmitter = $ticket->subUser->username;
+      $employee->save();
 
-
-    if ($ticket->employee_finish_at) {
-      $termination = new Termination();
-      $termination->name = $ticket->employee_firstname . ' ' . $ticket->employee_lastname;
-      $termination->location = $ticket->location->place->pnname;
-      $termination->exit = $ticket->employee_finish_at->format('d-m-Y');
-      $termination->is_active = true;
-      $termination->save();
-    }
+      if ($ticket->employee_finish_at) {
+        $termination = new Termination();
+        $termination->name = $ticket->employee_firstname . ' ' . $ticket->employee_lastname;
+        $termination->location = $ticket->location->place->pnname;
+        // Y-m-d for the DATE column. 'd-m-Y' only worked while the model cast
+        // was plain 'date' (Laravel converted it); with 'date:Y-m-d' the string
+        // goes to MySQL as is -> "Incorrect date value '26-03-2027'".
+        $termination->exit = $ticket->employee_finish_at->toDateString();
+        $termination->is_active = true;
+        $termination->save();
+      }
+    });
 
     $notifications = [
       'title' => 'Neuer Mitarbeiter',
