@@ -113,14 +113,14 @@
                         <div class="comment-meta">
                             {{ $comment->commenter->username ?? $comment->guest_name ?? 'Unbekannt' }} · {{ $comment->created_at->format('d.m.Y H:i') }}
                         </div>
-                        <div>{!! \App\Support\SafeHtml::clean($comment->comment) !!}</div>
+                        <div>{!! \App\Support\CommentHtml::forPdf($comment) !!}</div>
                     </div>
                     @foreach($comments->where('child_id', $comment->getKey()) as $reply)
                         <div class="comment reply">
                             <div class="comment-meta">
                                 {{ $reply->commenter->username ?? $reply->guest_name ?? 'Unbekannt' }} · {{ $reply->created_at->format('d.m.Y H:i') }}
                             </div>
-                            <div>{!! \App\Support\SafeHtml::clean($reply->comment) !!}</div>
+                            <div>{!! \App\Support\CommentHtml::forPdf($reply) !!}</div>
                         </div>
                     @endforeach
                 @endforeach

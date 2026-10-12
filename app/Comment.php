@@ -15,7 +15,8 @@ class Comment extends Model
     // laravelista/comments package's Comment model - _comment.blade.php
     // reads $comment->commenter->name/->username/->vorname directly, so
     // without this every comment list would N+1 query the commenter.
-    protected $with = ['commenter'];
+    // + files: pictures / attachments (CommentFile, 2026-10-13)
+    protected $with = ['commenter', 'files'];
 
     protected $casts = [
         'approved' => 'boolean',
@@ -38,6 +39,20 @@ class Comment extends Model
     public function commentable()
     {
         return $this->morphTo();
+    }
+
+    /** pictures in the text + attachments (2026-10-13) */
+    public function files()
+    {
+        return $this->hasMany(CommentFile::class)->orderBy('id');
+    }
+
+    protected static function booted()
+    {
+        // a real delete (ticket deleted for good) also removes the stored files
+        static::forceDeleted(function (Comment $comment) {
+            CommentFile::where('comment_id', $comment->getKey())->get()->each->deleteWithFile();
+        });
     }
 
     public function children()

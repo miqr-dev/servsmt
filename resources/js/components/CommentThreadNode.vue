@@ -1,23 +1,28 @@
 <script setup lang="ts">
 // Recursive single comment + its replies. Split out from CommentThread.vue
-// so the recursion is an explicit self-import (works reliably with Vite),
-// mirroring resources/views/vendor/comments/_comment.blade.php's own
-// recursive @include('comments::_comment', ...) for child replies.
-import { ref } from 'vue';
-import { Pencil, Reply } from '@lucide/vue';
-import { htmlToText } from '@/lib/htmlToText';
+// so the recursion is an explicit self-import (works reliably with Vite).
+// 2026-10-13: rich text shown with safeHtml(), pictures open full size on
+// click, attachments below; reply / edit with RichTextEditor.
+import axios from 'axios';
+import { computed, ref } from 'vue';
+import { Loader2, Pencil, Reply } from '@lucide/vue';
+import { safeHtml } from '@/lib/safeHtml';
+import { hasContent, type CommentFileItem } from '@/lib/commentFiles';
+import CommentAttachments from './CommentAttachments.vue';
 import CommentThreadNode from './CommentThreadNode.vue';
+import RichTextEditor from './RichTextEditor.vue';
 import type { CommentItem, CommentNode } from './CommentThread.vue';
+
+type Submit = (comment: CommentItem, message: string, fileIds: number[]) => Promise<boolean>;
 
 const props = defineProps<{
     node: CommentNode;
     isDone: boolean;
     currentUserId: number | string | null;
-}>();
-
-const emit = defineEmits<{
-    reply: [parent: CommentItem, message: string];
-    edit: [comment: CommentItem, message: string];
+    uploadType: string;
+    uploadId: number;
+    submitReply: Submit;
+    submitEdit: Submit;
 }>();
 
 function commenterName(c: CommentItem): string {
@@ -33,7 +38,9 @@ function avatarUrl(c: CommentItem): string {
 }
 
 function onAvatarError(event: Event) {
-    (event.target as HTMLImageElement).src = '/images/admin_images/mitarbeiter/nopic.jpg';
+    const img = event.target as HTMLImageElement;
+    // only once - a missing nopic.jpg would otherwise retry forever
+    if (!img.src.endsWith('/nopic.jpg')) img.src = '/images/admin_images/mitarbeiter/nopic.jpg';
 }
 
 function isOwn(c: CommentItem): boolean {
@@ -51,52 +58,88 @@ function timeAgo(value: string): string {
     return `vor ${days} Tg.`;
 }
 
+/**
+ * Editor comments are HTML with paragraphs. Older ones are text (sometimes
+ * with a bit of HTML) whose line breaks were shown as typed - keep them.
+ */
+function commentHtml(raw: string): string {
+    const legacy = !/<(p|div|br|ul|ol|li|blockquote|pre|h[1-6]|table)\b/i.test(raw);
+
+    return safeHtml(legacy && /<\/?[a-z][^>]*>/i.test(raw) ? raw.replace(/\r\n|\r|\n/g, '<br>') : raw);
+}
+
+const html = computed(() => commentHtml(props.node.comment));
+
+/** a picture in the text opens full size */
+function openPicture(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'IMG') window.open((target as HTMLImageElement).src, '_blank', 'noopener');
+}
+
+/** uploads that never made it into a saved comment */
+function discardUploads(files: CommentFileItem[]) {
+    for (const f of files) if (f.comment_id == null) axios.delete(`/comment-files/${f.id}`).catch(() => {});
+}
+
+// --- reply ---
 const replying = ref(false);
-const replyText = ref('');
+const replyHtml = ref('');
+const replyFiles = ref<CommentFileItem[]>([]);
+const replyBusy = ref(false);
+const replySending = ref(false);
+const canReply = computed(() => !replySending.value && !replyBusy.value && hasContent(replyHtml.value, replyFiles.value));
 
 function startReply() {
     replying.value = true;
-    replyText.value = '';
+    replyHtml.value = '';
+    replyFiles.value = [];
 }
 
 function cancelReply() {
+    discardUploads(replyFiles.value);
     replying.value = false;
-    replyText.value = '';
+    replyHtml.value = '';
+    replyFiles.value = [];
 }
 
-function submitReply() {
-    if (!replyText.value.trim()) return;
-    emit('reply', props.node, replyText.value);
-    cancelReply();
+async function sendReply() {
+    if (!canReply.value) return;
+    replySending.value = true;
+    const ok = await props.submitReply(props.node, replyHtml.value, replyFiles.value.map((f) => f.id));
+    replySending.value = false;
+    if (ok) {
+        replying.value = false;
+        replyHtml.value = '';
+        replyFiles.value = [];
+    }
 }
 
+// --- edit (own comment) ---
 const editing = ref(false);
-const editText = ref('');
+const editHtml = ref('');
+const editFiles = ref<CommentFileItem[]>([]);
+const editBusy = ref(false);
+const editSending = ref(false);
+const canSaveEdit = computed(() => !editSending.value && !editBusy.value && hasContent(editHtml.value, editFiles.value));
 
 function startEdit() {
     editing.value = true;
-    // Old comments are stored as HTML - edit them as plain text.
-    editText.value = htmlToText(props.node.comment);
+    // old plain-text comments: escaped, line breaks kept
+    editHtml.value = commentHtml(props.node.comment);
+    editFiles.value = (props.node.files ?? []).filter((f) => !f.inline);
 }
 
 function cancelEdit() {
-    editing.value = false;
-    editText.value = '';
-}
-
-function submitEdit() {
-    if (!editText.value.trim()) return;
-    emit('edit', props.node, editText.value);
+    discardUploads(editFiles.value);
     editing.value = false;
 }
 
-// Bubble a reply/edit from a nested reply up to the top-level thread owner,
-// which is the only one holding the axios/localComments logic.
-function onChildReply(parent: CommentItem, message: string) {
-    emit('reply', parent, message);
-}
-function onChildEdit(comment: CommentItem, message: string) {
-    emit('edit', comment, message);
+async function saveEdit() {
+    if (!canSaveEdit.value) return;
+    editSending.value = true;
+    const ok = await props.submitEdit(props.node, editHtml.value, editFiles.value.map((f) => f.id));
+    editSending.value = false;
+    if (ok) editing.value = false;
 }
 </script>
 
@@ -117,19 +160,27 @@ function onChildEdit(comment: CommentItem, message: string) {
 
             <template v-if="editing">
                 <div class="mt-1 flex flex-col gap-1.5">
-                    <textarea
-                        v-model="editText"
-                        rows="3"
-                        class="border-input bg-background rounded-md border px-2 py-1.5 text-sm"
-                    ></textarea>
-                    <div class="flex justify-end gap-2 text-xs">
+                    <RichTextEditor
+                        v-model="editHtml"
+                        v-model:files="editFiles"
+                        :upload-type="uploadType"
+                        :upload-id="uploadId"
+                        autofocus
+                        @busy="editBusy = $event"
+                        @submit="saveEdit"
+                    />
+                    <div class="flex items-center justify-end gap-3 text-xs">
                         <button type="button" class="text-muted-foreground" @click="cancelEdit">Verwerfen</button>
-                        <button type="button" class="text-primary font-medium" @click="submitEdit">Speichern</button>
+                        <button type="button" class="text-primary inline-flex items-center gap-1 font-medium disabled:opacity-50" :disabled="!canSaveEdit" @click="saveEdit">
+                            <Loader2 v-if="editSending || editBusy" class="h-3 w-3 animate-spin" />
+                            Speichern
+                        </button>
                     </div>
                 </div>
             </template>
             <template v-else>
-                <div class="mt-0.5 text-sm break-words whitespace-pre-wrap">{{ htmlToText(node.comment) }}</div>
+                <div class="rich-text mt-0.5 text-sm" @click="openPicture" v-html="html"></div>
+                <CommentAttachments :files="node.files ?? []" />
 
                 <div v-if="!isDone && !node.deleted_at" class="mt-1 flex gap-3 text-xs">
                     <button
@@ -152,15 +203,23 @@ function onChildEdit(comment: CommentItem, message: string) {
             </template>
 
             <div v-if="replying" class="mt-2 flex flex-col gap-1.5">
-                <textarea
-                    v-model="replyText"
-                    rows="2"
-                    placeholder="Ihre Antwort..."
-                    class="border-input bg-background rounded-md border px-2 py-1.5 text-sm"
-                ></textarea>
-                <div class="flex justify-end gap-2 text-xs">
+                <RichTextEditor
+                    v-model="replyHtml"
+                    v-model:files="replyFiles"
+                    :upload-type="uploadType"
+                    :upload-id="uploadId"
+                    placeholder="Ihre Antwort …"
+                    min-height="3.5rem"
+                    autofocus
+                    @busy="replyBusy = $event"
+                    @submit="sendReply"
+                />
+                <div class="flex items-center justify-end gap-3 text-xs">
                     <button type="button" class="text-muted-foreground" @click="cancelReply">Verwerfen</button>
-                    <button type="button" class="text-primary font-medium" @click="submitReply">Antworten</button>
+                    <button type="button" class="text-primary inline-flex items-center gap-1 font-medium disabled:opacity-50" :disabled="!canReply" @click="sendReply">
+                        <Loader2 v-if="replySending || replyBusy" class="h-3 w-3 animate-spin" />
+                        Antworten
+                    </button>
                 </div>
             </div>
 
@@ -171,8 +230,10 @@ function onChildEdit(comment: CommentItem, message: string) {
                     :node="child"
                     :is-done="isDone"
                     :current-user-id="currentUserId"
-                    @reply="onChildReply"
-                    @edit="onChildEdit"
+                    :upload-type="uploadType"
+                    :upload-id="uploadId"
+                    :submit-reply="submitReply"
+                    :submit-edit="submitEdit"
                 />
             </ul>
         </div>

@@ -7,6 +7,7 @@ use App\Support\Notify;
 use App\Support\TicketMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 
 /**
  * New comment or reply on an IT, Handwerk or Korso ticket
@@ -71,7 +72,21 @@ class CommentNotification extends Notification
         return TicketMail::message($system, $id, $title, $event)
             ->line(MailText::p($intro))
             ->line(MailText::block($this->data['comment'] ?? '', true))
+            ->line(self::attachmentsLine($this->data['files'] ?? []))
             ->action('Ticket öffnen', TicketMail::url($system, $id));
+    }
+
+    /** "Anhänge: Bericht.pdf, Foto.jpg (im Ticket)" - the files stay in the app (2026-10-13) */
+    private static function attachmentsLine(array $names): HtmlString
+    {
+        $names = array_values(array_filter(array_map('strval', $names)));
+        if (! $names) {
+            return new HtmlString('');
+        }
+
+        return MailText::p((count($names) === 1 ? 'Anhang: ' : 'Anhänge: ')
+            .implode(', ', array_map(fn ($n) => '<strong>'.MailText::e($n).'</strong>', $names))
+            .' (im Ticket zu öffnen)');
     }
 
     public function toDatabase($notifiable)

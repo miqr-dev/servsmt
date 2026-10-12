@@ -158,7 +158,7 @@
                         <!-- Using the "commenter" relationship (Laravelista Comments v3.6) -->
                         <strong>{{ $comment->commenter->name ?? 'Anonymous' }}</strong>:
                         <div class="comment-content">
-                            {!! \App\Support\SafeHtml::clean($comment->comment) !!}
+                            {!! \App\Support\CommentHtml::forPdf($comment) !!}
                         </div>
                         <small>({{ $comment->created_at->format('d M Y H:i') }})</small>
                     </li>

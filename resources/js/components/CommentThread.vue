@@ -1,11 +1,13 @@
 <script setup lang="ts">
 // First-party replacement for the old @comments(['model' => $x]) Blade
-// directive (resources/views/vendor/comments/components/comments.blade.php),
-// for use on Vue/Inertia pages (Handwerk/Show.vue, Korso/Show.vue). Talks to
-// the same backend as the still-Blade Tickets admin page's comment thread:
-// app/Http/Controllers/CommentController.php, config/comments.php,
-// app/Concerns/Commentable.php. See modernization-audit.md Section 3 and
-// frontend-modernization-plan.md's 2026-09-17 status update.
+// directive, for the Vue ticket pages (Tickets/Show.vue, Handwerk/Show.vue,
+// Korso/Show.vue). Backend: app/Http/Controllers/CommentController.php,
+// app/Concerns/Commentable.php.
+//
+// 2026-10-13: rich text (RichTextEditor, Tiptap) with pasted / dropped
+// pictures and attachments (App\CommentFile, CommentFileController). The text
+// is HTML now, cleaned on the server (App\Support\CommentHtml) and shown with
+// safeHtml(); old plain-text comments keep their line breaks.
 //
 // Soft-deleted comments are included on purpose (Commentable::comments()
 // uses withTrashed()) so a comment thread doesn't lose history once its
@@ -14,7 +16,10 @@ import { computed, ref, watch } from 'vue';
 import axios from 'axios';
 import { toast } from 'vue-sonner';
 import { usePage } from '@inertiajs/vue3';
+import { Loader2, Send } from '@lucide/vue';
 import CommentThreadNode from './CommentThreadNode.vue';
+import RichTextEditor from './RichTextEditor.vue';
+import { hasContent, type CommentFileItem } from '@/lib/commentFiles';
 import type { Auth } from '@/types';
 
 export interface CommentItem {
@@ -26,6 +31,8 @@ export interface CommentItem {
     commenter: { id: number; name: string | null; vorname: string | null; username: string | null } | null;
     created_at: string;
     deleted_at: string | null;
+    /** pictures in the text + attachments (2026-10-13) */
+    files?: CommentFileItem[];
 }
 
 export interface CommentNode extends CommentItem {
@@ -78,22 +85,27 @@ function errorMessage(error: unknown, fallback: string): string {
 
 // --- new top-level comment ---
 
-const newCommentText = ref('');
+const newHtml = ref('');
+const newFiles = ref<CommentFileItem[]>([]);
+const newBusy = ref(false);
 const submittingNew = ref(false);
+const canSendNew = computed(() => !submittingNew.value && !newBusy.value && hasContent(newHtml.value, newFiles.value));
 
 async function submitNewComment() {
-    // also while the first one is still being sent (double click / Enter twice)
-    if (!newCommentText.value.trim() || submittingNew.value) return;
+    // also while the first one is still being sent (double click / Ctrl+Enter twice)
+    if (!canSendNew.value) return;
 
     submittingNew.value = true;
     try {
         const { data } = await axios.post<CommentItem>('/comments', {
             commentable_type: props.modelType,
             commentable_id: props.modelId,
-            message: newCommentText.value,
+            message: newHtml.value,
+            attachment_ids: newFiles.value.map((f) => f.id),
         });
         localComments.value.push(data);
-        newCommentText.value = '';
+        newHtml.value = '';
+        newFiles.value = [];
     } catch (error) {
         toast.error(errorMessage(error, 'Kommentar konnte nicht gespeichert werden.'));
     } finally {
@@ -101,24 +113,32 @@ async function submitNewComment() {
     }
 }
 
-// --- reply / edit, bubbled up from CommentThreadNode ---
+// --- reply / edit, called by CommentThreadNode (true = saved, the node closes its editor) ---
 
-async function handleReply(parent: CommentItem, message: string) {
+async function submitReply(parent: CommentItem, message: string, fileIds: number[]): Promise<boolean> {
     try {
-        const { data } = await axios.post<CommentItem>(`/comments/${parent.id}`, { message });
+        const { data } = await axios.post<CommentItem>(`/comments/${parent.id}`, { message, attachment_ids: fileIds });
         localComments.value.push(data);
+
+        return true;
     } catch (error) {
         toast.error(errorMessage(error, 'Antwort konnte nicht gespeichert werden.'));
+
+        return false;
     }
 }
 
-async function handleEdit(comment: CommentItem, message: string) {
+async function submitEdit(comment: CommentItem, message: string, fileIds: number[]): Promise<boolean> {
     try {
-        const { data } = await axios.put<CommentItem>(`/comments/${comment.id}`, { message });
+        const { data } = await axios.put<CommentItem>(`/comments/${comment.id}`, { message, attachment_ids: fileIds });
         const index = localComments.value.findIndex((c) => c.id === comment.id);
         if (index !== -1) localComments.value[index] = data;
+
+        return true;
     } catch (error) {
         toast.error(errorMessage(error, 'Kommentar konnte nicht aktualisiert werden.'));
+
+        return false;
     }
 }
 </script>
@@ -132,28 +152,42 @@ async function handleEdit(comment: CommentItem, message: string) {
                 :node="node"
                 :is-done="isDone"
                 :current-user-id="currentUserId"
-                @reply="handleReply"
-                @edit="handleEdit"
+                :upload-type="modelType"
+                :upload-id="modelId"
+                :submit-reply="submitReply"
+                :submit-edit="submitEdit"
             />
         </ul>
         <p v-else class="text-muted-foreground text-sm">Noch keine Kommentare.</p>
 
         <div v-if="!isDone" class="mt-4 border-t pt-4">
             <label class="text-sm font-medium">Neuen Kommentar schreiben</label>
-            <textarea
-                v-model="newCommentText"
-                rows="3"
-                class="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                style="resize: none"
-            ></textarea>
-            <button
-                type="button"
-                :disabled="submittingNew || !newCommentText.trim()"
-                class="bg-primary text-primary-foreground hover:bg-primary/90 mt-2 inline-flex h-9 items-center justify-center rounded-md px-3 text-sm disabled:opacity-50"
-                @click="submitNewComment"
-            >
-                Einreichen
-            </button>
+            <div class="mt-1">
+                <RichTextEditor
+                    v-model="newHtml"
+                    v-model:files="newFiles"
+                    :upload-type="modelType"
+                    :upload-id="modelId"
+                    placeholder="Kommentar schreiben … Bilder einfach einfügen (Strg+V) oder hineinziehen."
+                    @busy="newBusy = $event"
+                    @submit="submitNewComment"
+                />
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-3">
+                <button
+                    type="button"
+                    :disabled="!canSendNew"
+                    class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3 text-sm disabled:opacity-50"
+                    @click="submitNewComment"
+                >
+                    <Loader2 v-if="submittingNew || newBusy" class="h-4 w-4 animate-spin" />
+                    <Send v-else class="h-4 w-4" />
+                    Einreichen
+                </button>
+                <span class="text-muted-foreground text-xs">
+                    {{ newBusy ? 'Datei wird hochgeladen …' : 'Strg+Enter sendet · Dateien bis 10 MB' }}
+                </span>
+            </div>
         </div>
         <div v-else class="mt-4 border-t pt-4">
             <p class="text-sm font-semibold" style="color: #661421">Das Ticket ist erledigt.</p>

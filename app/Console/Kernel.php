@@ -65,6 +65,9 @@ class Kernel extends ConsoleKernel
       // Default password for new employees not changed yet this year -> mail
       // to the Super_Admins, 1-7 January 07:00 (stops once it is saved).
       $schedule->command('servsmt:employee-password-reminder')->cron('0 7 1-7 1 *');
+
+      // Comment pictures / attachments uploaded but never sent with a comment (2026-10-13).
+      $schedule->command('servsmt:comment-files-cleanup')->dailyAt('03:15');
     }
 
     protected function commands()

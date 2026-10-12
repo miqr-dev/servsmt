@@ -519,3 +519,7 @@ Route::post('comments', 'CommentController@store')->name('comments.store');
 Route::delete('comments/{comment}', 'CommentController@destroy')->name('comments.destroy');
 Route::put('comments/{comment}', 'CommentController@update')->name('comments.update');
 Route::post('comments/{comment}', 'CommentController@reply')->name('comments.reply');
+// comment pictures / attachments (CommentFileController, access = ticket access, 2026-10-13)
+Route::post('comment-files', 'CommentFileController@store')->name('comment-files.store');
+Route::get('comment-files/{commentFile}/{name?}', 'CommentFileController@show')->where('name', '.*')->name('comment-files.show');
+Route::delete('comment-files/{commentFile}', 'CommentFileController@destroy')->name('comment-files.destroy');

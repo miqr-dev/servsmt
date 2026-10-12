@@ -22,6 +22,10 @@ use Illuminate\Support\Facades\Notification;
 
 
 use App\Support\Notify;
+use App\CommentFile;
+use App\Support\CommentAccess;
+use App\Support\CommentHtml;
+use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
 {
@@ -59,16 +63,16 @@ class CommentController extends Controller
     Validator::make($request->all(), array_merge($guest_rules ?? [], [
       'commentable_type' => 'required|string',
       'commentable_id'   => 'required|integer|min:1',
-      'message'          => 'required|string',
     ]))->validate();
 
-    // Only these models can be commented on - the class name comes from the
-    // request, so never instantiate anything else from it.
-    $type = ltrim((string) $request->commentable_type, '\\');
-    abort_unless(in_array($type, [Ticket::class, Handwerk::class, Korso::class], true), 422, 'Ungültiger Kommentar-Typ.');
-
-    // Load the commentable model
-    $model = $type::findOrFail((int) $request->commentable_id);
+    // Only Ticket / Handwerk / Korso (CommentAccess::TYPES) - the class name
+    // comes from the request, so never instantiate anything else from it.
+    // Since 2026-10-13: only who may open the ticket may comment on it, and
+    // not on a done ticket (the page asks to restore it first).
+    $model = CommentAccess::model($request->commentable_type, $request->commentable_id);
+    CommentAccess::authorize($model);
+    abort_if(method_exists($model, 'trashed') && $model->trashed(), 422, 'Das Ticket ist erledigt.');
+    [$html, $files, $inlineIds] = $this->prepareText($request, $model, null);
 
     // Create the comment instance
     $commentClass = Config::get('comments.model');
@@ -82,12 +86,13 @@ class CommentController extends Controller
     }
 
     $comment->commentable()->associate($model);
-    $comment->comment   = $request->message;
+    $comment->comment   = $html;
     $comment->approved  = ! Config::get('comments.approval_required');
 
     // Save first, then notify (2026-10-12: the mails went out before the
     // comment was saved; they are queued now, see App\Support\Notify).
     $comment->save();
+    $this->linkFiles($comment, $files, $inlineIds);
     if (Auth::check()) {
       $this->notifyAbout($comment, $model, null);
     }
@@ -107,13 +112,15 @@ class CommentController extends Controller
   {
     Gate::authorize('edit-comment', $comment);
 
-    Validator::make($request->all(), [
-      'message' => 'required|string'
-    ])->validate();
+    $model = CommentAccess::model($comment->commentable_type, $comment->commentable_id);
+    CommentAccess::authorize($model);
+    abort_if(method_exists($model, 'trashed') && $model->trashed(), 422, 'Das Ticket ist erledigt.');
+    [$html, $files, $inlineIds] = $this->prepareText($request, $model, $comment);
 
     $comment->update([
-      'comment' => $request->message
+      'comment' => $html
     ]);
+    $this->linkFiles($comment, $files, $inlineIds);
 
     if ($request->wantsJson()) {
       return response()->json($comment);
@@ -146,27 +153,95 @@ class CommentController extends Controller
   {
     Gate::authorize('reply-to-comment', $comment);
 
-    Validator::make($request->all(), [
-      'message' => 'required|string'
-    ])->validate();
+    $model = CommentAccess::model($comment->commentable_type, $comment->commentable_id);
+    CommentAccess::authorize($model);
+    abort_if(method_exists($model, 'trashed') && $model->trashed(), 422, 'Das Ticket ist erledigt.');
+    [$html, $files, $inlineIds] = $this->prepareText($request, $model, null);
 
     // Build the reply
     $commentClass = Config::get('comments.model');
     $reply        = new $commentClass;
     $reply->commenter()->associate(Auth::user());
-    $reply->commentable()->associate($comment->commentable);
+    $reply->commentable()->associate($model);
     $reply->parent()->associate($comment);
-    $reply->comment  = $request->message;
+    $reply->comment  = $html;
     $reply->approved = ! Config::get('comments.approval_required');
 
     $reply->save();
-    $this->notifyAbout($reply, $comment->commentable, $comment);
+    $this->linkFiles($reply, $files, $inlineIds);
+    $this->notifyAbout($reply, $model, $comment);
 
     if ($request->wantsJson()) {
       return response()->json($reply);
     }
 
     return Redirect::to(URL::previous() . '#comment-' . $reply->getKey());
+  }
+
+  /**
+   * Comment text from the editor (HTML) + its pictures / attachments (2026-10-13).
+   *
+   * Files the comment may use: the writer's own uploads for this ticket that
+   * are not in a comment yet, and (when editing) the files already in it.
+   * Pictures pointing anywhere else are removed (CommentHtml). Text or at
+   * least one file is required.
+   *
+   * @return array{0: string, 1: \Illuminate\Support\Collection, 2: int[]}
+   */
+  private function prepareText(Request $request, $model, ?Comment $existing): array
+  {
+    Validator::make($request->all(), [
+      'message'          => 'nullable|string|max:200000',
+      'attachment_ids'   => 'nullable|array|max:20',
+      'attachment_ids.*' => 'integer',
+    ])->validate();
+
+    $raw = (string) $request->input('message', '');
+    $wanted = collect($request->input('attachment_ids', []))
+      ->map(fn ($id) => (int) $id)
+      ->merge(CommentHtml::imageIds($raw))
+      ->unique()->values()->all();
+
+    $files = CommentFile::whereIn('id', $wanted ?: [0])
+      ->where('commentable_type', get_class($model))
+      ->where('commentable_id', $model->getKey())
+      ->where(function ($q) use ($existing) {
+        $q->where(fn ($p) => $p->whereNull('comment_id')->where('user_id', Auth::id()));
+        if ($existing) {
+          $q->orWhere('comment_id', $existing->getKey());
+        }
+      })
+      ->get()->keyBy('id');
+
+    // a picture / attachment that is gone (upload older than 3 days, or copied
+    // from another comment): say so instead of silently dropping it
+    if (count($wanted) > $files->count()) {
+      throw ValidationException::withMessages(['message' => count($wanted) - $files->count() === 1
+        ? 'Ein Bild oder Anhang ist nicht mehr verfügbar. Bitte entfernen und neu einfügen.'
+        : 'Einige Bilder oder Anhänge sind nicht mehr verfügbar. Bitte entfernen und neu einfügen.']);
+    }
+
+    $html = CommentHtml::clean($raw, $files->keys()->all());
+    if (CommentHtml::isEmpty($html) && $files->isEmpty()) {
+      throw ValidationException::withMessages(['message' => 'Bitte einen Text schreiben oder eine Datei anhängen.']);
+    }
+
+    return [$html, $files, CommentHtml::imageIds($html)];
+  }
+
+  /** Links the files to the saved comment; files taken out while editing are deleted. */
+  private function linkFiles(Comment $comment, $files, array $inlineIds): void
+  {
+    foreach ($files as $file) {
+      $file->comment_id = $comment->getKey();
+      $file->inline = $file->is_image && in_array((int) $file->id, $inlineIds, true);
+      $file->save();
+    }
+    CommentFile::where('comment_id', $comment->getKey())
+      ->whereNotIn('id', $files->keys()->all() ?: [0])
+      ->get()->each->deleteWithFile();
+
+    $comment->load('files');
   }
 
   /**
@@ -239,6 +314,8 @@ class CommentController extends Controller
       'commenter_name' => $this->personName($writer),
       'type'           => class_basename($model), // Ticket | Handwerk | Korso
       'ticket_title'   => $model->problem_type,
+      // attachments by name (pictures in the text read "[Bild im Ticket]")
+      'files'          => $comment->files->where('inline', false)->pluck('original_name')->values()->all(),
     ];
     $kind = fn (bool $toParent) => ! $parent ? 'comment' : ($toParent ? 'reply_to_you' : 'reply');
 

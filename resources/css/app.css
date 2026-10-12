@@ -161,3 +161,87 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+ * Rich text (2026-10-13): comments - shown (CommentThreadNode) and while
+ * writing (RichTextEditor, Tiptap). Tailwind's reset removes list bullets,
+ * quote and code styles; this brings them back for comment text only.
+ */
+@layer components {
+    .rich-text {
+        overflow-wrap: anywhere;
+        line-height: 1.5;
+    }
+    .rich-text > * + * {
+        margin-top: 0.5em;
+    }
+    .rich-text ul {
+        list-style: disc;
+        padding-left: 1.4em;
+    }
+    .rich-text ol {
+        list-style: decimal;
+        padding-left: 1.4em;
+    }
+    .rich-text li > p {
+        margin: 0;
+    }
+    .rich-text blockquote {
+        border-left: 3px solid var(--border);
+        padding-left: 0.75em;
+        color: var(--muted-foreground);
+    }
+    .rich-text code {
+        background: var(--muted);
+        border-radius: 4px;
+        padding: 0.1em 0.3em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.9em;
+    }
+    .rich-text pre {
+        background: var(--muted);
+        border-radius: 6px;
+        padding: 0.6em 0.8em;
+        overflow-x: auto;
+    }
+    .rich-text pre code {
+        background: none;
+        padding: 0;
+    }
+    .rich-text a {
+        color: var(--primary);
+        text-decoration: underline;
+    }
+    .rich-text h1,
+    .rich-text h2,
+    .rich-text h3,
+    .rich-text h4 {
+        font-weight: 600;
+    }
+    .rich-text img {
+        display: block;
+        max-width: 100%;
+        max-height: 24rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: zoom-in;
+    }
+    .rich-text table td,
+    .rich-text table th {
+        border: 1px solid var(--border);
+        padding: 0.25em 0.5em;
+    }
+    .tiptap img {
+        cursor: default;
+    }
+    .tiptap img.ProseMirror-selectednode {
+        outline: 2px solid var(--ring);
+    }
+    .tiptap p.is-editor-empty:first-child::before {
+        content: attr(data-placeholder);
+        float: left;
+        height: 0;
+        color: var(--muted-foreground);
+        pointer-events: none;
+    }
+}

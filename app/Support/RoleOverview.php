@@ -245,7 +245,7 @@ class RoleOverview
             ['area' => 'allgemein', 'label' => 'Dashboard: „Neu für dich“, Nachrichtenleiste', 'route' => ['GET', '/'], 'open' => true],
             ['area' => 'allgemein', 'label' => 'Meine Tickets und Erledigte (IT, Handwerk, Korso)', 'route' => ['GET', 'usertickets/{city?}'], 'open' => true],
             ['area' => 'allgemein', 'label' => 'Eigene Tickets öffnen, kommentieren und wiederherstellen', 'open' => true, 'others' => 'als Ersteller des Tickets'],
-            ['area' => 'allgemein', 'label' => 'Kommentare: eigene bearbeiten / löschen, auf andere antworten', 'open' => true, 'hint' => 'auf jedem Ticket, das man öffnen darf'],
+            ['area' => 'allgemein', 'label' => 'Kommentare mit Formatierung, Bildern und Dateianhängen (bis 10 MB): eigene bearbeiten, auf andere antworten', 'open' => true, 'hint' => 'auf jedem Ticket, das man öffnen darf'],
             ['area' => 'allgemein', 'label' => 'Profil bearbeiten', 'route' => ['GET', 'settings/firstpage/{id}/edit'], 'hint' => 'nur das eigene'],
             ['area' => 'allgemein', 'label' => 'Dashboard: „Ticket erstellen“ und „Mitarbeiter Info“', 'route' => ['GET', 'dashboard/mitarbeiter-suche']],
             ['area' => 'allgemein', 'label' => 'Dashboard: eigene E-Mail-Weiterleitungen', 'roles' => ['Verwaltung'], 'hint' => 'Sekretariat sieht statt dessen die des Standorts'],
