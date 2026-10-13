@@ -172,10 +172,10 @@ export const stationeryAfterWarning: PMGrayItem[] = [
     { key: 'Zeugnismappe', label: 'Zeugnismappe', qty: 100 },
     { key: 'Zeugnismappe_Deutschkurse', label: 'Zeugnismappe Deutschkurse', qty: 100 },
     { key: 'Zeugnispapier', label: 'Zeugnispapier', qty: 200 },
-    { key: 'A5_Ringblock', label: 'A5 Ringblock', qty: 50, grayOut: { from: '2025-11-01', to: '2025-12-31' } },
+    { key: 'A5_Ringblock', label: 'A5 Ringblock', qty: 50, grayOut: { from: '2026-10-14', to: '2026-10-31' } },
     { key: 'A4_Schreibblock_Streifen', label: 'A4 Schreibblock Streifen', qty: 100 },
-    { key: 'USB_Stick', label: 'USB-Stick', qty: 20, grayOut: { from: '2025-11-01', to: '2025-12-31' } },
-    { key: 'Notizblock_PostIt_Stift', label: 'Notizblock mit Post it + Stift', qty: 50, grayOut: { from: '2025-11-01', to: '2025-12-01' } },
+    { key: 'USB_Stick', label: 'USB-Stick', qty: 20, grayOut: { from: '2026-10-14', to: '2026-10-31' } },
+    { key: 'Notizblock_PostIt_Stift', label: 'Notizblock mit Post it + Stift', qty: 50, grayOut: { from: '2026-10-14', to: '2026-10-31' } },
     { key: 'Block_A6', label: 'Block A6', qty: 100 },
 ];
 
