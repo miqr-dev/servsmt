@@ -151,10 +151,11 @@ export const giveawaysBeforeWarning: PMItem[] = [
 
 export const giveawaysAfterWarning: PMGrayItem[] = [
     { key: 'Tragetaschen', label: 'Tragetaschen Baumwolle', qty: 50 },
-    { key: 'Einkaufswagenloeser', label: 'Einkaufswagenlöser', qty: 50, grayOut: { from: '2025-11-01', to: '2025-12-01' } },
-    { key: 'Pflastermaeppchen', label: 'Pflastermäppchen', qty: 1, grayOut: { from: '2025-11-01', to: '2025-12-01' } },
-    { key: 'Fruchtgummi', label: 'Fruchtgummi', qty: 250, grayOut: { from: '2025-11-01', to: '2025-12-01' } },
+    { key: 'Einkaufswagenloeser', label: 'Einkaufswagenlöser', qty: 50, grayOut: { from: '2026-10-14', to: '2026-10-31' } },
+    { key: 'Pflastermaeppchen', label: 'Pflastermäppchen', qty: 1, grayOut: { from: '2026-10-14', to: '2026-10-31' } },
+    { key: 'Fruchtgummi', label: 'Fruchtgummi', qty: 250, grayOut: { from: '2026-10-14', to: '2026-10-31' } },
     { key: 'Kugelschreiber', label: 'Kugelschreiber Rot', qty: 100 },
+    { key: 'Textmarker_Dreieck', label: 'Textmarker Dreieck', qty: 50 }, // 2026-10-13
 ];
 
 // --- Geschäftsausstattung (Stationery) tab ---
@@ -163,6 +164,7 @@ export const stationeryBeforeWarning: PMItem[] = [
     { key: 'Visitenkarten', label: 'Visitenkarten', qty: 100 },
     { key: 'Glueckwunschkarte_Alles_Gute', label: 'Glückwunschkarte A6 – „Alles Gute“', qty: 50 },
     { key: 'Glueckwunschkarte_blanco', label: 'Glückwunschkarte A6 – blanco', qty: 50 },
+    { key: 'Karte_Willkommen_im_Team', label: 'Karte – „Willkommen im Team“', qty: 50 }, // 2026-10-13
 ];
 
 export const stationeryAfterWarning: PMGrayItem[] = [

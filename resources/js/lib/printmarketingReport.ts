@@ -32,14 +32,14 @@ export const PM_REPORT_CATEGORIES: PMReportCategory[] = [
         label: 'Give Aways',
         items: [
             'City_Cards_Do_you_speak_German', 'City_Cards_Salad', 'City_Cards_Sauerkraut', 'City_Cards_Smiley', 'City_Cards_Egg',
-            'Tragetaschen', 'Einkaufswagenloeser', 'Pflastermaeppchen', 'Fruchtgummi', 'Kugelschreiber',
+            'Tragetaschen', 'Einkaufswagenloeser', 'Pflastermaeppchen', 'Fruchtgummi', 'Kugelschreiber', 'Textmarker_Dreieck',
         ],
     },
     {
         key: 'stationery',
         label: 'Geschäftsausstattung',
         items: [
-            'Visitenkarten', 'Glueckwunschkarte_Alles_Gute', 'Glueckwunschkarte_blanco', 'GA_Mappen', 'Zeugnismappe',
+            'Visitenkarten', 'Glueckwunschkarte_Alles_Gute', 'Glueckwunschkarte_blanco', 'Karte_Willkommen_im_Team', 'GA_Mappen', 'Zeugnismappe',
             'Zeugnismappe_Deutschkurse', 'Zeugnispapier', 'A5_Ringblock', 'A4_Schreibblock_Streifen', 'USB_Stick',
             'Notizblock_PostIt_Stift',
             'Versandtasche_Fenster_C4', 'Versandtasche_Fenster_C5', 'Versandtasche_Fenster_DL',

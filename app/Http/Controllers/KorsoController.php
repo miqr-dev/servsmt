@@ -619,12 +619,14 @@ class KorsoController extends Controller
       'Einkaufswagenloeser',
       'Pflastermaeppchen',
       'Fruchtgummi',
-      'Kugelschreiber'
+      'Kugelschreiber',
+      'Textmarker_Dreieck'
     ];
     $stationeryKeys = [
       'Visitenkarten',
       'Glueckwunschkarte_Alles_Gute',
       'Glueckwunschkarte_blanco',
+      'Karte_Willkommen_im_Team',
       'GA_Mappen',
       'Zeugnismappe',
       'Zeugnismappe_Deutschkurse',
