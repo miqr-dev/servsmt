@@ -23,6 +23,7 @@ use Inertia\Inertia;
 use App\Support\Notify;
 use App\Support\TicketAccess;
 use App\Support\NotificationLookup;
+use App\Support\PrintmarketingSettings;
 
 class KorsoController extends Controller
 {
@@ -222,6 +223,8 @@ class KorsoController extends Controller
         'tel' => $user->tel,
       ],
       'sekGroup' => $sekGroup ? ['id' => $sekGroup->id, 'name' => $sekGroup->name] : null,
+      // Versandtaschen hidden unless switched on (Printmarketing Verwaltung, 2026-10-30)
+      'versandtaschenActive' => PrintmarketingSettings::versandtaschenActive(),
     ]);
   }
   public function onlinemarketing()
@@ -359,9 +362,15 @@ class KorsoController extends Controller
     // Initialize Kcourses array
     $selectedKcourses = [];
 
+    // switched-off items (Versandtaschen, PrintmarketingSettings) are not accepted
+    $blockedItems = PrintmarketingSettings::blockedItems();
+
     foreach ($selectedItems as $item) {
       $itemName = $item['name'] ?? 'Unknown';
       $quantity = $item['quantity'] ?? 1;
+      if (in_array($itemName, $blockedItems, true)) {
+        continue;
+      }
 
       // If the item is a Kcourse, store it in pivot table (not in KorsoItems)
       if (in_array($itemName, $allKcourses)) {
@@ -1002,7 +1011,20 @@ class KorsoController extends Controller
 
     return Inertia::render('Korso/PrintmarketingManagement', [
       'items' => $items,
+      'versandtaschenActive' => PrintmarketingSettings::versandtaschenActive(),
     ]);
+  }
+
+  /** Versandtaschen in the order form on / off (Printmarketing Verwaltung, 2026-10-30). */
+  public function setVersandtaschen(Request $request)
+  {
+    $this->authorizePrintmarketingManagement();
+    $active = (bool) $request->validate(['active' => 'required|boolean'])['active'];
+    PrintmarketingSettings::setVersandtaschen($active, auth()->id());
+
+    return back()->with('success', $active
+      ? 'Versandtaschen werden im Bestellformular wieder angezeigt.'
+      : 'Versandtaschen sind im Bestellformular ausgeblendet.');
   }
 
   // Kept for compatibility (old Blade page used it); the Vue page uses setOrdered().

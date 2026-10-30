@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { ArrowLeft, ExternalLink, FileDown, X } from '@lucide/vue';
+import { ArrowLeft, Eye, EyeOff, ExternalLink, FileDown, X } from '@lucide/vue';
 import { toast } from 'vue-sonner';
 import { computed, h, reactive, ref } from 'vue';
 import TableHeadCell from '@/components/table/TableHeadCell.vue';
@@ -57,7 +57,19 @@ type Item = {
     location: string | null;
 };
 
-const props = defineProps<{ items: Item[] }>();
+const props = defineProps<{ items: Item[]; versandtaschenActive?: boolean }>();
+
+// Versandtaschen in the order form on / off (KorsoController@setVersandtaschen, 2026-10-30)
+const switching = ref(false);
+function toggleVersandtaschen() {
+    if (switching.value) return;
+    switching.value = true;
+    router.put(
+        '/printmarketing-management/versandtaschen',
+        { active: !props.versandtaschenActive },
+        { preserveScroll: true, preserveState: true, onFinish: () => (switching.value = false) },
+    );
+}
 
 defineOptions({
     layout: (h_: typeof h, page: unknown) => {
@@ -234,6 +246,24 @@ const btn = 'border-input hover:bg-accent inline-flex h-9 items-center gap-1.5 r
                 <a :href="pdfUrl(categoryKey)" target="_blank" :class="btn"><FileDown class="h-4 w-4" /> PDF (Aktive Ansicht)</a>
                 <a :href="pdfUrl('all')" target="_blank" :class="btn"><FileDown class="h-4 w-4" /> PDF (Alle Kategorien)</a>
             </div>
+        </div>
+
+        <!-- order form switches -->
+        <div class="bg-card flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
+            <div>
+                <span class="font-medium">Versandtaschen</span>
+                <span class="text-muted-foreground"> (mit / ohne Fenster, C4 · C5 · DL) im Bestellformular:</span>
+                <span
+                    class="ml-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                    :class="versandtaschenActive ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300' : 'bg-muted text-muted-foreground'"
+                >
+                    {{ versandtaschenActive ? 'sichtbar' : 'ausgeblendet' }}
+                </span>
+            </div>
+            <button type="button" :class="btn" :disabled="switching" @click="toggleVersandtaschen">
+                <component :is="versandtaschenActive ? EyeOff : Eye" class="h-4 w-4" />
+                {{ versandtaschenActive ? 'Ausblenden' : 'Wieder anzeigen' }}
+            </button>
         </div>
 
         <!-- main tabs -->

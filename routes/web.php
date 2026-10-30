@@ -56,6 +56,9 @@ Route::get('korso/printmarketing/pdf','KorsoController@exportPrintmarketingPdf')
 //! Onlinemanagement
 Route::get('printmarketing-management', 'KorsoController@printmarketingManagement')
   ->name('printmarketing.management');
+// Versandtaschen in the order form on / off (role Printmarketing, checked in the controller, 2026-10-30)
+Route::put('printmarketing-management/versandtaschen', 'KorsoController@setVersandtaschen')
+  ->name('printmarketing.versandtaschen');
 Route::post('korso-item/{korsoItem}/toggle-ordered', 'KorsoController@toggleOrdered')
   ->name('korso-item.toggleOrdered');
 Route::post('korso-items/set-ordered', 'KorsoController@setOrdered')

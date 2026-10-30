@@ -57,6 +57,8 @@ type SekGroup = { id: number; name: string } | null;
 const props = defineProps<{
     user: SubmitterUser;
     sekGroup: SekGroup;
+    /** Versandtaschen switched on in Printmarketing Verwaltung (2026-10-30) */
+    versandtaschenActive?: boolean;
 }>();
 
 defineOptions({
@@ -209,12 +211,15 @@ function submit() {
                         <PMItemRow :item="item" :selected="selected" />
                     </div>
 
-                    <div v-for="group in stationeryVersandtaschen" :key="group.label" class="mb-2">
-                        <div class="text-sm font-semibold">{{ group.label }}</div>
-                        <div class="ml-3">
-                            <PMItemRow v-for="item in group.items" :key="item.key" :item="item" :selected="selected" />
+                    <!-- Versandtaschen: only while switched on in Printmarketing Verwaltung -->
+                    <template v-if="versandtaschenActive">
+                        <div v-for="group in stationeryVersandtaschen" :key="group.label" class="mb-2">
+                            <div class="text-sm font-semibold">{{ group.label }}</div>
+                            <div class="ml-3">
+                                <PMItemRow v-for="item in group.items" :key="item.key" :item="item" :selected="selected" />
+                            </div>
                         </div>
-                    </div>
+                    </template>
                 </div>
 
                 <!-- Beschilderung / Gestaltung -->
