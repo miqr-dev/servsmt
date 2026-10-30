@@ -194,6 +194,20 @@ const dateSort = ref<'asc' | 'desc' | null>(null);
         reload(initialPage);
     } else if (initialPage > 1) {
         reload(initialPage);
+    } else if (initialFilter === null) {
+        // Opened fresh (2026-10-30): a Korso_ma opens on their own tickets.
+        // Korso_Admin who is also in the name tabs -> their own name tab;
+        // Korso_ma without the tabs -> "Eigene Tickets" (the same tickets).
+        const me = korsoMaUsers.value.find((u) => u.id === currentUser.value?.id);
+        if (me && isKorsoAdmin.value) {
+            activeUserId.value = me.id;
+            heading.value = `Zugewiesene Tickets an ${(me.vorname ?? '').charAt(0).toUpperCase()}. ${me.name}`;
+            reload(1);
+        } else if (me) {
+            activeFilter.value = 'assigned';
+            heading.value = FILTERS.find((f) => f.key === 'assigned')?.label ?? 'Dashboard Overview';
+            reload(1);
+        }
     }
 }
 
