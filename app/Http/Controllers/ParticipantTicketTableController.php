@@ -124,6 +124,46 @@ class ParticipantTicketTableController extends Controller
     return Excel::download(new ParticipantListExport($title, $headings, $data), $file);
   }
 
+  // --- row actions (Teilnehmer Liste, Super_Admin only, 2026-11-03) --------
+  // Also gated in config/route_access.php ($SUPER); checked here as well so
+  // the rule holds even if the table entry is ever changed or removed.
+
+  /**
+   * Swap Vorname and Nachname of one Teilnehmer. The Excel upload sometimes
+   * has the two columns the wrong way round. Calling it again swaps back
+   * (the page offers that as "Rückgängig").
+   */
+  public function swapNames(ParticipantTicketTable $participant)
+  {
+    $this->authorizeRowEdit();
+
+    $participant->update([
+      'vorname' => $participant->nachname,
+      'nachname' => $participant->vorname,
+    ]);
+
+    return response()->json($this->rowPayload($participant->fresh('ticket')));
+  }
+
+  /** Change the Benutzername of one Teilnehmer. */
+  public function updateUsername(Request $request, ParticipantTicketTable $participant)
+  {
+    $this->authorizeRowEdit();
+
+    $data = $request->validate(
+      ['username' => ['required', 'string', 'max:255']],
+      ['username.required' => 'Der Benutzername darf nicht leer sein.', 'username.max' => 'Der Benutzername ist zu lang (max. 255 Zeichen).']
+    );
+    $participant->update(['username' => trim($data['username'])]);
+
+    return response()->json($this->rowPayload($participant->fresh('ticket')));
+  }
+
+  private function authorizeRowEdit(): void
+  {
+    abort_unless(auth()->user() && auth()->user()->hasRole('Super_Admin'), 403, 'Nur Super_Admin darf Teilnehmer bearbeiten.');
+  }
+
   // --- helpers -------------------------------------------------------------
 
   /** Base query scoped to what the current user may see. */

@@ -463,6 +463,9 @@ Route::get('participants/test', 'ParticipantTicketTableController@index2');
 // Must stay above Route::resource('participants') so they aren't caught by participants/{participant}.
 Route::get('participants/export-rows', 'ParticipantTicketTableController@exportRows')->name('participants.exportRows');
 Route::get('participants/export/{type}', 'ParticipantTicketTableController@export')->name('participants.export');
+// Teilnehmer Liste row actions, Super_Admin only (route_access + controller), 2026-11-03.
+Route::post('participants/{participant}/swap-names', 'ParticipantTicketTableController@swapNames')->name('participants.swapNames');
+Route::post('participants/{participant}/username', 'ParticipantTicketTableController@updateUsername')->name('participants.updateUsername');
 Route::resource('participants', 'ParticipantTicketTableController');
 
 // Bedarf (/tasks) and Project (/projects incl. jobs and devices) removed 2026-10-06 - not needed anymore.

@@ -261,7 +261,7 @@ class RoleOverview
             ['area' => 'it', 'label' => 'Neuer Mitarbeiter: Benutzername, Passwort, E-Mail eintragen', 'route' => ['POST', 'ticket/employee_username']],
             ['area' => 'it', 'label' => 'Vor-Ort-Termin setzen', 'route' => ['POST', 'ticket/on_location']],
             ['area' => 'it', 'label' => 'E-Mail-Weiterleitung als entfernt markieren', 'route' => ['POST', 'ticket/{ticketId}/forwarding-removed']],
-            ['area' => 'it', 'label' => 'IT-Ticket endgültig löschen', 'route' => ['POST', 'ticket.force_delete/{id}']],
+            ['area' => 'it', 'label' => 'IT-Ticket endgültig löschen', 'roles' => ['admin'], 'others' => 'Ersteller: das eigene Ticket (Meine Tickets)'],
             ['area' => 'it', 'label' => 'Offene Tickets einer Stadt als PDF', 'route' => ['GET', 'city/{city}/tickets/pdf']],
 
             // ─── Handwerk ────────────────────────────────────────────────
@@ -303,6 +303,7 @@ class RoleOverview
             // ─── Teilnehmer ──────────────────────────────────────────────
             ['area' => 'teilnehmer', 'label' => 'Teilnehmer Liste (mit Zugangsdaten) und Export', 'route' => ['GET', 'participants'], 'roles' => ['Teilnehmer_Info', 'Sekretariat'], 'scope' => ['Teilnehmer_Info' => $ownSite, 'Sekretariat' => $ownSite, 'Super_Admin' => 'alle Standorte, mit Filter']],
             ['area' => 'teilnehmer', 'label' => 'Teilnehmer bearbeiten, löschen, Benutzernamen eintragen', 'route' => ['POST', 'participant.username']],
+            ['area' => 'teilnehmer', 'label' => 'Teilnehmer Liste: Vor-/Nachname tauschen, Benutzername ändern', 'route' => ['POST', 'participants/{participant}/swap-names']],
 
             // ─── Inventar & AD ───────────────────────────────────────────
             ['area' => 'inventar', 'label' => 'Inventar öffnen (Geräte, Suche, Listen)', 'route' => ['GET', 'inventory'], 'roles' => ['INV']],

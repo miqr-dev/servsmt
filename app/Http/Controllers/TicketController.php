@@ -1743,6 +1743,10 @@ class TicketController extends Controller
   {
     $admins = User::role('Super_Admin')->get();
     $ticket = Ticket::findOrFail($id);
+    // IT staff, or the submitter deleting their own ticket from Meine Tickets
+    // (2026-11-03). The route is not role-gated in config/route_access.php,
+    // because a role alone can't express "own ticket".
+    TicketAccess::authorize($ticket, TicketAccess::IT_STAFF);
 
     foreach ($admins as $admin) {
       NotificationLookup::forRecord($admin->notifications(), 'ticket', $id)->each(fn ($n) => $n->delete());

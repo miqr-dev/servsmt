@@ -223,13 +223,23 @@ function formatDate(value: string): string {
 
 const myTickets = ref<TicketRow[]>([...props.myTickets]);
 
+// The delete endpoints answer with the word "true". TicketController@forceDelete
+// sends it as plain text, which axios 1.x JSON-parses into the boolean `true`;
+// KorsoController@fullDestroy sends response()->json('true'), which stays the
+// string 'true'. Accept both, so a successful delete is never reported as a
+// failure (bug 2026-11-03: "nicht gelöscht" toast, ticket gone after reload).
+function deleteSucceeded(data: unknown): boolean {
+    return data === true || data === 'true';
+}
+
 async function deleteTicket(ticket: TicketRow) {
     if (!confirm('Sind Sie sicher? Sie können dies nicht rückgängig machen!')) return;
 
     try {
         const { data } = await axios.post(`/ticket.force_delete/${ticket.id}`);
-        if (data === 'true') {
+        if (deleteSucceeded(data)) {
             myTickets.value = myTickets.value.filter((t) => t.id !== ticket.id);
+            toast.success('Das Ticket wurde gelöscht.');
         } else {
             toast.error('Das Ticket konnte nicht gelöscht werden.');
         }
@@ -291,7 +301,7 @@ async function deleteKorsoTicket(ticket: KorsoTicketRow) {
 
     try {
         const { data } = await axios.post(`/korso/force_delete/${ticket.id}`);
-        if (data === 'true') {
+        if (deleteSucceeded(data)) {
             korsoTickets.value = korsoTickets.value.filter((t) => t.id !== ticket.id);
             toast.success('Das Ticket wurde dauerhaft gelöscht.');
         } else {

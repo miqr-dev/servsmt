@@ -3,17 +3,21 @@ import { Head, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import axios from 'axios';
 import {
+    ArrowLeftRight,
+    Check,
     ClipboardCopy,
     FileSpreadsheet,
     FileText,
     FileDown,
     IdCard,
+    Pencil,
     Printer,
     Search,
     X,
 } from '@lucide/vue';
 import { toast } from 'vue-sonner';
-import { computed, h, ref, watch } from 'vue';
+import { computed, h, ref, watch, type Directive } from 'vue';
+import RowActions, { type RowAction } from '@/components/RowActions.vue';
 import TablePagination from '@/components/table/TablePagination.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -50,6 +54,14 @@ import type { BreadcrumbItem } from '@/types';
  * row matching the current search/filter, not just the visible page (the
  * old buttons also exported all filtered rows). Excel/PDF are generated
  * server-side (Maatwebsite Excel / DomPDF); copy/CSV/print in the browser.
+ *
+ * Super_Admin only (2026-11-03), "Aktionen" column:
+ * - Vor-/Nachname tauschen: the Excel upload sometimes has the two columns
+ *   the wrong way round. Saved immediately; the toast offers "Rückgängig".
+ * - Benutzername ändern: the username cell turns into an input (Enter =
+ *   speichern, Esc = abbrechen).
+ * Backend: POST /participants/{id}/swap-names and /participants/{id}/username
+ * (ParticipantTicketTableController, route_access $SUPER + controller check).
  */
 
 type Row = {
@@ -134,6 +146,14 @@ function goToPage(p: number) {
 
 const rowNumber = (i: number) => (props.pagination.page - 1) * props.pagination.perPage + i + 1;
 
+// Local copy of the current page, so a row changed by an action below can be
+// replaced without reloading. Every server reload overwrites it again.
+const rows = ref<Row[]>([...props.participants]);
+watch(
+    () => props.participants,
+    (v) => (rows.value = [...v]),
+);
+
 // --- selection (kept across pages/searches) ---
 
 const selected = ref<Record<number, Row>>({});
@@ -154,16 +174,100 @@ function onRowClick(row: Row) {
     if (window.getSelection()?.toString()) return;
     toggle(row);
 }
-const allOnPageSelected = computed(() => props.participants.length > 0 && props.participants.every((r) => isSelected(r)));
+const allOnPageSelected = computed(() => rows.value.length > 0 && rows.value.every((r) => isSelected(r)));
 function togglePage() {
     const next = { ...selected.value };
-    if (allOnPageSelected.value) props.participants.forEach((r) => delete next[r.id]);
-    else props.participants.forEach((r) => (next[r.id] = r));
+    if (allOnPageSelected.value) rows.value.forEach((r) => delete next[r.id]);
+    else rows.value.forEach((r) => (next[r.id] = r));
     selected.value = next;
 }
 function clearSelection() {
     selected.value = {};
 }
+
+// --- row actions (Super_Admin only) ---
+
+const savingId = ref<number | null>(null);
+const editingId = ref<number | null>(null);
+const usernameDraft = ref('');
+
+/** Put the saved row back into the page (and into the selection, so printing uses the new values). */
+function applyRow(updated: Row) {
+    rows.value = rows.value.map((r) => (r.id === updated.id ? updated : r));
+    if (selected.value[updated.id]) selected.value = { ...selected.value, [updated.id]: updated };
+}
+
+function errorMessage(e: unknown, fallback: string): string {
+    const data = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data;
+    return data?.errors?.username?.[0] ?? data?.message ?? fallback;
+}
+
+async function swapNames(row: Row, isUndo = false) {
+    if (savingId.value !== null) return;
+    savingId.value = row.id;
+    try {
+        const { data } = await axios.post<Row>(`/participants/${row.id}/swap-names`);
+        applyRow(data);
+        if (isUndo) {
+            toast.success('Rückgängig gemacht.');
+        } else {
+            toast.success(`Getauscht: Vorname „${data.vorname ?? ''}“, Nachname „${data.nachname ?? ''}“`, {
+                action: { label: 'Rückgängig', onClick: () => swapNames(data, true) },
+            });
+        }
+    } catch (e) {
+        toast.error(errorMessage(e, 'Vor- und Nachname konnten nicht getauscht werden.'));
+    } finally {
+        savingId.value = null;
+    }
+}
+
+function startEditUsername(row: Row) {
+    editingId.value = row.id;
+    usernameDraft.value = row.username ?? '';
+}
+function cancelEditUsername() {
+    editingId.value = null;
+}
+
+async function saveUsername(row: Row) {
+    if (savingId.value !== null) return;
+    const value = usernameDraft.value.trim();
+    if (!value) {
+        toast.error('Der Benutzername darf nicht leer sein.');
+        return;
+    }
+    if (value === (row.username ?? '')) {
+        cancelEditUsername();
+        return;
+    }
+    savingId.value = row.id;
+    try {
+        const { data } = await axios.post<Row>(`/participants/${row.id}/username`, { username: value });
+        applyRow(data);
+        editingId.value = null;
+        toast.success('Benutzername gespeichert.');
+    } catch (e) {
+        toast.error(errorMessage(e, 'Der Benutzername konnte nicht gespeichert werden.'));
+    } finally {
+        savingId.value = null;
+    }
+}
+
+function rowActions(row: Row): RowAction[] {
+    return [
+        { icon: ArrowLeftRight, label: 'Vor- und Nachname tauschen', onClick: () => swapNames(row) },
+        { icon: Pencil, label: 'Benutzername ändern', onClick: () => startEditUsername(row) },
+    ];
+}
+
+/** Focus + select the username input when it appears. */
+const vFocus: Directive<HTMLInputElement> = {
+    mounted: (el) => {
+        el.focus();
+        el.select();
+    },
+};
 
 // --- exports ---
 
@@ -411,11 +515,12 @@ const btn = 'border-input hover:bg-accent inline-flex h-9 items-center gap-1.5 r
                             <th class="p-3 font-medium">Erstellt am</th>
                             <th class="p-3 font-medium">Erledigt am</th>
                             <th class="p-3 font-medium">Erledigt von</th>
+                            <th v-if="isSuperAdmin" class="p-3 text-right font-medium">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
                         <tr
-                            v-for="(row, i) in participants"
+                            v-for="(row, i) in rows"
                             :key="row.id"
                             class="cursor-pointer"
                             :class="isSelected(row) ? 'bg-primary/10' : 'hover:bg-muted/40'"
@@ -427,16 +532,50 @@ const btn = 'border-input hover:bg-accent inline-flex h-9 items-center gap-1.5 r
                             <td class="text-muted-foreground p-3">{{ rowNumber(i) }}</td>
                             <td class="p-3">{{ row.vorname }}</td>
                             <td class="p-3">{{ row.nachname }}</td>
-                            <td class="p-3 font-semibold">{{ row.username }}</td>
+                            <td class="p-3 font-semibold">
+                                <div v-if="editingId === row.id" class="flex items-center gap-1" @click.stop>
+                                    <input
+                                        v-model="usernameDraft"
+                                        v-focus
+                                        type="text"
+                                        aria-label="Benutzername"
+                                        class="border-input bg-background h-8 w-40 rounded-md border px-2 text-sm font-normal"
+                                        :disabled="savingId === row.id"
+                                        @keydown.enter.prevent="saveUsername(row)"
+                                        @keydown.esc.prevent="cancelEditUsername"
+                                    />
+                                    <button
+                                        type="button"
+                                        title="Speichern (Enter)"
+                                        class="text-primary hover:bg-accent inline-flex h-8 w-8 items-center justify-center rounded-md disabled:opacity-50"
+                                        :disabled="savingId === row.id"
+                                        @click="saveUsername(row)"
+                                    >
+                                        <Check class="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        title="Abbrechen (Esc)"
+                                        class="text-muted-foreground hover:bg-accent inline-flex h-8 w-8 items-center justify-center rounded-md"
+                                        @click="cancelEditUsername"
+                                    >
+                                        <X class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <template v-else>{{ row.username }}</template>
+                            </td>
                             <td class="p-3 font-mono">{{ row.password }}</td>
                             <td class="p-3">{{ row.course }}</td>
                             <td class="p-3">{{ row.location }}</td>
                             <td class="p-3 text-blue-600">{{ row.ticket_created_at }}</td>
                             <td class="p-3 text-green-600">{{ row.created_at }}</td>
                             <td class="p-3">{{ row.done_by }}</td>
+                            <td v-if="isSuperAdmin" class="p-3" :class="savingId === row.id ? 'pointer-events-none opacity-50' : ''" @click.stop>
+                                <RowActions :actions="rowActions(row)" />
+                            </td>
                         </tr>
-                        <tr v-if="!participants.length">
-                            <td colspan="11" class="text-muted-foreground p-8 text-center">
+                        <tr v-if="!rows.length">
+                            <td :colspan="isSuperAdmin ? 12 : 11" class="text-muted-foreground p-8 text-center">
                                 {{ search ? 'Nichts gefunden.' : 'Keine Teilnehmer vorhanden.' }}
                             </td>
                         </tr>

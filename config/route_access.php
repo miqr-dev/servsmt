@@ -49,7 +49,7 @@ return [
     'city/{city}/tickets/pdf' => $IT_ADMIN,
     'ticket.delete/{myTicket}' => $IT_ADMIN,      // Erledigt
     'ticket.delete2/{myTicket}' => $IT_ADMIN,     // Erledigt 2 (Neuer Mitarbeiter)
-    'ticket.force_delete/{id}' => $IT_ADMIN,
+    'ticket.force_delete/{id}' => null,           // owner or IT admin - checked in controller (2026-11-03)
     'ticket/assignTo' => $IT_ADMIN,
     'ticket/priority' => $IT_ADMIN,
     'ticket/status' => $IT_ADMIN,
@@ -63,6 +63,8 @@ return [
     'POST participants' => $IT_ADMIN,              // store stub (unused)
     'participants/{participant}' => $IT_ADMIN,     // incl. DELETE from the ticket page
     'participants/{participant}/edit' => $IT_ADMIN,
+    'participants/{participant}/swap-names' => $SUPER, // Teilnehmer Liste: Vor-/Nachname tauschen (2026-11-03)
+    'participants/{participant}/username' => $SUPER,   // Teilnehmer Liste: Benutzername ändern (2026-11-03)
     // old per-person / per-city debug views
     'individual/*' => $SUPER,
     'mammach' => $SUPER,
