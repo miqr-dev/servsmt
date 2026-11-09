@@ -287,12 +287,10 @@ class DashboardController extends Controller
 
     private function newsBar(): ?string
     {
-        $bar = NewsBar::find(1) ?? NewsBar::query()->orderBy('id')->first();
-        if (! $bar || $bar->isNewsBar !== 'on' || trim((string) $bar->name) === '') {
-            return null;
-        }
+        // Same rule as Einstellungen > Nachrichtenleiste (App\NewsBar).
+        $bar = NewsBar::current();
 
-        return $bar->name;
+        return $bar && $bar->isActive() ? $bar->name : null;
     }
 
     /**

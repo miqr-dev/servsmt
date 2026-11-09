@@ -29,7 +29,8 @@ const sections: { title: string; links: SettingsLink[] }[] = [
     {
         title: 'Publish News',
         links: [
-            { label: 'Dashboard Popup', href: '/settings/publish/popup/1' },
+            // shown on the IT ticket page, never on the Dashboard (renamed 2026-11-03)
+            { label: 'Popup (IT-Ticket-Seite)', href: '/settings/publish/popup/1' },
             { label: 'Nachrichtenleiste', href: '/settings/publish/newsbar/1' },
             { label: 'Standortbesuch', href: '/settings/standortbesuch' },
         ],

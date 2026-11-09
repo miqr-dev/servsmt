@@ -4,99 +4,56 @@ namespace App\Http\Controllers;
 
 use App\NewsBar;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
+/**
+ * Einstellungen > Nachrichtenleiste (2026-11-03: Blade form
+ * settings/publish/newsbar.blade.php -> Settings/NewsBar.vue).
+ * Same URLs as before: GET /settings/publish/newsbar/1 (route_access
+ * 'settings/*') and PUT /newsbar_update/1 ('newsbar_update/1'), both Super_Admin.
+ */
 class NewsBarController extends Controller
 {
-
-    public function news_bar_check ()
-    {
-      $check = NewsBar::find(1)->get()->toArray();
-      return $check;
-    }
-
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
+     * Old JSON endpoint of the old IT ticket page's scrolling bar. No converted
+     * page calls it any more; kept for the remaining Blade view.
      */
-    public function index()
+    public function news_bar_check()
     {
-        //
+        $check = NewsBar::find(1)->get()->toArray();
+        return $check;
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function show()
     {
-        //
+        $bar = NewsBar::current();
+
+        return Inertia::render('Settings/NewsBar', [
+            'message' => (string) ($bar->name ?? ''),
+            'published' => $bar ? $bar->isPublished() : false,
+            'active' => $bar ? $bar->isActive() : false,
+            'updatedAt' => $bar && $bar->updated_at ? $bar->updated_at->toIso8601String() : null,
+            'maxLength' => NewsBar::messageMaxLength(),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+    public function update(Request $request)
     {
-        //
-    }
+        $max = NewsBar::messageMaxLength();
+        $data = $request->validate([
+            'published' => ['required', 'boolean'],
+            // A message is only required while the bar is published.
+            'message' => array_values(array_filter(['nullable', 'required_if:published,true,1', 'string', $max ? "max:{$max}" : null])),
+        ], [
+            'message.required_if' => 'Bitte eine Nachricht eingeben, bevor die Leiste veröffentlicht wird.',
+        ], ['message' => 'Nachricht']);
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\NewsBar  $newsBar
-     * @return \Illuminate\Http\Response
-     */
-    public function show(NewsBar $newsBar)
-    {
-      $newsbar = NewsBar::find(1);
-      return view('settings.publish.newsbar',compact('newsbar'));
-    }
+        $bar = NewsBar::current() ?? new NewsBar(['id' => 1]);
+        $published = $request->boolean('published');
+        $bar->name = trim((string) ($data['message'] ?? ''));
+        $bar->isNewsBar = NewsBar::flagValue($published);
+        $bar->save();
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\NewsBar  $newsBar
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(NewsBar $newsBar)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\NewsBar  $newsBar
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, NewsBar $newsBar)
-    {
-          {
-      $request->validate([
-        'name' => 'required',
-    ]);
-        $newsbar = NewsBar::find(1);
-        $newsbar -> name = $request -> name;
-        $newsbar -> isNewsBar = $request -> isNewsBar;
-        $newsbar ->update();
-        return redirect()->route('home');
-    }
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\NewsBar  $newsBar
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(NewsBar $newsBar)
-    {
-        //
+        return back()->with('success', $published ? 'Nachrichtenleiste gespeichert und veröffentlicht.' : 'Nachrichtenleiste gespeichert (nicht veröffentlicht).');
     }
 }

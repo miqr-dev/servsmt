@@ -34,13 +34,10 @@ import type { BreadcrumbItem } from '@/types';
  * only other place they appear is the separate, out-of-scope
  * video_index.blade.php, removed 2026-09-28) - reproduced via plain axios against the existing
  * JSON endpoints, matching this app's "no useForm for non-CRUD AJAX"
- * convention. Worth noting for whoever touches NewsController next:
- * news_check()'s `News::find(1)->get()` doesn't do what it looks like -
- * Eloquent forwards the undefined ->get() call to a *fresh* query builder
- * with no id filter, so it returns every News row, not just id 1; result[0]
- * ends up being whichever row sorts first by default ordering. Preserved
- * as-is (reading result[0], same as the old jQuery) - not this page's bug
- * to fix.
+ * convention. news_check() returns a one-entry list with the row that
+ * Einstellungen > Popup edits; isPublished is 'on' only when it is published
+ * and not empty (2026-11-03 - before, `News::find(1)->get()` returned every
+ * News row).
  *
  * The old page's help videos ("Ticket-Erstellung Video Anschauen" /
  * inbox3.mp4, plus an unreachable smt3.mp4 modal) were removed 2026-09-28

@@ -70,6 +70,58 @@ class CommentHtml
         return self::trimEmpty($out);
     }
 
+    /**
+     * Comment text for the PDF views (Handwerk ticket PDF, Korso PDF), safe
+     * for {!! !!}. DomPDF cannot load /comment-files/{id} (not public, needs a
+     * login), so every picture becomes "[Bild]"; attachments are listed by
+     * name under the text. Old plain-text comments keep their line breaks.
+     *
+     * @param  \App\Comment|string|null  $comment
+     */
+    public static function forPdf($comment): string
+    {
+        $raw = is_string($comment) ? $comment : (string) ($comment->comment ?? '');
+        $html = SafeHtml::clean($raw);
+
+        if (stripos($html, '<img') !== false) {
+            $doc = new \DOMDocument;
+            $previous = libxml_use_internal_errors(true);
+            $doc->loadHTML('<?xml encoding="UTF-8"><div>'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET);
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+
+            $root = null;
+            foreach ($doc->childNodes as $child) {
+                if ($child instanceof \DOMElement) {
+                    $root = $child;
+                    break;
+                }
+            }
+            if ($root) {
+                foreach (iterator_to_array($root->getElementsByTagName('img')) as $img) {
+                    $img->parentNode?->replaceChild($doc->createTextNode('[Bild]'), $img);
+                }
+                $html = '';
+                foreach ($root->childNodes as $child) {
+                    $html .= $doc->saveHTML($child);
+                }
+            }
+        }
+        $html = self::trimEmpty($html);
+
+        $names = [];
+        if ($comment instanceof \App\Comment) {
+            $names = $comment->files->where('inline', false)->pluck('original_name')->filter()->all();
+        }
+        if ($names) {
+            $html .= '<div class="comment-files">Anhänge: '
+                .htmlspecialchars(implode(', ', $names), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                .'</div>';
+        }
+
+        return $html;
+    }
+
     /** nothing to read and no picture */
     public static function isEmpty(?string $html): bool
     {
