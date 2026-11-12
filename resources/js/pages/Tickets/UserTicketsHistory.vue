@@ -30,6 +30,7 @@ type NamedUser = { username: string } | null;
 
 type TicketRow = {
     id: number;
+    submitter?: number | null;
     problem_type: string;
     subUser: NamedUser;
     done_by: string | null;
@@ -64,6 +65,8 @@ const props = defineProps<{
     oldKorsoTickets: KorsoTicketRow[];
     myDoneCount: number;
     assignedCount: number;
+    /** IT tickets the user follows as Beteiligte(r) (2026-11-12) */
+    watchedTicketIds: number[];
 }>();
 
 defineOptions({
@@ -78,6 +81,11 @@ defineOptions({
 
 const page = usePage<{ auth: Auth }>();
 const roles = computed(() => page.props.auth.user?.roles ?? []);
+// Beteiligte (2026-11-12): done tickets of others the user followed
+const watchedIds = computed(() => new Set(props.watchedTicketIds ?? []));
+function isWatched(ticket: TicketRow): boolean {
+    return watchedIds.value.has(ticket.id) && Number(ticket.submitter) !== page.props.auth.user?.id;
+}
 const isSuperAdmin = computed(() => roles.value.includes('Super_Admin'));
 const canSeeKorso = computed(() => roles.value.includes('Verwaltung'));
 
@@ -156,6 +164,13 @@ const korsoTable = reactive(useDataTable(oldKorsoTickets, KORSO_COLUMNS));
                                     <Link :href="`/ticket/${ticket.id}`" class="text-primary font-semibold hover:underline">
                                         {{ ticket.problem_type }}
                                     </Link>
+                                    <span
+                                        v-if="isWatched(ticket)"
+                                        class="ml-2 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-sky-800 dark:bg-sky-950 dark:text-sky-200"
+                                        :title="`Sie waren beteiligt – erstellt von ${ticket.subUser?.username ?? 'Unbekannt'}`"
+                                    >
+                                        Mitverfolgt
+                                    </span>
                                 </td>
                                 <td class="p-3 font-semibold">{{ (isSuperAdmin ? ticket.subUser?.username : ticket.done_by) ?? '—' }}</td>
                                 <td class="p-3 font-semibold">{{ formatDate(ticket.deleted_at) }}</td>

@@ -45,6 +45,32 @@ class Ticket extends Model
   {
     return $this->belongsTo('App\User', 'submitter', 'id')->withTrashed();
   }
+
+  /**
+   * Beteiligte (2026-11-12, App\Support\TicketWatchers): colleagues the
+   * creator added. Removed (soft-deleted) users are left out.
+   */
+  public function watchers()
+  {
+    return $this->belongsToMany('App\User', 'ticket_watchers', 'ticket_id', 'user_id')->withTimestamps();
+  }
+
+  /**
+   * "Meine Tickets": created by, assigned to, or Beteiligte(r) of the user.
+   * assignedTo is a VARCHAR, so it is compared with a string (index use).
+   */
+  public function scopeMine($query, $userId)
+  {
+    $userId = (int) $userId;
+
+    return $query->where(function ($q) use ($userId) {
+      $q->where('submitter', $userId)
+        ->orWhere('assignedTo', (string) $userId)
+        ->orWhereIn('id', function ($sub) use ($userId) {
+          $sub->select('ticket_id')->from('ticket_watchers')->where('user_id', $userId);
+        });
+    });
+  }
   public function invitem()
   {
     return $this->belongsTo('App\InvItems', 'gname_id', 'id');

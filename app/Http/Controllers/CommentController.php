@@ -25,6 +25,7 @@ use App\Support\Notify;
 use App\CommentFile;
 use App\Support\CommentAccess;
 use App\Support\CommentHtml;
+use App\Support\TicketWatchers;
 use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
@@ -254,6 +255,11 @@ class CommentController extends Controller
    *   mailbox) and the assignee; Korso without assignee: all Korso_ma too.
    * - A reply also reaches the author of the comment it answers; that person
    *   reads "Antwort auf Ihren Kommentar", the others "neue Antwort".
+   * - IT tickets, Beteiligte (2026-11-12, App\Support\TicketWatchers): they
+   *   count as the creator. A comment by the creator or a Beteiligter goes to
+   *   the assignee (else the team) and to the other people of the ticket
+   *   (creator + Beteiligte); a comment by anyone else reaches the creator,
+   *   all Beteiligte and the assignee.
    * Before, a reply only reached the parent's author (also when that was the
    * writer, who then got a mail about their own reply).
    */
@@ -270,7 +276,9 @@ class CommentController extends Controller
 
     $users = collect();
     $toMailbox = false;
-    if ($writerId === $submitterId) {
+    $watchers = $model instanceof Ticket ? TicketWatchers::users($model) : collect();
+    $byWatcher = $watchers->contains(fn ($u) => (int) $u->id === $writerId);
+    if ($writerId === $submitterId || $byWatcher) {
       if ($assignee) {
         $users->push($assignee);
       } elseif ($model instanceof Handwerk) {
@@ -279,6 +287,10 @@ class CommentController extends Controller
         $users = $users->merge(User::role('Korso_ma')->get());
       } else {
         $users = $users->merge(User::role('Super_Admin')->get());
+      }
+      // a Beteiligter wrote: the creator reads it too
+      if ($byWatcher) {
+        $users->push(User::find($submitterId));
       }
     } else {
       if ($mailbox) {
@@ -292,6 +304,9 @@ class CommentController extends Controller
         $users = $users->merge(User::role('Korso_ma')->get());
       }
     }
+
+    // IT: every Beteiligter, like the creator (the writer is removed below)
+    $users = $users->merge($watchers);
 
     // reply: + the author of the answered comment
     $parentAuthorId = $parent ? (int) $parent->commenter_id : 0;

@@ -50,6 +50,7 @@ return [
     'ticket.delete/{myTicket}' => $IT_ADMIN,      // Erledigt
     'ticket.delete2/{myTicket}' => $IT_ADMIN,     // Erledigt 2 (Neuer Mitarbeiter)
     'ticket.force_delete/{id}' => null,           // owner or IT admin - checked in controller (2026-11-03)
+    'ticket/{ticket}/watchers' => null,           // Beteiligte: creator only - checked in controller (2026-11-12)
     'ticket/assignTo' => $IT_ADMIN,
     'ticket/priority' => $IT_ADMIN,
     'ticket/status' => $IT_ADMIN,

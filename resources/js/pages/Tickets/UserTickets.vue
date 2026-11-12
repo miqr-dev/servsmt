@@ -51,6 +51,7 @@ type InvItem = { gname: string | null } | null;
 
 type TicketRow = {
     id: number;
+    submitter?: number | null;
     ticket_status_id: number | null;
     priority_id: number;
     problem_type: string;
@@ -118,6 +119,8 @@ const props = defineProps<{
     assignedCount: number;
     myDoneCount: number;
     city: string | null;
+    /** IT tickets the user follows as Beteiligte(r) (2026-11-12) */
+    watchedTicketIds: number[];
 }>();
 
 defineOptions({
@@ -248,7 +251,16 @@ async function deleteTicket(ticket: TicketRow) {
     }
 }
 
+// Beteiligte (2026-11-12): tickets of others the user follows. They are marked
+// "Mitverfolgt" and can't be deleted from here (creator / IT only).
+const watchedIds = computed(() => new Set(props.watchedTicketIds ?? []));
+const isItStaff = computed(() => isSuperAdmin.value || roles.value.includes('admin'));
+function isWatched(ticket: TicketRow): boolean {
+    return watchedIds.value.has(ticket.id) && Number(ticket.submitter) !== currentUser.value?.id;
+}
+
 function ticketRowActions(ticket: TicketRow) {
+    if (isWatched(ticket) && !isItStaff.value) return [];
     return [{ icon: Trash2, label: 'Löschen', variant: 'destructive' as const, onClick: () => deleteTicket(ticket) }];
 }
 
@@ -453,6 +465,13 @@ const korsoFolderLinks = computed(() => [
                                 </td>
                                 <td class="p-3">
                                     <Link :href="`/ticket/${ticket.id}`" class="hover:underline">{{ ticket.problem_type }}</Link>
+                                    <span
+                                        v-if="isWatched(ticket)"
+                                        class="ml-2 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-sky-800 dark:bg-sky-950 dark:text-sky-200"
+                                        :title="`Sie sind beteiligt – erstellt von ${ticket.subUser?.username ?? 'Unbekannt'}`"
+                                    >
+                                        Mitverfolgt
+                                    </span>
                                 </td>
                                 <td class="p-3 font-semibold">
                                     {{ ticket.adComputer?.name ?? ticket.adPcDevice?.name ?? ticket.invitem?.gname ?? ticket.adDevice?.name ?? '—' }}

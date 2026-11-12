@@ -51,6 +51,8 @@ const telRoom = ref<number | string | null>('');
 
 const form = useForm({
     submitter: props.user.id,
+    // Beteiligte (SubmitterCard.vue, 2026-11-12)
+    watcher_ids: [] as string[],
     submitter_standort: props.user.ort ?? '',
     submitter_adresse: props.user.strasse ?? '',
     priority: '2',

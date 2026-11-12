@@ -133,6 +133,18 @@ class TicketMail
         return $model && is_object($notifiable) && isset($notifiable->id) && (int) $notifiable->id === (int) $model->submitter;
     }
 
+    /**
+     * True when the recipient is a Beteiligte(r) of the IT ticket (2026-11-12,
+     * App\Support\TicketWatchers): they read the creator's wording.
+     */
+    public static function isWatcher($notifiable, $model): bool
+    {
+        return $model instanceof Ticket
+            && ! ($notifiable instanceof AnonymousNotifiable)
+            && is_object($notifiable) && isset($notifiable->id)
+            && TicketWatchers::isWatcher($model, $notifiable->id);
+    }
+
     /** Submitter's full name from the ticket, else the payload value. */
     public static function submitterName($model, ?string $fallback = null): string
     {
@@ -184,7 +196,7 @@ class TicketMail
     /**
      * Standard event mail.
      *
-     * @param  string  $event  new | assigned | done | restored
+     * @param  string  $event  new | assigned | done | restored | added (Beteiligte, 2026-11-12)
      */
     public static function event(string $system, $id, string $event, $notifiable, array $payload, ?array $actor): MailMessage
     {
@@ -193,6 +205,8 @@ class TicketMail
         $title = trim((string) ($model->problem_type ?? $payload['problem_type'] ?? ''));
         $submitter = self::submitterName($model, $payload['submitter'] ?? null);
         $mine = self::isSubmitter($notifiable, $model);
+        $watching = ! $mine && self::isWatcher($notifiable, $model);
+        $ofSubmitter = $submitter !== '' ? ' von <strong>'.MailText::e($submitter).'</strong>' : '';
         $who = (string) ($actor['name'] ?? '');
         $whoRole = $who !== '' && ! empty($actor['role']) ? $who.' ('.$actor['role'].')' : $who;
         $byActor = $who !== '' ? ' von <strong>'.MailText::e($who).'</strong>' : '';
@@ -213,7 +227,16 @@ class TicketMail
             ],
             'done' => $mine
                 ? ['erledigt', 'Ihr '.$label.' wurde'.$byActor.' als erledigt markiert. Falls noch etwas fehlt, öffnen Sie das Ticket, stellen Sie es wieder her und schreiben Sie einen Kommentar.']
-                : ['erledigt'.($who !== '' ? ' von '.$who : ''), $actorDid.' '.$the.' als erledigt markiert.'],
+                : ($watching
+                    ? ['erledigt', 'Das '.$label.$ofSubmitter.', an dem Sie beteiligt sind, wurde'.$byActor.' als erledigt markiert. Falls noch etwas fehlt, öffnen Sie das Ticket, stellen Sie es wieder her und schreiben Sie einen Kommentar.']
+                    : ['erledigt'.($who !== '' ? ' von '.$who : ''), $actorDid.' '.$the.' als erledigt markiert.']),
+            'added' => [
+                'Sie wurden hinzugefügt',
+                ($who !== '' ? '<strong>'.MailText::e($who).'</strong> hat Sie' : 'Sie wurden')
+                    .($own || $submitter === '' ? ' zu einem '.$label : ' zum '.$label.$ofSubmitter)
+                    .' hinzugefügt.'
+                    .' Sie sehen es unter „Meine Tickets“, können den Verlauf mitverfolgen und kommentieren und werden wie der Ersteller über neue Kommentare und die Erledigung informiert.',
+            ],
             'restored' => $mine
                 ? ['wiederhergestellt', 'Ihr '.$label.' wurde'.$byActor.' wiederhergestellt und ist wieder offen.']
                 : ['wiederhergestellt', $actorDid.' '.$the.' wiederhergestellt. Es ist wieder offen.'],

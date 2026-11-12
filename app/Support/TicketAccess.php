@@ -10,6 +10,9 @@ namespace App\Support;
  *
  * Owner = the ticket's `submitter`. For Korso tickets submitted "als
  * Sekretariat" the members of that Sekretariat group count as owners too.
+ * IT tickets: the Beteiligte count as owners too (2026-11-12,
+ * App\Support\TicketWatchers) - except where $withBeteiligte is false
+ * (deleting the ticket for good stays creator / IT staff only).
  * Super_Admin always passes (App\User::hasRole).
  */
 class TicketAccess
@@ -19,12 +22,17 @@ class TicketAccess
     // handwerk is NOT staff: they only get tickets of their cities (below).
     public const HANDWERK_STAFF = ['handwerk_admin', 'Sekretariat'];
 
-    public static function authorize($ticket, array $staffRoles): void
+    public static function authorize($ticket, array $staffRoles, bool $withBeteiligte = true): void
     {
         $user = auth()->user();
         abort_unless($user, 401);
 
         if ($user->hasAnyRole($staffRoles) || (int) $ticket->submitter === (int) $user->id) {
+            return;
+        }
+
+        // IT ticket: Beteiligte may open, comment and restore like the creator
+        if ($withBeteiligte && $ticket instanceof \App\Ticket && TicketWatchers::isWatcher($ticket, $user->id)) {
             return;
         }
 

@@ -14,9 +14,11 @@ use Illuminate\Notifications\Notification;
  * IT ticket mails (TicketController). Payload 'title':
  *   Neues Ticket | Neuer Teilnehmer -> all Super_Admin
  *   Zugewiesen an                   -> the assignee
- *   Erledigt                        -> the submitter
+ *   Erledigt                        -> the submitter + the Beteiligte
  *   Wiederhergestellt               -> all Super_Admin
- *   Neuer Mitarbeiter               -> mailboxes (Erledigt 2)
+ *   Neuer Mitarbeiter               -> mailboxes (Erledigt 2), incl. submitter + Beteiligte
+ *   Hinzugefügt                     -> a colleague the creator added as Beteiligte(r)
+ *                                      (2026-11-12, App\Support\TicketWatchers)
  *
  * 2026-10-12: built with App\Support\TicketMail (subject "[IT #123] … – …",
  * full names, recipient-aware text, facts table). The person who triggered
@@ -64,6 +66,8 @@ class TicketNotification extends Notification
                 return TicketMail::event('IT', $id, 'done', $notifiable, $d, $this->actor);
             case 'Wiederhergestellt':
                 return TicketMail::event('IT', $id, 'restored', $notifiable, $d, $this->actor);
+            case 'Hinzugefügt':
+                return TicketMail::event('IT', $id, 'added', $notifiable, $d, $this->actor);
             case 'Neuer Mitarbeiter':
                 return $this->newEmployeeMail($d);
         }

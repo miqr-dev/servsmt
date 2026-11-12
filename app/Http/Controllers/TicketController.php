@@ -36,6 +36,7 @@ use Maatwebsite\Excel\Validators\ValidationException;
 use Inertia\Inertia;
 use App\Support\Notify;
 use App\Support\TicketAccess;
+use App\Support\TicketWatchers;
 use App\Support\NotificationLookup;
 use App\Support\AdLegacy;
 use Illuminate\Support\Facades\DB;
@@ -221,6 +222,8 @@ class TicketController extends Controller
       'now' => $now,
       'isSuperAdmin' => $isSuperAdmin,
       'availableSubmitterUsers' => $availableSubmitterUsers,
+      // "Beteiligte" picker of SubmitterCard.vue (2026-11-12): every active user
+      'watcherOptions' => TicketWatchers::options(),
     ];
   }
 
@@ -564,7 +567,11 @@ class TicketController extends Controller
       'ad_pc_device_ids.*' => 'integer|exists:ad_devices,id',
       // Neuer Mitarbeiter "Andere Email": "a; b; c" from the multi-select
       'email_custom' => 'nullable|string|max:255',
+      // Beteiligte (2026-11-12, App\Support\TicketWatchers)
+      'watcher_ids' => 'nullable|array|max:' . TicketWatchers::MAX,
+      'watcher_ids.*' => 'integer',
     ], [
+      'watcher_ids.max' => 'Höchstens ' . TicketWatchers::MAX . ' Beteiligte pro Ticket.',
       'email_custom.max' => 'Andere Email: zu viele Adressen (zusammen höchstens 255 Zeichen).',
     ]);
 
@@ -796,6 +803,9 @@ class TicketController extends Controller
       }
     }
 
+    // Beteiligte picked in the form; they get a "Hinzugefügt" mail
+    TicketWatchers::sync($ticket, (array) $request->input('watcher_ids', []), (int) $user->id);
+
     $notifications = [
       'title' => 'Neues Ticket',
       'ticket_id' => $ticket->id,
@@ -827,6 +837,8 @@ class TicketController extends Controller
     $user = Auth()->user();
     $request->validate([
       'submitter' => 'nullable|integer|exists:users,id',
+      'watcher_ids' => 'nullable|array|max:' . TicketWatchers::MAX,
+      'watcher_ids.*' => 'integer',
     ]);
 
     $admins = User::role('Super_Admin')->get();
@@ -848,6 +860,9 @@ class TicketController extends Controller
 
       // Then attempt the import
       Excel::import(new ParticipantTicketImport($ticket->id, $ticket->participant_location), $request->file('muster'));
+
+      // Beteiligte only once the import worked (a failed import removes the ticket)
+      TicketWatchers::sync($ticket, (array) $request->input('watcher_ids', []), (int) $user->id);
 
       $notifications = [
         'title' => 'Neuer Teilnehmer',
@@ -920,13 +935,14 @@ class TicketController extends Controller
     }
     $userCities = $viewCities ? [$user->id => $viewCities] : [];
 
-    $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user', 'adComputer:id,name', 'adDevice:id,name', 'adPcDevice:id,name'])->where('submitter', $user->id)->orWhere('assignedTo', $user->id)->orderBy('updated_at', 'DESC')->get();
+    // own, assigned and Beteiligte (Ticket::scopeMine, 2026-11-12)
+    $myTickets = Ticket::with('invitem.invroom.location.place')->with('printer.invroom.location.place')->with(['subUser', 'user', 'adComputer:id,name', 'adDevice:id,name', 'adPcDevice:id,name'])->mine($user->id)->orderBy('updated_at', 'DESC')->get();
 
-    $ticketsdone = Ticket::onlyTrashed()->where(function ($query) use ($user) {
-      $query->where('submitter', $user->id)->orWhere('assignedTo', $user->id);
-    })->count();
+    $ticketsdone = Ticket::onlyTrashed()->mine($user->id)->count();
 
-    $myTicketsCount = Ticket::where('submitter', $user->id)->orWhere('assignedTo', $user->id)->count();
+    $myTicketsCount = Ticket::mine($user->id)->count();
+    // IT tickets the user follows as Beteiligte(r): "Mitverfolgt" marker, no Löschen
+    $watchedTicketIds = TicketWatchers::ticketIdsFor($user->id);
 
     // Handwerk
     // City-wide lists only for Handwerk staff and Sekretariat (2026-09-30).
@@ -991,7 +1007,8 @@ class TicketController extends Controller
       'assignedCount',
       'myDoneCount',
       'city',
-      'handwerkCityWide'
+      'handwerkCityWide',
+      'watchedTicketIds'
     ));
   }
 
@@ -1020,12 +1037,10 @@ class TicketController extends Controller
     // ———————————————————————————————
     $oldTickets = Ticket::onlyTrashed()
       ->with('invitem.invroom.location.place', 'printer.invroom.location.place', 'subUser')
-      ->where(function ($q) use ($user) {
-        $q->where('submitter',   $user->id)
-          ->orWhere('assignedTo', $user->id);
-      })
+      ->mine($user->id) // own, assigned and Beteiligte (2026-11-12)
       ->orderBy('deleted_at', 'desc')
       ->get();
+    $watchedTicketIds = TicketWatchers::ticketIdsFor($user->id);
 
     // ———————————————————————————————
     // Korso history *for the whole group*:
@@ -1047,16 +1062,9 @@ class TicketController extends Controller
       ->count();
 
     // non-Korso counts stay the same
-    $ticketsdone    = Ticket::onlyTrashed()
-      ->where(function ($q) use ($user) {
-        $q->where('submitter',   $user->id)
-          ->orWhere('assignedTo', $user->id);
-      })
-      ->count();
+    $ticketsdone    = Ticket::onlyTrashed()->mine($user->id)->count();
 
-    $myTicketsCount = Ticket::where('submitter',   $user->id)
-      ->orWhere('assignedTo', $user->id)
-      ->count();
+    $myTicketsCount = Ticket::mine($user->id)->count();
 
     // 'user' dropped here too - same reasoning as usertickets() above.
     return Inertia::render('Tickets/UserTicketsHistory', compact(
@@ -1065,7 +1073,8 @@ class TicketController extends Controller
       'ticketsdone',
       'oldKorsoTickets',
       'myDoneCount',
-      'assignedCount'
+      'assignedCount',
+      'watchedTicketIds'
     ));
   }
 
@@ -1293,9 +1302,7 @@ class TicketController extends Controller
     return [
       'AllTicketsCount' => Ticket::whereNull('on_location')->count(),
       'UnassignedTicketsCount' => Ticket::whereNull('assignedTo')->whereNull('on_location')->count(),
-      'myTicketsCount' => Ticket::where(function ($q) use ($user) {
-        $q->where('submitter', $user->id)->orWhere('assignedTo', (string) $user->id);
-      })->count(),
+      'myTicketsCount' => Ticket::mine($user->id)->count(),
       'ticketCounts' => $ticketCounts,
     ];
   }
@@ -1381,9 +1388,7 @@ class TicketController extends Controller
 
     $done = Ticket::onlyTrashed()->count();
     $AllTicketsCount = Ticket::count(); // was Ticket::all()->count(): loaded every open ticket just to count
-    $myTicketsCount = Ticket::where(function ($q) use ($user) {
-      $q->where('submitter', $user->id)->orWhere('assignedTo', (string) $user->id);
-    })->count();
+    $myTicketsCount = Ticket::mine($user->id)->count();
     $mode = 'history';
     return Inertia::render('Tickets/AdminList', compact('user', 'myTickets', 'done', 'admins', 'myTicketsCount', 'AllTicketsCount', 'mode', 'pagination', 'filters'));
   }
@@ -1482,7 +1487,16 @@ class TicketController extends Controller
       ]
       : null;
 
+    // Beteiligte (2026-11-12): everyone who may open the ticket sees them,
+    // only the creator changes them (TicketWatcherController)
+    $watchers = TicketWatchers::forPage($ticket);
+    $canEditWatchers = (int) $ticket->submitter === (int) $user->id;
+    $watcherOptions = $canEditWatchers ? TicketWatchers::options((int) $ticket->submitter) : [];
+
     return Inertia::render('Tickets/Show', compact(
+      'watchers',
+      'canEditWatchers',
+      'watcherOptions',
       'ticket',
       'ad',
       'employeePassword',
@@ -1608,8 +1622,9 @@ class TicketController extends Controller
       'submitter' => $ticket->subUser->username,
       'problem_type' => $ticket->problem_type,
     ];
-    $submitter = $ticket->subUser;
-    Notify::send($submitter, new TicketNotification($notifications));
+    // the creator and the Beteiligte (2026-11-12)
+    $recipients = collect([$ticket->subUser])->merge(TicketWatchers::users($ticket))->filter()->unique('id')->values();
+    Notify::send($recipients, new TicketNotification($notifications));
 
     $ticket->delete();
     Comment::withTrashed()->where('commentable_type', Ticket::class)->where('commentable_id', $id)->restore();
@@ -1697,6 +1712,9 @@ class TicketController extends Controller
       'Patrick.Hertel@miqr.de',
       'Ara.Matoyan@miqr.de',
     ]);
+    // the Beteiligte get it like the creator (2026-11-12)
+    $all_receptions = $all_receptions->merge(TicketWatchers::users($ticket)->pluck('email'));
+
     // Split custom emails by semicolon, trim each email
     $customEmails = explode(';', $ticket->email_custom);
     $customEmails = array_map('trim', $customEmails);
@@ -1745,8 +1763,9 @@ class TicketController extends Controller
     $ticket = Ticket::findOrFail($id);
     // IT staff, or the submitter deleting their own ticket from Meine Tickets
     // (2026-11-03). The route is not role-gated in config/route_access.php,
-    // because a role alone can't express "own ticket".
-    TicketAccess::authorize($ticket, TicketAccess::IT_STAFF);
+    // because a role alone can't express "own ticket". Not the Beteiligte
+    // (2026-11-12); their rows go with the ticket (foreign key, cascade).
+    TicketAccess::authorize($ticket, TicketAccess::IT_STAFF, false);
 
     foreach ($admins as $admin) {
       NotificationLookup::forRecord($admin->notifications(), 'ticket', $id)->each(fn ($n) => $n->delete());

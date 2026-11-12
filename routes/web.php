@@ -434,6 +434,8 @@ Route::get('/ticket/{myTicket}', 'TicketController@show')->name('ticket.show');
 Route::post('/ticket.delete/{myTicket}', 'TicketController@destroy')->name('ticket.delete');
 Route::post('/ticket.delete2/{myTicket}', 'TicketController@mitarbeitersave')->name('ticket.delete2');
 Route::post('/ticket.restore/{myTicket}', 'TicketController@restore')->name('ticket.restore');
+// Beteiligte of an IT ticket, creator only (2026-11-12)
+Route::post('/ticket/{ticket}/watchers', 'TicketWatcherController@update')->name('ticket.watchers');
 Route::post('/ticket/assignTo', 'TicketController@assignedTo')->name('ticket.assignedTo');
 Route::post('/ticket/priority', 'TicketController@ticketPriority')->name('ticket.ticketPriority');
 Route::post('/ticket/status', 'TicketController@ticketStatus')->name('ticket.ticketStatus');

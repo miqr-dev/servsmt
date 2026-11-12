@@ -11,6 +11,7 @@ import BackButton from '@/components/BackButton.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { copyText } from '@/lib/clipboard';
 import CommentThread from '@/components/CommentThread.vue';
+import MultiCombobox, { type MultiOption } from '@/components/ui/combobox/MultiCombobox.vue';
 import type { CommentItem } from '@/components/CommentThread.vue';
 import { TICKET_VIEW_GROUPS, type AdContext, type Participant, type TicketDetail, type TicketViewContext } from '@/lib/ticketViewFields';
 import type { Auth, BreadcrumbItem } from '@/types';
@@ -67,6 +68,12 @@ const props = defineProps<{
     ad: AdContext | null;
     /** "Neuer Mitarbeiter", IT only: the Windows password the Erledigt-2 mail sends (Einstellungen > Neuer Mitarbeiter) */
     employeePassword?: { value: string; outdated: boolean; year: number } | null;
+    /** Beteiligte (2026-11-12, App\Support\TicketWatchers) */
+    watchers: { id: number; name: string; ort: string | null }[];
+    /** only the creator adds / removes Beteiligte */
+    canEditWatchers: boolean;
+    /** every active user except the creator (only sent to the creator) */
+    watcherOptions: MultiOption[];
 }>();
 
 defineOptions({
@@ -155,6 +162,38 @@ async function onStatusChange() {
         await axios.post('/ticket/status', { status: ticketStatusId.value, ticket_id: props.ticket.id });
     } catch {
         toast.error('Status konnte nicht gespeichert werden.');
+    }
+}
+
+// --- Beteiligte (2026-11-12) ---
+// Colleagues who follow the ticket like the creator (Meine Tickets, comments,
+// notifications). Everyone sees the list; only the creator changes it.
+
+const watcherList = ref([...props.watchers]);
+const savedWatcherIds = ref(props.watchers.map((w) => String(w.id)));
+const watcherIds = ref<string[]>([...savedWatcherIds.value]);
+const watchersDirty = computed(
+    () => [...watcherIds.value].sort().join(',') !== [...savedWatcherIds.value].sort().join(','),
+);
+const savingWatchers = ref(false);
+
+async function saveWatchers() {
+    savingWatchers.value = true;
+    try {
+        const { data } = await axios.post(`/ticket/${props.ticket.id}/watchers`, { user_ids: watcherIds.value.map(Number) });
+        watcherList.value = data.watchers;
+        savedWatcherIds.value = data.watchers.map((w: { id: number }) => String(w.id));
+        watcherIds.value = [...savedWatcherIds.value];
+        toast.success(
+            data.added > 0
+                ? `Beteiligte gespeichert. ${data.added === 1 ? 'Die neue Person wurde' : `${data.added} neue Personen wurden`} per E-Mail informiert.`
+                : 'Beteiligte gespeichert.',
+        );
+    } catch (e) {
+        const message = axios.isAxiosError(e) ? (e.response?.data?.message as string | undefined) : undefined;
+        toast.error(message || 'Beteiligte konnten nicht gespeichert werden.');
+    } finally {
+        savingWatchers.value = false;
     }
 }
 
@@ -345,6 +384,30 @@ async function deleteParticipant(participant: Participant) {
                             class="border-input bg-muted mt-1 h-9 w-full rounded-md border px-2 text-sm"
                             :value="ticket.subUser?.straße ?? ''"
                         />
+                    </div>
+                </div>
+
+                <div v-if="canEditWatchers || watcherList.length">
+                    <label class="text-muted-foreground text-xs">Beteiligte</label>
+                    <template v-if="canEditWatchers">
+                        <MultiCombobox v-model="watcherIds" :options="watcherOptions" placeholder="Kolleginnen und Kollegen hinzufügen…" class="mt-1" />
+                        <div class="mt-1 flex items-start justify-between gap-2">
+                            <p class="text-muted-foreground text-xs">Sehen das Ticket, können kommentieren und werden wie Sie benachrichtigt.</p>
+                            <button
+                                v-if="watchersDirty"
+                                type="button"
+                                :disabled="savingWatchers"
+                                class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-8 shrink-0 items-center rounded-md px-3 text-xs disabled:opacity-60"
+                                @click="saveWatchers"
+                            >
+                                Speichern
+                            </button>
+                        </div>
+                    </template>
+                    <div v-else class="mt-1 flex flex-wrap gap-1">
+                        <span v-for="w in watcherList" :key="w.id" class="bg-muted rounded px-1.5 py-0.5 text-xs" :title="w.ort ?? ''">
+                            {{ w.name }}
+                        </span>
                     </div>
                 </div>
 
